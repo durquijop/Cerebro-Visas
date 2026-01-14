@@ -1,104 +1,193 @@
-import { MongoClient } from 'mongodb'
-import { v4 as uuidv4 } from 'uuid'
-import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-// MongoDB connection
-let client
-let db
+// Initialize Supabase Admin client
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
-async function connectToMongo() {
-  if (!client) {
-    client = new MongoClient(process.env.MONGO_URL)
-    await client.connect()
-    db = client.db(process.env.DB_NAME)
-  }
-  return db
+// Utility function to add CORS headers
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
 }
 
-// Helper function to handle CORS
-function handleCORS(response) {
-  response.headers.set('Access-Control-Allow-Origin', process.env.CORS_ORIGINS || '*')
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  response.headers.set('Access-Control-Allow-Credentials', 'true')
-  return response
-}
-
-// OPTIONS handler for CORS
+// Handle OPTIONS requests for CORS
 export async function OPTIONS() {
-  return handleCORS(new NextResponse(null, { status: 200 }))
+  return NextResponse.json({}, { headers: corsHeaders() });
 }
 
-// Route handler function
-async function handleRoute(request, { params }) {
-  const { path = [] } = params
-  const route = `/${path.join('/')}`
-  const method = request.method
+export async function GET(request) {
+  const { pathname, searchParams } = new URL(request.url);
+  const path = pathname.replace('/api', '') || '/';
 
   try {
-    const db = await connectToMongo()
-
-    // Root endpoint - GET /api/root (since /api/ is not accessible with catch-all)
-    if (route === '/root' && method === 'GET') {
-      return handleCORS(NextResponse.json({ message: "Hello World" }))
-    }
-    // Root endpoint - GET /api/root (since /api/ is not accessible with catch-all)
-    if (route === '/' && method === 'GET') {
-      return handleCORS(NextResponse.json({ message: "Hello World" }))
-    }
-
-    // Status endpoints - POST /api/status
-    if (route === '/status' && method === 'POST') {
-      const body = await request.json()
-      
-      if (!body.client_name) {
-        return handleCORS(NextResponse.json(
-          { error: "client_name is required" }, 
-          { status: 400 }
-        ))
-      }
-
-      const statusObj = {
-        id: uuidv4(),
-        client_name: body.client_name,
-        timestamp: new Date()
-      }
-
-      await db.collection('status_checks').insertOne(statusObj)
-      return handleCORS(NextResponse.json(statusObj))
+    // Health check endpoint
+    if (path === '/' || path === '') {
+      return NextResponse.json(
+        { 
+          message: 'Cerebro Visas API is running',
+          version: '1.0.0',
+          timestamp: new Date().toISOString()
+        },
+        { headers: corsHeaders() }
+      );
     }
 
-    // Status endpoints - GET /api/status
-    if (route === '/status' && method === 'GET') {
-      const statusChecks = await db.collection('status_checks')
-        .find({})
-        .limit(1000)
-        .toArray()
+    // Get all cases
+    if (path === '/cases') {
+      const { data, error } = await supabaseAdmin
+        .from('cases')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      // Remove MongoDB's _id field from response
-      const cleanedStatusChecks = statusChecks.map(({ _id, ...rest }) => rest)
-      
-      return handleCORS(NextResponse.json(cleanedStatusChecks))
+      if (error) throw error;
+      return NextResponse.json({ cases: data }, { headers: corsHeaders() });
     }
 
-    // Route not found
-    return handleCORS(NextResponse.json(
-      { error: `Route ${route} not found` }, 
-      { status: 404 }
-    ))
+    // Get all documents
+    if (path === '/documents') {
+      const { data, error } = await supabaseAdmin
+        .from('documents')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return NextResponse.json({ documents: data }, { headers: corsHeaders() });
+    }
+
+    // Get statistics
+    if (path === '/stats') {
+      const [casesResult, docsResult, profilesResult] = await Promise.all([
+        supabaseAdmin.from('cases').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('documents').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true })
+      ]);
+
+      return NextResponse.json({
+        stats: {
+          totalCases: casesResult.count || 0,
+          totalDocuments: docsResult.count || 0,
+          totalUsers: profilesResult.count || 0
+        }
+      }, { headers: corsHeaders() });
+    }
+
+    return NextResponse.json(
+      { error: 'Route not found' },
+      { status: 404, headers: corsHeaders() }
+    );
 
   } catch (error) {
-    console.error('API Error:', error)
-    return handleCORS(NextResponse.json(
-      { error: "Internal server error" }, 
-      { status: 500 }
-    ))
+    console.error('API Error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Internal server error' },
+      { status: 500, headers: corsHeaders() }
+    );
   }
 }
 
-// Export all HTTP methods
-export const GET = handleRoute
-export const POST = handleRoute
-export const PUT = handleRoute
-export const DELETE = handleRoute
-export const PATCH = handleRoute
+export async function POST(request) {
+  const { pathname } = new URL(request.url);
+  const path = pathname.replace('/api', '') || '/';
+
+  try {
+    const body = await request.json();
+
+    // Create a new case
+    if (path === '/cases') {
+      const { title, description, visa_category, outcome, filed_date, service_center, created_by } = body;
+      
+      const { data, error } = await supabaseAdmin
+        .from('cases')
+        .insert({
+          title,
+          description,
+          visa_category: visa_category || 'EB-2 NIW',
+          outcome: outcome || 'pending',
+          filed_date,
+          service_center,
+          created_by
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return NextResponse.json({ case: data }, { status: 201, headers: corsHeaders() });
+    }
+
+    // Create a new document
+    if (path === '/documents') {
+      const { name, description, case_id, storage_path, doc_type, created_by } = body;
+      
+      const { data, error } = await supabaseAdmin
+        .from('documents')
+        .insert({
+          name,
+          description,
+          case_id,
+          storage_path,
+          doc_type: doc_type || 'RFE',
+          created_by
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return NextResponse.json({ document: data }, { status: 201, headers: corsHeaders() });
+    }
+
+    return NextResponse.json(
+      { error: 'Route not found' },
+      { status: 404, headers: corsHeaders() }
+    );
+
+  } catch (error) {
+    console.error('API Error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Internal server error' },
+      { status: 500, headers: corsHeaders() }
+    );
+  }
+}
+
+export async function PUT(request) {
+  const { pathname } = new URL(request.url);
+  const path = pathname.replace('/api', '') || '/';
+
+  try {
+    const body = await request.json();
+
+    // Update user role (admin only)
+    if (path.startsWith('/users/') && path.endsWith('/role')) {
+      const userId = path.split('/')[2];
+      const { role } = body;
+
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .update({ role })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return NextResponse.json({ profile: data }, { headers: corsHeaders() });
+    }
+
+    return NextResponse.json(
+      { error: 'Route not found' },
+      { status: 404, headers: corsHeaders() }
+    );
+
+  } catch (error) {
+    console.error('API Error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Internal server error' },
+      { status: 500, headers: corsHeaders() }
+    );
+  }
+}
