@@ -222,9 +222,9 @@ export default function DocumentDetailPage() {
               <div className="flex items-center space-x-2">
                 <User className="h-4 w-4 text-gray-400" />
                 <div>
-                  <p className="text-gray-500">Subido por</p>
-                  <p className="font-medium">
-                    {document.profiles?.full_name || 'Usuario'}
+                  <p className="text-gray-500">ID Documento</p>
+                  <p className="font-medium text-xs">
+                    {document.id?.substring(0, 8)}...
                   </p>
                 </div>
               </div>
