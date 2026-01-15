@@ -557,11 +557,19 @@ export default function CasosPage() {
                             <SelectTrigger className="bg-navy-primary border-navy-light text-gold-subtle">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="bg-navy-secondary border-navy-light max-h-60">
-                              {DOC_TYPES.map(type => (
-                                <SelectItem key={type.value} value={type.value} className="text-gold-subtle">
-                                  {type.label}
-                                </SelectItem>
+                            <SelectContent className="bg-navy-secondary border-navy-light max-h-80">
+                              {/* Agrupar por categoría */}
+                              {[...new Set(DOC_TYPES.map(d => d.category))].map(category => (
+                                <div key={category}>
+                                  <div className="px-2 py-1.5 text-xs font-semibold text-gold-primary bg-navy-primary sticky top-0">
+                                    {category}
+                                  </div>
+                                  {DOC_TYPES.filter(d => d.category === category).map(type => (
+                                    <SelectItem key={type.value} value={type.value} className="text-gold-subtle pl-4">
+                                      {type.label}
+                                    </SelectItem>
+                                  ))}
+                                </div>
                               ))}
                             </SelectContent>
                           </Select>
