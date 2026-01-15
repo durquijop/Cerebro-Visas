@@ -43,7 +43,7 @@ export default function DashboardClient({ user, profile, stats }) {
     ] : []),
     // Admin & Attorney
     ...(profile?.role === 'admin' || profile?.role === 'attorney' ? [
-      { href: '/cases', icon: FolderOpen, label: 'Casos', desc: 'Ver todos los casos' },
+      { href: '/casos', icon: FolderOpen, label: 'Casos', desc: 'Ver todos los casos' },
       { href: '/trends', icon: TrendingUp, label: 'Tendencias', desc: 'Dashboard de análisis' },
     ] : []),
     // Admin, Attorney & Drafter
