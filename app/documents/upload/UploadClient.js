@@ -437,8 +437,16 @@ export default function UploadClient({ userId, cases, userRole }) {
               <Button onClick={resetForm} variant="outline" className="flex-1">
                 Subir Otro Documento
               </Button>
-              <Button onClick={() => router.push('/documents')} className="flex-1">
-                Ver Todos los Documentos
+              {result.document?.id && (
+                <Button 
+                  onClick={() => router.push(`/documents/${result.document.id}`)} 
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                >
+                  Ver Documento
+                </Button>
+              )}
+              <Button onClick={() => router.push('/documents')} variant="outline" className="flex-1">
+                Ver Todos
               </Button>
             </div>
           </div>
