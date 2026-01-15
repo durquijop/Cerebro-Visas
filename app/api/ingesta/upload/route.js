@@ -13,7 +13,7 @@ const supabaseAdmin = createClient(
  */
 async function extractTextFromPDF(buffer) {
   try {
-    const pdfParse = (await import('pdf-parse/lib/pdf-parse.js')).default
+    const pdfParse = require('pdf-parse')
     const data = await pdfParse(buffer)
     return {
       success: true,
