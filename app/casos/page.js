@@ -176,16 +176,46 @@ export default function CasosPage() {
       return
     }
 
+    if (!newCase.beneficiary_name.trim()) {
+      toast.error('El nombre del beneficiario es requerido')
+      return
+    }
+
+    if (!cvFile) {
+      toast.error('El CV del beneficiario es obligatorio')
+      return
+    }
+
+    if (!cvAnalysis) {
+      toast.error('Primero debes analizar el CV')
+      return
+    }
+
     setCreatingCase(true)
     try {
+      // 1. Crear el caso con el análisis de aptitud
       const res = await fetch('/api/casos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newCase)
+        body: JSON.stringify({
+          ...newCase,
+          cv_analysis: cvAnalysis
+        })
       })
       const data = await res.json()
       
       if (!res.ok) throw new Error(data.error)
+      
+      // 2. Subir el CV al caso
+      const formData = new FormData()
+      formData.append('file', cvFile)
+      formData.append('case_id', data.case.id)
+      formData.append('doc_type', 'cv')
+
+      await fetch('/api/casos/documents/upload', {
+        method: 'POST',
+        body: formData
+      })
       
       setCases([data.case, ...cases])
       setShowNewCaseDialog(false)
@@ -198,14 +228,54 @@ export default function CasosPage() {
         filed_date: '',
         service_center: ''
       })
-      toast.success('Caso creado exitosamente')
+      setCvFile(null)
+      setCvAnalysis(null)
+      toast.success('Caso creado con análisis de aptitud')
       
       // Seleccionar el nuevo caso
-      setSelectedCase(data.case)
+      loadCaseDetails(data.case.id)
     } catch (error) {
       toast.error(error.message)
     } finally {
       setCreatingCase(false)
+    }
+  }
+
+  const handleAnalyzeCv = async () => {
+    if (!cvFile) {
+      toast.error('Primero selecciona un CV')
+      return
+    }
+
+    if (!newCase.visa_category) {
+      toast.error('Selecciona la categoría de visa primero')
+      return
+    }
+
+    setAnalyzingCv(true)
+    setCvAnalysis(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', cvFile)
+      formData.append('visa_category', newCase.visa_category)
+      formData.append('beneficiary_name', newCase.beneficiary_name || 'Candidato')
+
+      const res = await fetch('/api/casos/analyze-cv', {
+        method: 'POST',
+        body: formData
+      })
+
+      const data = await res.json()
+      
+      if (!res.ok) throw new Error(data.error)
+      
+      setCvAnalysis(data.analysis)
+      toast.success('CV analizado exitosamente')
+    } catch (error) {
+      toast.error('Error al analizar CV: ' + error.message)
+    } finally {
+      setAnalyzingCv(false)
     }
   }
 
