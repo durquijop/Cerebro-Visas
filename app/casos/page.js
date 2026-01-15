@@ -105,6 +105,8 @@ export default function CasosPage() {
   const [showNewCaseDialog, setShowNewCaseDialog] = useState(false)
   const [showUploadDialog, setShowUploadDialog] = useState(false)
   const [showAnalysisDialog, setShowAnalysisDialog] = useState(false)
+  const [showDocumentDialog, setShowDocumentDialog] = useState(false)
+  const [selectedDocument, setSelectedDocument] = useState(null)
   const [analysisResult, setAnalysisResult] = useState(null)
   const [analyzing, setAnalyzing] = useState(false)
   
