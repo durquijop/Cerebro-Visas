@@ -961,41 +961,103 @@ export default function CasosPage() {
                         {selectedCase.documents.map((doc) => (
                           <div 
                             key={doc.id} 
-                            className="flex items-center justify-between p-3 bg-navy-primary rounded-lg border border-navy-light hover:border-gold-muted cursor-pointer transition-colors"
+                            className={`p-3 bg-navy-primary rounded-lg border hover:border-gold-muted cursor-pointer transition-colors ${
+                              doc.doc_type === 'cv' && selectedCase.cv_analysis 
+                                ? 'border-purple-500/50' 
+                                : 'border-navy-light'
+                            }`}
                             onClick={() => handleViewDocument(doc)}
                           >
-                            <div className="flex items-center space-x-3">
-                              <FileText className="h-6 w-6 text-gold-muted" />
-                              <div>
-                                <p className="text-gold-subtle font-medium">{doc.original_name}</p>
-                                <div className="flex items-center space-x-2 mt-1">
-                                  <span className="text-xs px-2 py-0.5 rounded bg-navy-light text-gold-muted">
-                                    {getDocTypeLabel(doc.doc_type)}
-                                  </span>
-                                  <span className="text-xs text-gold-muted">
-                                    {doc.word_count?.toLocaleString()} palabras
-                                  </span>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <FileText className={`h-6 w-6 ${doc.doc_type === 'cv' ? 'text-purple-400' : 'text-gold-muted'}`} />
+                                <div>
+                                  <p className="text-gold-subtle font-medium">{doc.original_name}</p>
+                                  <div className="flex items-center space-x-2 mt-1">
+                                    <span className={`text-xs px-2 py-0.5 rounded ${
+                                      doc.doc_type === 'cv' ? 'bg-purple-500/20 text-purple-300' : 'bg-navy-light text-gold-muted'
+                                    }`}>
+                                      {getDocTypeLabel(doc.doc_type)}
+                                    </span>
+                                    <span className="text-xs text-gold-muted">
+                                      {doc.word_count?.toLocaleString()} palabras
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
+                              <div className="flex items-center gap-2">
+                                {doc.analysis_summary && (
+                                  <span className="text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-300">
+                                    Analizado
+                                  </span>
+                                )}
+                                <Eye className="h-4 w-4 text-gold-muted" />
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleDeleteDocument(doc.id)
+                                  }}
+                                  className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                                  title="Eliminar documento"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              {doc.analysis_summary && (
-                                <span className="text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-300">
-                                  Analizado
-                                </span>
-                              )}
-                              <Eye className="h-4 w-4 text-gold-muted" />
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleDeleteDocument(doc.id)
-                                }}
-                                className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
-                                title="Eliminar documento"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
+                            
+                            {/* Resumen de Aptitud para CV */}
+                            {doc.doc_type === 'cv' && selectedCase.cv_analysis && (
+                              <div className="mt-3 pt-3 border-t border-navy-light">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <Brain className="h-5 w-5 text-purple-400" />
+                                    <span className="text-sm text-gold-muted">Análisis de Aptitud</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-xl font-bold ${
+                                      selectedCase.cv_analysis.aptitude_score >= 70 ? 'text-green-400' :
+                                      selectedCase.cv_analysis.aptitude_score >= 50 ? 'text-yellow-400' :
+                                      'text-red-400'
+                                    }`}>
+                                      {selectedCase.cv_analysis.aptitude_score}%
+                                    </span>
+                                    <span className={`text-xs px-2 py-1 rounded ${
+                                      selectedCase.cv_analysis.recommendation === 'ALTAMENTE RECOMENDADO' ? 'bg-green-500/20 text-green-400' :
+                                      selectedCase.cv_analysis.recommendation === 'RECOMENDADO' ? 'bg-green-500/20 text-green-300' :
+                                      selectedCase.cv_analysis.recommendation === 'POSIBLE CON MEJORAS' ? 'bg-yellow-500/20 text-yellow-400' :
+                                      'bg-red-500/20 text-red-400'
+                                    }`}>
+                                      {selectedCase.cv_analysis.recommendation}
+                                    </span>
+                                  </div>
+                                </div>
+                                <p className="text-xs text-gold-muted mt-2 line-clamp-2">
+                                  {selectedCase.cv_analysis.summary}
+                                </p>
+                                <div className="flex items-center gap-4 mt-2">
+                                  {selectedCase.cv_analysis.prong_analysis && (
+                                    <>
+                                      <span className="text-xs text-gold-muted">
+                                        P1: <span className={selectedCase.cv_analysis.prong_analysis.prong1?.score >= 60 ? 'text-green-400' : 'text-yellow-400'}>
+                                          {selectedCase.cv_analysis.prong_analysis.prong1?.score}%
+                                        </span>
+                                      </span>
+                                      <span className="text-xs text-gold-muted">
+                                        P2: <span className={selectedCase.cv_analysis.prong_analysis.prong2?.score >= 60 ? 'text-green-400' : 'text-yellow-400'}>
+                                          {selectedCase.cv_analysis.prong_analysis.prong2?.score}%
+                                        </span>
+                                      </span>
+                                      <span className="text-xs text-gold-muted">
+                                        P3: <span className={selectedCase.cv_analysis.prong_analysis.prong3?.score >= 60 ? 'text-green-400' : 'text-yellow-400'}>
+                                          {selectedCase.cv_analysis.prong_analysis.prong3?.score}%
+                                        </span>
+                                      </span>
+                                    </>
+                                  )}
+                                  <span className="text-xs text-purple-300 ml-auto">Click para ver más →</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
