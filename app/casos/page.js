@@ -15,7 +15,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { 
   Brain, FolderOpen, Plus, FileText, Upload, CheckCircle, 
   AlertTriangle, XCircle, Clock, Loader2, Eye, Trash2,
-  Sparkles, FileUp, X, ChevronRight, BarChart3, Check, ChevronsUpDown, Search
+  Sparkles, FileUp, X, ChevronRight, BarChart3, Check, ChevronsUpDown, Search, ArrowLeft
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
