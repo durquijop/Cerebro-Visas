@@ -24,7 +24,7 @@ export default function SignUpPage() {
     setLoading(true)
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -37,11 +37,16 @@ export default function SignUpPage() {
 
       if (error) throw error
 
-      toast.success('¡Cuenta creada! Revisa tu email para verificar.')
-      router.push('/auth/verify')
+      // Si la confirmación de email está desactivada, redirigir directo al dashboard
+      if (data.session) {
+        toast.success('¡Cuenta creada exitosamente!')
+        window.location.href = '/dashboard'
+      } else {
+        toast.success('¡Cuenta creada! Revisa tu email para verificar.')
+        router.push('/auth/verify')
+      }
     } catch (error) {
       toast.error(error.message || 'Error al crear la cuenta')
-    } finally {
       setLoading(false)
     }
   }
