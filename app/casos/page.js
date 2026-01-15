@@ -569,26 +569,76 @@ export default function CasosPage() {
                         </div>
                         <div className="space-y-2">
                           <Label className="text-gold-subtle">Tipo de Documento</Label>
-                          <Select value={uploadDocType} onValueChange={setUploadDocType}>
-                            <SelectTrigger className="bg-navy-primary border-navy-light text-gold-subtle">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-navy-secondary border-navy-light max-h-80">
-                              {/* Agrupar por categoría */}
-                              {[...new Set(DOC_TYPES.map(d => d.category))].map(category => (
-                                <div key={category}>
-                                  <div className="px-2 py-1.5 text-xs font-semibold text-gold-primary bg-navy-primary sticky top-0">
-                                    {category}
+                          <Popover open={docTypeOpen} onOpenChange={setDocTypeOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={docTypeOpen}
+                                className="w-full justify-between bg-navy-primary border-navy-light text-gold-subtle hover:bg-navy-light"
+                              >
+                                {uploadDocType
+                                  ? DOC_TYPES.find((d) => d.value === uploadDocType)?.label
+                                  : "Seleccionar tipo..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[400px] p-0 bg-navy-secondary border-navy-light" align="start">
+                              <div className="flex items-center border-b border-navy-light px-3">
+                                <Search className="mr-2 h-4 w-4 shrink-0 text-gold-muted" />
+                                <input
+                                  placeholder="Buscar tipo de documento..."
+                                  value={docTypeSearch}
+                                  onChange={(e) => setDocTypeSearch(e.target.value)}
+                                  className="flex h-10 w-full bg-transparent py-3 text-sm text-gold-subtle placeholder:text-gold-muted outline-none"
+                                />
+                                {docTypeSearch && (
+                                  <button onClick={() => setDocTypeSearch('')} className="text-gold-muted hover:text-gold-subtle">
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                )}
+                              </div>
+                              <div className="max-h-[300px] overflow-auto">
+                                {filteredDocTypes.length === 0 ? (
+                                  <div className="py-6 text-center text-sm text-gold-muted">
+                                    No se encontraron documentos
                                   </div>
-                                  {DOC_TYPES.filter(d => d.category === category).map(type => (
-                                    <SelectItem key={type.value} value={type.value} className="text-gold-subtle pl-4">
-                                      {type.label}
-                                    </SelectItem>
-                                  ))}
-                                </div>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                                ) : (
+                                  [...new Set(filteredDocTypes.map(d => d.category))].map(category => (
+                                    <div key={category}>
+                                      <div className="px-3 py-2 text-xs font-semibold text-gold-primary bg-navy-primary sticky top-0">
+                                        {category}
+                                      </div>
+                                      {filteredDocTypes.filter(d => d.category === category).map(docType => (
+                                        <button
+                                          key={docType.value}
+                                          onClick={() => {
+                                            setUploadDocType(docType.value)
+                                            setDocTypeOpen(false)
+                                            setDocTypeSearch('')
+                                          }}
+                                          className={cn(
+                                            "flex w-full items-center px-3 py-2 text-sm cursor-pointer hover:bg-navy-light",
+                                            uploadDocType === docType.value 
+                                              ? "bg-gold-primary/10 text-gold-primary" 
+                                              : "text-gold-subtle"
+                                          )}
+                                        >
+                                          <Check
+                                            className={cn(
+                                              "mr-2 h-4 w-4",
+                                              uploadDocType === docType.value ? "opacity-100" : "opacity-0"
+                                            )}
+                                          />
+                                          {docType.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
                         </div>
                         {uploading && (
                           <div className="space-y-2">
