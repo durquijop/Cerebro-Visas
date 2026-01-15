@@ -35,20 +35,64 @@ const CASE_OUTCOMES = [
 ]
 
 const DOC_TYPES = [
-  { value: 'petition', label: 'Petición I-140' },
-  { value: 'cover_letter', label: 'Cover Letter' },
-  { value: 'brief', label: 'Legal Brief' },
-  { value: 'recommendation', label: 'Carta de Recomendación' },
-  { value: 'cv', label: 'CV / Resume' },
-  { value: 'business_plan', label: 'Business Plan' },
-  { value: 'econometric', label: 'Estudio Econométrico' },
-  { value: 'evidence', label: 'Evidencia de Logros' },
-  { value: 'rfe_response', label: 'Respuesta a RFE' },
-  { value: 'rfe_document', label: 'Documento RFE (USCIS)' },
-  { value: 'noid_document', label: 'Documento NOID (USCIS)' },
-  { value: 'approval_notice', label: 'Notificación de Aprobación' },
-  { value: 'denial_notice', label: 'Notificación de Denegación' },
-  { value: 'other', label: 'Otro' }
+  // Formularios USCIS
+  { value: 'i140', label: 'Formulario I-140 (Petition for Alien Worker)', category: 'Formularios USCIS' },
+  { value: 'i907', label: 'Formulario I-907 (Premium Processing)', category: 'Formularios USCIS' },
+  { value: 'g1450', label: 'Formulario G-1450 (Authorization Credit Card)', category: 'Formularios USCIS' },
+  { value: 'g1145', label: 'Formulario G-1145 (E-Notification)', category: 'Formularios USCIS' },
+  
+  // Documentos de Inmigración
+  { value: 'i94', label: 'I-94 (Registro de Entrada)', category: 'Documentos Inmigración' },
+  { value: 'passport', label: 'Pasaporte (bio page + visas)', category: 'Documentos Inmigración' },
+  { value: 'visa', label: 'Visa actual/anterior', category: 'Documentos Inmigración' },
+  
+  // Carta NIW
+  { value: 'niw_letter', label: 'Carta Autopetición NIW completa', category: 'Carta NIW' },
+  
+  // Project Documentation
+  { value: 'policy_paper', label: '1.1 Policy Paper', category: 'Project Documentation' },
+  { value: 'white_paper', label: '1.2 White Paper', category: 'Project Documentation' },
+  { value: 'econometric', label: '1.3 Econometric Study', category: 'Project Documentation' },
+  { value: 'mvp', label: '1.4 MVP Documentation', category: 'Project Documentation' },
+  { value: 'patent', label: '1.5 Patent Documentation', category: 'Project Documentation' },
+  { value: 'libro', label: '1.6 Libro/Publicación', category: 'Project Documentation' },
+  
+  // CV
+  { value: 'cv', label: 'Curriculum Vitae', category: 'CV' },
+  
+  // Certificates
+  { value: 'titulo', label: 'Títulos Académicos', category: 'Certificates of Study' },
+  { value: 'certificado_academico', label: 'Certificados Académicos', category: 'Certificates of Study' },
+  
+  // Expert Evaluation
+  { value: 'expert_evaluation', label: 'Expert Evaluation Letter (firmada + CV + ID)', category: 'Expert Evaluation' },
+  
+  // Recommendation Letters
+  { value: 'recommendation', label: 'Carta de Recomendación (firmada + credenciales)', category: 'Recommendation Letters' },
+  
+  // Employment
+  { value: 'employment', label: 'Carta Laboral (fechas, cargo, funciones)', category: 'Employment Letters' },
+  
+  // Letter of Intent
+  { value: 'intent_letter', label: 'Letter of Intent (firmada + CV + ID)', category: 'Letter of Intent' },
+  
+  // Family Documents
+  { value: 'family_i94', label: 'I-94 Familiares', category: 'Documents Family' },
+  { value: 'family_passport', label: 'Pasaportes Familiares', category: 'Documents Family' },
+  { value: 'family_visa', label: 'Visas Familiares', category: 'Documents Family' },
+  
+  // Traducciones
+  { value: 'translation', label: 'Documento Traducido al Inglés', category: 'Traducciones' },
+  
+  // RFE/NOID/Respuestas
+  { value: 'rfe_document', label: 'Documento RFE (de USCIS)', category: 'RFE/NOID' },
+  { value: 'noid_document', label: 'Documento NOID (de USCIS)', category: 'RFE/NOID' },
+  { value: 'rfe_response', label: 'Respuesta a RFE', category: 'RFE/NOID' },
+  { value: 'approval_notice', label: 'Notificación de Aprobación', category: 'Resultado' },
+  { value: 'denial_notice', label: 'Notificación de Denegación', category: 'Resultado' },
+  
+  // Otro
+  { value: 'other', label: 'Otro documento', category: 'Otro' }
 ]
 
 export default function CasosPage() {
