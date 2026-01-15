@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -10,13 +10,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { 
   Brain, FolderOpen, Plus, FileText, Upload, CheckCircle, 
   AlertTriangle, XCircle, Clock, Loader2, Eye, Trash2,
-  Sparkles, FileUp, X, ChevronRight, BarChart3
+  Sparkles, FileUp, X, ChevronRight, BarChart3, Check, ChevronsUpDown, Search
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 const VISA_CATEGORIES = [
   { value: 'EB2-NIW', label: 'EB-2 NIW (National Interest Waiver)' },
