@@ -219,7 +219,7 @@ PERFIL DEL BENEFICIARIO (${beneficiaryName}):
 
   return `Eres un experto abogado de inmigración de EE.UU. especializado en visas ${visaCategory}.
 
-TAREA PRINCIPAL: Evaluar si este documento es VÁLIDO y ÚTIL para el caso de ${beneficiaryName} que está solicitando una visa ${visaCategory}.
+PREGUNTA PRINCIPAL: ¿Este documento APOYA al cliente ${beneficiaryName} en su proceso de visa ${visaCategory}?
 
 ${cvContext}
 
@@ -230,33 +230,33 @@ DOCUMENTO A EVALUAR:
 CONTENIDO DEL DOCUMENTO:
 ${docText.substring(0, 10000)}
 
-ANÁLISIS REQUERIDO:
-1. ¿Este documento es VÁLIDO para el perfil de ${beneficiaryName}?
-2. ¿Ayuda a fortalecer su caso de ${visaCategory}?
-3. ¿Por qué sí o por qué no?
+DEBES DETERMINAR:
+1. ¿Este documento APOYA o NO APOYA al cliente en su proceso de visa?
+2. Si APOYA: ¿Por qué ayuda? ¿Qué fortalece del caso?
+3. Si NO APOYA: ¿Por qué no sirve? ¿Qué problema tiene?
 
 Responde ÚNICAMENTE en este formato JSON:
 {
-  "is_valid": <true/false - ¿Es válido para este perfil?>,
-  "validity_reason": "<Explicación clara de por qué ES o NO ES válido para este usuario>",
-  "relevance_score": <0-100 - qué tan relevante es para el caso>,
-  "quality_score": <0-100 - calidad del documento como evidencia>,
-  "recommendation": "<MUY ÚTIL | ÚTIL | PARCIALMENTE ÚTIL | POCO ÚTIL | NO VÁLIDO>",
-  "summary": "<Resumen de 2-3 oraciones sobre qué aporta este documento al caso>",
-  "how_helps_case": "<Explicación específica de cómo este documento ayuda (o no) al caso de visa>",
+  "supports_client": <true/false - ¿APOYA al cliente en su proceso de visa?>,
+  "support_level": "<APOYA FUERTEMENTE | APOYA | APOYA PARCIALMENTE | NO APOYA | PERJUDICA>",
+  "main_reason": "<Razón principal de por qué APOYA o NO APOYA al cliente - ser muy claro y directo>",
+  "relevance_score": <0-100>,
+  "recommendation": "<INCLUIR | INCLUIR CON RESERVAS | REVISAR | NO INCLUIR>",
+  "summary": "<Resumen de 2-3 oraciones>",
+  "benefits_for_case": ["<beneficio 1>", "<beneficio 2>"],
+  "risks_or_problems": ["<riesgo o problema 1>", "<riesgo o problema 2>"],
   "supports_prongs": {
-    "prong1": {"supports": true/false, "explanation": "<cómo apoya el mérito e importancia nacional>"},
-    "prong2": {"supports": true/false, "explanation": "<cómo demuestra que está bien posicionado>"},
-    "prong3": {"supports": true/false, "explanation": "<cómo ayuda en el balance de factores>"}
+    "prong1": {"supports": true/false, "explanation": "<cómo apoya o no el mérito e importancia nacional>"},
+    "prong2": {"supports": true/false, "explanation": "<cómo apoya o no que está bien posicionado>"},
+    "prong3": {"supports": true/false, "explanation": "<cómo apoya o no el balance de factores>"}
   },
-  "matches_profile": {
-    "strengthens": ["<qué fortalezas del CV refuerza>"],
-    "addresses_weaknesses": ["<qué debilidades del CV ayuda a cubrir>"],
-    "mismatches": ["<inconsistencias con el perfil, si las hay>"]
+  "relation_to_profile": {
+    "strengthens": ["<qué del perfil refuerza>"],
+    "covers_weaknesses": ["<qué debilidades del perfil cubre>"],
+    "inconsistencies": ["<inconsistencias con el perfil, si hay>"]
   },
-  "strengths": ["<fortalezas del documento>"],
-  "weaknesses": ["<debilidades o problemas del documento>"],
-  "action_items": ["<qué hacer para maximizar el valor de este documento>"],
-  "verdict": "<APROBAR - Incluir en el caso | REVISAR - Necesita ajustes | RECHAZAR - No usar>"
+  "action_required": "<NINGUNA | OBTENER MÁS INFO | MODIFICAR DOCUMENTO | DESCARTAR>",
+  "action_details": "<Qué hacer con este documento>",
+  "final_verdict": "<✅ APOYA AL CLIENTE - Usar en el caso | ⚠️ APOYO PARCIAL - Usar con cuidado | ❌ NO APOYA - No usar>"
 }`
 }
