@@ -773,11 +773,20 @@ export default function CasosPage() {
                                 </div>
                               </div>
                             </div>
-                            {doc.analysis_summary && (
-                              <span className="text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-300">
-                                Analizado
-                              </span>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {doc.analysis_summary && (
+                                <span className="text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-300">
+                                  Analizado
+                                </span>
+                              )}
+                              <button
+                                onClick={() => handleDeleteDocument(doc.id)}
+                                className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                                title="Eliminar documento"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
