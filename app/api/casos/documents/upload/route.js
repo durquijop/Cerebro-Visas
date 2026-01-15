@@ -1,41 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { v4 as uuidv4 } from 'uuid'
+import { extractText, normalizeText } from '@/lib/document-processor'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
-
-async function extractTextFromPDF(buffer) {
-  try {
-    const pdfParse = require('pdf-parse')
-    const data = await pdfParse(buffer)
-    return { success: true, text: data.text, numPages: data.numpages }
-  } catch (error) {
-    return { success: false, error: error.message, text: '' }
-  }
-}
-
-async function extractTextFromDOCX(buffer) {
-  try {
-    const mammoth = await import('mammoth')
-    const result = await mammoth.extractRawText({ buffer })
-    return { success: true, text: result.value }
-  } catch (error) {
-    return { success: false, error: error.message, text: '' }
-  }
-}
-
-async function extractText(buffer, filename) {
-  const ext = filename.toLowerCase().split('.').pop()
-  switch (ext) {
-    case 'pdf': return await extractTextFromPDF(buffer)
-    case 'docx': return await extractTextFromDOCX(buffer)
-    case 'txt': return { success: true, text: buffer.toString('utf-8') }
-    default: return { success: false, error: 'Formato no soportado', text: '' }
-  }
-}
 
 export async function POST(request) {
   try {
@@ -52,6 +23,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'case_id es requerido' }, { status: 400 })
     }
 
+    console.log(`📤 Subiendo archivo: ${file.name} para caso ${caseId}`)
+
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
@@ -60,17 +33,27 @@ export async function POST(request) {
     const storagePath = `casos/${caseId}/${fileId}.${fileExt}`
 
     // Subir a storage
-    await supabaseAdmin.storage
+    const { error: storageError } = await supabaseAdmin.storage
       .from('documents')
       .upload(storagePath, buffer, {
         contentType: file.type,
         cacheControl: '3600'
       })
 
-    // Extraer texto
+    if (storageError) {
+      console.error('Storage error:', storageError)
+      // Continuar aunque falle el storage - el texto aún se puede procesar
+    }
+
+    // Extraer texto usando el procesador mejorado
+    console.log('🔍 Extrayendo texto del documento...')
     const extraction = await extractText(buffer, file.name)
-    const cleanText = extraction.text?.replace(/\s+/g, ' ').trim() || ''
+    
+    // Normalizar el texto extraído
+    const cleanText = normalizeText(extraction.text || '')
     const wordCount = cleanText.split(/\s+/).filter(w => w.length > 0).length
+
+    console.log(`📊 Extracción: success=${extraction.success}, palabras=${wordCount}, método=${extraction.method || 'N/A'}`)
 
     // Guardar en BD
     const { data: document, error: dbError } = await supabaseAdmin
@@ -86,16 +69,38 @@ export async function POST(request) {
         char_count: cleanText.length,
         word_count: wordCount,
         page_count: extraction.numPages || null,
-        extraction_success: extraction.success
+        extraction_success: extraction.success,
+        extraction_method: extraction.method || null,
+        extraction_error: extraction.error || null
       })
       .select()
       .single()
 
-    if (dbError) throw dbError
+    if (dbError) {
+      console.error('Database error:', dbError)
+      throw dbError
+    }
 
-    return NextResponse.json({ success: true, document })
+    console.log(`✅ Documento guardado: ${fileId}`)
+
+    return NextResponse.json({ 
+      success: true, 
+      document,
+      extraction: {
+        success: extraction.success,
+        wordCount,
+        charCount: cleanText.length,
+        pageCount: extraction.numPages,
+        method: extraction.method,
+        error: extraction.error,
+        suggestion: extraction.suggestion
+      }
+    })
   } catch (error) {
     console.error('Upload error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ 
+      error: error.message,
+      details: 'Error al procesar el documento'
+    }, { status: 500 })
   }
 }
