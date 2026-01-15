@@ -9,7 +9,7 @@ export async function middleware(request) {
   const pathname = request.nextUrl.pathname
 
   // Check if it's a public route or API
-  const isPublicRoute = publicRoutes.some(route => pathname === route) || pathname.startsWith('/api')
+  const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/')) || pathname.startsWith('/api')
   
   if (isPublicRoute) {
     return supabaseResponse
