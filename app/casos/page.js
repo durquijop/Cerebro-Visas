@@ -982,6 +982,16 @@ export default function CasosPage() {
                                     <span className="text-xs text-gold-muted">
                                       {doc.word_count?.toLocaleString()} palabras
                                     </span>
+                                    {/* Indicador de aptitud para CV */}
+                                    {doc.doc_type === 'cv' && selectedCase.cv_analysis && (
+                                      <span className={`text-xs font-bold ${
+                                        selectedCase.cv_analysis.aptitude_score >= 70 ? 'text-green-400' :
+                                        selectedCase.cv_analysis.aptitude_score >= 50 ? 'text-yellow-400' :
+                                        'text-red-400'
+                                      }`}>
+                                        • {selectedCase.cv_analysis.aptitude_score}% Aptitud
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -1004,60 +1014,6 @@ export default function CasosPage() {
                                 </button>
                               </div>
                             </div>
-                            
-                            {/* Resumen de Aptitud para CV */}
-                            {doc.doc_type === 'cv' && selectedCase.cv_analysis && (
-                              <div className="mt-3 pt-3 border-t border-navy-light">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <Brain className="h-5 w-5 text-purple-400" />
-                                    <span className="text-sm text-gold-muted">Análisis de Aptitud</span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <span className={`text-xl font-bold ${
-                                      selectedCase.cv_analysis.aptitude_score >= 70 ? 'text-green-400' :
-                                      selectedCase.cv_analysis.aptitude_score >= 50 ? 'text-yellow-400' :
-                                      'text-red-400'
-                                    }`}>
-                                      {selectedCase.cv_analysis.aptitude_score}%
-                                    </span>
-                                    <span className={`text-xs px-2 py-1 rounded ${
-                                      selectedCase.cv_analysis.recommendation === 'ALTAMENTE RECOMENDADO' ? 'bg-green-500/20 text-green-400' :
-                                      selectedCase.cv_analysis.recommendation === 'RECOMENDADO' ? 'bg-green-500/20 text-green-300' :
-                                      selectedCase.cv_analysis.recommendation === 'POSIBLE CON MEJORAS' ? 'bg-yellow-500/20 text-yellow-400' :
-                                      'bg-red-500/20 text-red-400'
-                                    }`}>
-                                      {selectedCase.cv_analysis.recommendation}
-                                    </span>
-                                  </div>
-                                </div>
-                                <p className="text-xs text-gold-muted mt-2 line-clamp-2">
-                                  {selectedCase.cv_analysis.summary}
-                                </p>
-                                <div className="flex items-center gap-4 mt-2">
-                                  {selectedCase.cv_analysis.prong_analysis && (
-                                    <>
-                                      <span className="text-xs text-gold-muted">
-                                        P1: <span className={selectedCase.cv_analysis.prong_analysis.prong1?.score >= 60 ? 'text-green-400' : 'text-yellow-400'}>
-                                          {selectedCase.cv_analysis.prong_analysis.prong1?.score}%
-                                        </span>
-                                      </span>
-                                      <span className="text-xs text-gold-muted">
-                                        P2: <span className={selectedCase.cv_analysis.prong_analysis.prong2?.score >= 60 ? 'text-green-400' : 'text-yellow-400'}>
-                                          {selectedCase.cv_analysis.prong_analysis.prong2?.score}%
-                                        </span>
-                                      </span>
-                                      <span className="text-xs text-gold-muted">
-                                        P3: <span className={selectedCase.cv_analysis.prong_analysis.prong3?.score >= 60 ? 'text-green-400' : 'text-yellow-400'}>
-                                          {selectedCase.cv_analysis.prong_analysis.prong3?.score}%
-                                        </span>
-                                      </span>
-                                    </>
-                                  )}
-                                  <span className="text-xs text-purple-300 ml-auto">Click para ver más →</span>
-                                </div>
-                              </div>
-                            )}
                           </div>
                         ))}
                       </div>
