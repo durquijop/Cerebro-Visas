@@ -103,8 +103,22 @@ export async function POST(request) {
         if (analysisResult.success) {
           aiAnalysis = analysisResult.data
 
-          // Guardar el análisis en una tabla separada (si existe)
-          // Por ahora lo incluimos en la respuesta
+          // Guardar los issues extraídos en la tabla issues
+          if (aiAnalysis.issues && aiAnalysis.issues.length > 0) {
+            const issuesToInsert = aiAnalysis.issues.map(issue => ({
+              case_id: caseId || null,
+              document_id: fileId,
+              taxonomy_code: issue.taxonomy_code,
+              severity: issue.severity || 'medium',
+              description: issue.description,
+              extracted_quote: issue.quote,
+              page_ref: issue.page_reference
+            }))
+
+            await supabaseAdmin
+              .from('issues')
+              .insert(issuesToInsert)
+          }
         }
       } catch (aiError) {
         console.error('AI analysis error:', aiError)
