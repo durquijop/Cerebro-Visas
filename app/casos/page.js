@@ -475,7 +475,7 @@ export default function CasosPage() {
                       <Plus className="h-4 w-4 mr-1" /> Nuevo
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="bg-navy-secondary border-navy-light max-w-lg">
+                  <DialogContent className="bg-navy-secondary border-navy-light max-w-2xl max-h-[90vh] overflow-auto">
                     <DialogHeader>
                       <DialogTitle className="text-gold-subtle">Crear Nuevo Caso</DialogTitle>
                       <DialogDescription className="text-gold-muted">
