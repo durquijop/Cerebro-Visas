@@ -103,6 +103,15 @@ export async function POST(request) {
         if (analysisResult.success) {
           aiAnalysis = analysisResult.data
 
+          // Guardar el análisis en el documento
+          await supabaseAdmin
+            .from('documents')
+            .update({ 
+              ai_analysis: aiAnalysis,
+              analyzed_at: new Date().toISOString()
+            })
+            .eq('id', fileId)
+
           // Guardar los issues extraídos en la tabla issues
           if (aiAnalysis.issues && aiAnalysis.issues.length > 0) {
             const issuesToInsert = aiAnalysis.issues.map(issue => ({
