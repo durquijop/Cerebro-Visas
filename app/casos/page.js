@@ -784,7 +784,7 @@ export default function CasosPage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <Select value={selectedCase.outcome} onValueChange={updateCaseOutcome}>
+                        <Select value={selectedCase.outcome || 'pending'} onValueChange={updateCaseOutcome}>
                           <SelectTrigger className="w-40 bg-navy-primary border-navy-light text-gold-subtle">
                             <SelectValue />
                           </SelectTrigger>
