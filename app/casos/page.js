@@ -1445,93 +1445,94 @@ export default function CasosPage() {
                   )
                 }
                 
+                const supportsClient = analysis.supports_client !== false && analysis.relevance_score >= 50
+                
                 return (
-                  <div className="border border-blue-500/30 rounded-lg overflow-hidden">
-                    {/* Header - Validez del documento */}
+                  <div className={`border rounded-lg overflow-hidden ${
+                    supportsClient ? 'border-green-500/30' : 'border-red-500/30'
+                  }`}>
+                    {/* Header - ¿Apoya al cliente? */}
                     <div 
                       className={`px-4 py-3 cursor-pointer transition-colors ${
-                        analysis.is_valid === false ? 'bg-red-500/20 hover:bg-red-500/30' :
-                        analysis.relevance_score >= 70 ? 'bg-green-500/20 hover:bg-green-500/30' :
-                        analysis.relevance_score >= 50 ? 'bg-yellow-500/20 hover:bg-yellow-500/30' :
-                        'bg-blue-500/20 hover:bg-blue-500/30'
+                        analysis.support_level === 'APOYA FUERTEMENTE' ? 'bg-green-500/30 hover:bg-green-500/40' :
+                        analysis.support_level === 'APOYA' ? 'bg-green-500/20 hover:bg-green-500/30' :
+                        analysis.support_level === 'APOYA PARCIALMENTE' ? 'bg-yellow-500/20 hover:bg-yellow-500/30' :
+                        analysis.support_level === 'PERJUDICA' ? 'bg-red-600/30 hover:bg-red-600/40' :
+                        'bg-red-500/20 hover:bg-red-500/30'
                       }`}
                       onClick={() => setShowFullAnalysis(!showFullAnalysis)}
                     >
                       {/* Veredicto principal */}
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          {analysis.is_valid === false ? (
-                            <XCircle className="h-6 w-6 text-red-400" />
-                          ) : analysis.verdict === 'APROBAR' ? (
-                            <CheckCircle className="h-6 w-6 text-green-400" />
-                          ) : analysis.verdict === 'REVISAR' ? (
-                            <AlertTriangle className="h-6 w-6 text-yellow-400" />
+                          {supportsClient ? (
+                            <CheckCircle className="h-7 w-7 text-green-400" />
                           ) : (
-                            <Sparkles className="h-6 w-6 text-blue-400" />
+                            <XCircle className="h-7 w-7 text-red-400" />
                           )}
-                          <h4 className="font-semibold text-gold-subtle">
-                            {analysis.is_valid === false ? '❌ Documento NO VÁLIDO para este perfil' :
-                             analysis.verdict === 'APROBAR' ? '✅ Documento VÁLIDO - Incluir en el caso' :
-                             analysis.verdict === 'REVISAR' ? '⚠️ Documento REQUIERE REVISIÓN' :
-                             'Análisis del Documento'}
-                          </h4>
+                          <div>
+                            <h4 className="font-bold text-lg text-gold-subtle">
+                              {supportsClient ? '✅ APOYA AL CLIENTE' : '❌ NO APOYA AL CLIENTE'}
+                            </h4>
+                            <p className="text-sm text-gold-muted">{analysis.support_level || 'Sin determinar'}</p>
+                          </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <div className={`text-2xl font-bold ${
+                          <div className={`text-3xl font-bold ${
                             analysis.relevance_score >= 70 ? 'text-green-400' :
                             analysis.relevance_score >= 50 ? 'text-yellow-400' :
                             'text-red-400'
                           }`}>
                             {analysis.relevance_score || 0}%
                           </div>
-                          <span className={`text-sm px-3 py-1 rounded-full ${
-                            analysis.recommendation === 'MUY ÚTIL' ? 'bg-green-500/30 text-green-400' :
-                            analysis.recommendation === 'ÚTIL' ? 'bg-green-500/20 text-green-300' :
-                            analysis.recommendation === 'PARCIALMENTE ÚTIL' ? 'bg-yellow-500/20 text-yellow-400' :
-                            analysis.recommendation === 'NO VÁLIDO' ? 'bg-red-500/30 text-red-400' :
-                            'bg-red-500/20 text-red-400'
+                          <span className={`text-sm px-3 py-1 rounded-full font-medium ${
+                            analysis.recommendation === 'INCLUIR' ? 'bg-green-500/30 text-green-400' :
+                            analysis.recommendation === 'INCLUIR CON RESERVAS' ? 'bg-yellow-500/30 text-yellow-400' :
+                            analysis.recommendation === 'REVISAR' ? 'bg-orange-500/30 text-orange-400' :
+                            'bg-red-500/30 text-red-400'
                           }`}>
                             {analysis.recommendation || 'N/A'}
                           </span>
                         </div>
                       </div>
 
-                      {/* Por qué es válido o no */}
-                      {analysis.validity_reason && (
-                        <div className={`p-2 rounded mb-2 ${
-                          analysis.is_valid === false ? 'bg-red-500/10' : 'bg-green-500/10'
-                        }`}>
-                          <p className="text-sm text-gold-muted">
-                            <strong>{analysis.is_valid === false ? '❌ Razón:' : '✅ Validez:'}</strong> {analysis.validity_reason}
-                          </p>
-                        </div>
-                      )}
+                      {/* Razón principal */}
+                      <div className={`p-3 rounded-lg mb-3 ${supportsClient ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                        <p className="text-sm font-medium text-gold-subtle">
+                          {supportsClient ? '¿Por qué APOYA?' : '¿Por qué NO APOYA?'}
+                        </p>
+                        <p className="text-gold-muted">{analysis.main_reason}</p>
+                      </div>
                       
                       {/* Resumen */}
-                      <p className="text-gold-muted text-sm">{analysis.summary}</p>
+                      <p className="text-gold-muted text-sm mb-3">{analysis.summary}</p>
 
-                      {/* Cómo ayuda al caso */}
-                      {analysis.how_helps_case && (
-                        <p className="text-gold-muted text-sm mt-2">
-                          <strong>📋 Para el caso:</strong> {analysis.how_helps_case}
-                        </p>
+                      {/* Veredicto final */}
+                      {analysis.final_verdict && (
+                        <div className={`p-2 rounded text-center font-medium ${
+                          analysis.final_verdict.includes('APOYA AL CLIENTE') ? 'bg-green-500/20 text-green-400' :
+                          analysis.final_verdict.includes('PARCIAL') ? 'bg-yellow-500/20 text-yellow-400' :
+                          'bg-red-500/20 text-red-400'
+                        }`}>
+                          {analysis.final_verdict}
+                        </div>
                       )}
                       
                       {/* Soporte a Prongs */}
                       {analysis.supports_prongs && (
                         <div className="flex items-center gap-4 mt-3">
                           <span className="text-sm text-gold-muted">
-                            P1: {analysis.supports_prongs.prong1?.supports ? 
+                            Prong 1: {analysis.supports_prongs.prong1?.supports ? 
                               <span className="text-green-400 font-bold">✓ Apoya</span> : 
                               <span className="text-red-400">✗ No</span>}
                           </span>
                           <span className="text-sm text-gold-muted">
-                            P2: {analysis.supports_prongs.prong2?.supports ? 
+                            Prong 2: {analysis.supports_prongs.prong2?.supports ? 
                               <span className="text-green-400 font-bold">✓ Apoya</span> : 
                               <span className="text-red-400">✗ No</span>}
                           </span>
                           <span className="text-sm text-gold-muted">
-                            P3: {analysis.supports_prongs.prong3?.supports ? 
+                            Prong 3: {analysis.supports_prongs.prong3?.supports ? 
                               <span className="text-green-400 font-bold">✓ Apoya</span> : 
                               <span className="text-red-400">✗ No</span>}
                           </span>
@@ -1545,98 +1546,97 @@ export default function CasosPage() {
                     
                     {/* Detalle expandible */}
                     {showFullAnalysis && (
-                      <div className="p-4 space-y-4 border-t border-blue-500/30">
+                      <div className="p-4 space-y-4 border-t border-navy-light">
+                        {/* Beneficios para el caso */}
+                        {analysis.benefits_for_case?.length > 0 && (
+                          <div>
+                            <h5 className="text-sm font-medium text-green-400 mb-2">✅ Beneficios para el Caso</h5>
+                            <ul className="space-y-1">
+                              {analysis.benefits_for_case.map((b, i) => (
+                                <li key={i} className="text-sm text-gold-muted flex items-start">
+                                  <CheckCircle className="h-4 w-4 mr-2 text-green-400 flex-shrink-0 mt-0.5" />
+                                  {b}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Riesgos o problemas */}
+                        {analysis.risks_or_problems?.length > 0 && (
+                          <div>
+                            <h5 className="text-sm font-medium text-red-400 mb-2">⚠️ Riesgos o Problemas</h5>
+                            <ul className="space-y-1">
+                              {analysis.risks_or_problems.map((r, i) => (
+                                <li key={i} className="text-sm text-gold-muted flex items-start">
+                                  <AlertTriangle className="h-4 w-4 mr-2 text-red-400 flex-shrink-0 mt-0.5" />
+                                  {r}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
                         {/* Cómo apoya cada Prong */}
                         {analysis.supports_prongs && (
                           <div className="grid grid-cols-3 gap-3">
                             <div className={`p-3 rounded-lg ${analysis.supports_prongs.prong1?.supports ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
                               <p className="text-sm font-medium text-gold-muted mb-1">Prong 1 - Mérito Nacional</p>
-                              <p className="text-xs text-gold-muted">{analysis.supports_prongs.prong1?.explanation || analysis.supports_prongs.prong1?.how || 'N/A'}</p>
+                              <p className="text-xs text-gold-muted">{analysis.supports_prongs.prong1?.explanation || 'N/A'}</p>
                             </div>
                             <div className={`p-3 rounded-lg ${analysis.supports_prongs.prong2?.supports ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
                               <p className="text-sm font-medium text-gold-muted mb-1">Prong 2 - Bien Posicionado</p>
-                              <p className="text-xs text-gold-muted">{analysis.supports_prongs.prong2?.explanation || analysis.supports_prongs.prong2?.how || 'N/A'}</p>
+                              <p className="text-xs text-gold-muted">{analysis.supports_prongs.prong2?.explanation || 'N/A'}</p>
                             </div>
                             <div className={`p-3 rounded-lg ${analysis.supports_prongs.prong3?.supports ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
                               <p className="text-sm font-medium text-gold-muted mb-1">Prong 3 - Balance</p>
-                              <p className="text-xs text-gold-muted">{analysis.supports_prongs.prong3?.explanation || analysis.supports_prongs.prong3?.how || 'N/A'}</p>
+                              <p className="text-xs text-gold-muted">{analysis.supports_prongs.prong3?.explanation || 'N/A'}</p>
                             </div>
                           </div>
                         )}
 
-                        {/* Relación con el perfil del usuario */}
-                        {analysis.matches_profile && (
+                        {/* Relación con el perfil */}
+                        {analysis.relation_to_profile && (
                           <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/30">
-                            <h5 className="text-sm font-medium text-purple-400 mb-2">🔗 Relación con el Perfil del Beneficiario</h5>
-                            {analysis.matches_profile.strengthens?.length > 0 && (
+                            <h5 className="text-sm font-medium text-purple-400 mb-2">🔗 Relación con el Perfil del Cliente</h5>
+                            {analysis.relation_to_profile.strengthens?.length > 0 && (
                               <div className="mb-2">
-                                <p className="text-xs text-green-400 font-medium">Refuerza estas fortalezas:</p>
+                                <p className="text-xs text-green-400 font-medium">Refuerza:</p>
                                 <ul className="text-xs text-gold-muted">
-                                  {analysis.matches_profile.strengthens.map((s, i) => <li key={i}>• {s}</li>)}
+                                  {analysis.relation_to_profile.strengthens.map((s, i) => <li key={i}>• {s}</li>)}
                                 </ul>
                               </div>
                             )}
-                            {analysis.matches_profile.addresses_weaknesses?.length > 0 && (
+                            {analysis.relation_to_profile.covers_weaknesses?.length > 0 && (
                               <div className="mb-2">
-                                <p className="text-xs text-blue-400 font-medium">Ayuda a cubrir:</p>
+                                <p className="text-xs text-blue-400 font-medium">Cubre debilidades:</p>
                                 <ul className="text-xs text-gold-muted">
-                                  {analysis.matches_profile.addresses_weaknesses.map((w, i) => <li key={i}>• {w}</li>)}
+                                  {analysis.relation_to_profile.covers_weaknesses.map((w, i) => <li key={i}>• {w}</li>)}
                                 </ul>
                               </div>
                             )}
-                            {analysis.matches_profile.mismatches?.length > 0 && (
+                            {analysis.relation_to_profile.inconsistencies?.length > 0 && (
                               <div>
-                                <p className="text-xs text-orange-400 font-medium">Inconsistencias detectadas:</p>
+                                <p className="text-xs text-orange-400 font-medium">Inconsistencias:</p>
                                 <ul className="text-xs text-gold-muted">
-                                  {analysis.matches_profile.mismatches.map((m, i) => <li key={i}>• {m}</li>)}
+                                  {analysis.relation_to_profile.inconsistencies.map((i, idx) => <li key={idx}>• {i}</li>)}
                                 </ul>
                               </div>
                             )}
                           </div>
                         )}
 
-                        {/* Fortalezas */}
-                        {analysis.strengths?.length > 0 && (
-                          <div>
-                            <h5 className="text-sm font-medium text-green-400 mb-2">✅ Fortalezas del Documento</h5>
-                            <ul className="space-y-1">
-                              {analysis.strengths.map((s, i) => (
-                                <li key={i} className="text-sm text-gold-muted flex items-start">
-                                  <CheckCircle className="h-4 w-4 mr-2 text-green-400 flex-shrink-0 mt-0.5" />
-                                  {s}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {/* Debilidades */}
-                        {analysis.weaknesses?.length > 0 && (
-                          <div>
-                            <h5 className="text-sm font-medium text-orange-400 mb-2">⚠️ Debilidades / Problemas</h5>
-                            <ul className="space-y-1">
-                              {analysis.weaknesses.map((w, i) => (
-                                <li key={i} className="text-sm text-gold-muted flex items-start">
-                                  <AlertTriangle className="h-4 w-4 mr-2 text-orange-400 flex-shrink-0 mt-0.5" />
-                                  {w}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {/* Acciones recomendadas */}
-                        {analysis.action_items?.length > 0 && (
-                          <div>
-                            <h5 className="text-sm font-medium text-blue-400 mb-2">💡 Acciones Recomendadas</h5>
-                            <ul className="space-y-1">
-                              {analysis.action_items.map((a, i) => (
-                                <li key={i} className="text-sm text-gold-muted flex items-start">
-                                  <ChevronRight className="h-4 w-4 mr-2 text-blue-400 flex-shrink-0 mt-0.5" />
-                                  {a}
-                                </li>
-                              ))}
-                            </ul>
+                        {/* Acción requerida */}
+                        {analysis.action_required && analysis.action_required !== 'NINGUNA' && (
+                          <div className={`p-3 rounded-lg ${
+                            analysis.action_required === 'DESCARTAR' ? 'bg-red-500/20' :
+                            analysis.action_required === 'MODIFICAR DOCUMENTO' ? 'bg-orange-500/20' :
+                            'bg-blue-500/20'
+                          }`}>
+                            <h5 className="text-sm font-medium text-gold-subtle mb-1">
+                              📋 Acción Requerida: {analysis.action_required}
+                            </h5>
+                            <p className="text-sm text-gold-muted">{analysis.action_details}</p>
                           </div>
                         )}
                       </div>
