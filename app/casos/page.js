@@ -305,6 +305,12 @@ export default function CasosPage() {
       {/* Header */}
       <header className="border-b border-navy-light">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center space-x-4">
+            <Link href="/dashboard" className="flex items-center text-gold-muted hover:text-gold-primary transition-colors">
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              <span>Volver al Dashboard</span>
+            </Link>
+          </div>
           <Link href="/" className="flex items-center space-x-3">
             <Brain className="h-8 w-8 text-gold-primary" />
             <span className="text-2xl font-bold text-gold-subtle">Cerebro Visas</span>
