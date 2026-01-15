@@ -292,6 +292,33 @@ export default function CasosPage() {
     }
   }
 
+  const handleDeleteCase = async (caseId) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar este caso? Esta acción no se puede deshacer.')) return
+
+    try {
+      const res = await fetch(`/api/casos/${caseId}`, {
+        method: 'DELETE'
+      })
+      
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error)
+      }
+      
+      // Actualizar la lista de casos
+      setCases(cases.filter(c => c.id !== caseId))
+      
+      // Si el caso eliminado era el seleccionado, limpiar selección
+      if (selectedCase?.id === caseId) {
+        setSelectedCase(null)
+      }
+      
+      toast.success('Caso eliminado')
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
   const getOutcomeInfo = (outcome) => {
     return CASE_OUTCOMES.find(o => o.value === outcome) || CASE_OUTCOMES[0]
   }
