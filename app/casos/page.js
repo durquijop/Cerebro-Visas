@@ -481,7 +481,6 @@ export default function CasosPage() {
                     return (
                       <div
                         key={caseItem.id}
-                        onClick={() => loadCaseDetails(caseItem.id)}
                         className={`p-4 rounded-lg border cursor-pointer transition-colors ${
                           selectedCase?.id === caseItem.id
                             ? 'bg-gold-primary/10 border-gold-primary'
@@ -489,13 +488,25 @@ export default function CasosPage() {
                         }`}
                       >
                         <div className="flex items-start justify-between">
-                          <div className="flex-1">
+                          <div className="flex-1" onClick={() => loadCaseDetails(caseItem.id)}>
                             <h3 className="font-medium text-gold-subtle truncate">{caseItem.title}</h3>
                             <p className="text-xs text-gold-muted mt-1">{caseItem.visa_category}</p>
                           </div>
-                          <OutcomeIcon className={`h-5 w-5 ${outcomeInfo.color}`} />
+                          <div className="flex items-center gap-2">
+                            <OutcomeIcon className={`h-5 w-5 ${outcomeInfo.color}`} />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDeleteCase(caseItem.id)
+                              }}
+                              className="p-1 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                              title="Eliminar caso"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center justify-between mt-2" onClick={() => loadCaseDetails(caseItem.id)}>
                           <span className="text-xs text-gold-muted">
                             {caseItem.documents_count || 0} docs
                           </span>
