@@ -1023,17 +1023,23 @@ export default function CasosPage() {
                                     Analizado
                                   </span>
                                 )}
-                                <Eye className="h-4 w-4 text-gold-muted" />
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleDeleteDocument(doc.id)
-                                  }}
-                                  className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
-                                  title="Eliminar documento"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
+                                {deletingDocId === doc.id ? (
+                                  <Loader2 className="h-5 w-5 animate-spin text-gold-muted" />
+                                ) : (
+                                  <>
+                                    <Eye className="h-4 w-4 text-gold-muted" />
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleDeleteDocument(doc.id)
+                                      }}
+                                      className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                                      title="Eliminar documento"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </div>
                           </div>
