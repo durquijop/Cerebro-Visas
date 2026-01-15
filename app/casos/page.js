@@ -765,7 +765,11 @@ export default function CasosPage() {
                     {selectedCase.documents && selectedCase.documents.length > 0 ? (
                       <div className="space-y-3">
                         {selectedCase.documents.map((doc) => (
-                          <div key={doc.id} className="flex items-center justify-between p-3 bg-navy-primary rounded-lg border border-navy-light">
+                          <div 
+                            key={doc.id} 
+                            className="flex items-center justify-between p-3 bg-navy-primary rounded-lg border border-navy-light hover:border-gold-muted cursor-pointer transition-colors"
+                            onClick={() => handleViewDocument(doc)}
+                          >
                             <div className="flex items-center space-x-3">
                               <FileText className="h-6 w-6 text-gold-muted" />
                               <div>
@@ -786,8 +790,12 @@ export default function CasosPage() {
                                   Analizado
                                 </span>
                               )}
+                              <Eye className="h-4 w-4 text-gold-muted" />
                               <button
-                                onClick={() => handleDeleteDocument(doc.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDeleteDocument(doc.id)
+                                }}
                                 className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
                                 title="Eliminar documento"
                               >
