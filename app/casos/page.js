@@ -399,6 +399,7 @@ export default function CasosPage() {
   const handleDeleteDocument = async (docId) => {
     if (!confirm('¿Estás seguro de que deseas eliminar este documento?')) return
 
+    setDeletingDocId(docId)
     try {
       const res = await fetch(`/api/casos/documents/${docId}`, {
         method: 'DELETE'
@@ -424,6 +425,8 @@ export default function CasosPage() {
       toast.success('Documento eliminado')
     } catch (error) {
       toast.error(error.message)
+    } finally {
+      setDeletingDocId(null)
     }
   }
 
