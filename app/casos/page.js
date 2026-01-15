@@ -319,6 +319,37 @@ export default function CasosPage() {
     }
   }
 
+  const handleDeleteDocument = async (docId) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar este documento?')) return
+
+    try {
+      const res = await fetch(`/api/casos/documents/${docId}`, {
+        method: 'DELETE'
+      })
+      
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error)
+      }
+      
+      // Recargar el caso para actualizar la lista de documentos
+      if (selectedCase) {
+        loadCaseDetails(selectedCase.id)
+      }
+      
+      // Actualizar el conteo de documentos en la lista
+      setCases(cases.map(c => 
+        c.id === selectedCase?.id 
+          ? { ...c, documents_count: Math.max(0, (c.documents_count || 1) - 1) }
+          : c
+      ))
+      
+      toast.success('Documento eliminado')
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
   const getOutcomeInfo = (outcome) => {
     return CASE_OUTCOMES.find(o => o.value === outcome) || CASE_OUTCOMES[0]
   }
