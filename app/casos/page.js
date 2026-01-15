@@ -1411,18 +1411,170 @@ export default function CasosPage() {
                 </div>
               </div>
 
-              {/* Análisis del documento si existe */}
-              {selectedDocument.analysis_summary && (
-                <div>
-                  <h4 className="font-semibold text-purple-400 mb-2 flex items-center">
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Análisis IA
-                  </h4>
-                  <div className="p-4 bg-purple-500/10 rounded-lg border border-purple-500/30">
-                    <p className="text-gold-muted text-sm">{selectedDocument.analysis_summary}</p>
+              {/* Análisis del documento si existe (para documentos que no son CV) */}
+              {selectedDocument.analysis_summary && selectedDocument.doc_type !== 'cv' && (() => {
+                let analysis
+                try {
+                  analysis = typeof selectedDocument.analysis_summary === 'string' 
+                    ? JSON.parse(selectedDocument.analysis_summary) 
+                    : selectedDocument.analysis_summary
+                } catch (e) {
+                  return (
+                    <div className="p-4 bg-purple-500/10 rounded-lg border border-purple-500/30">
+                      <p className="text-gold-muted text-sm">{selectedDocument.analysis_summary}</p>
+                    </div>
+                  )
+                }
+                
+                return (
+                  <div className="border border-blue-500/30 rounded-lg overflow-hidden">
+                    {/* Header del análisis */}
+                    <div 
+                      className="bg-blue-500/20 px-4 py-3 cursor-pointer hover:bg-blue-500/30 transition-colors"
+                      onClick={() => setShowFullAnalysis(!showFullAnalysis)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold text-blue-300 flex items-center">
+                          <Sparkles className="h-5 w-5 mr-2" />
+                          Análisis de Relevancia para el Caso
+                        </h4>
+                        <div className="flex items-center gap-3">
+                          <div className={`text-2xl font-bold ${
+                            analysis.relevance_score >= 70 ? 'text-green-400' :
+                            analysis.relevance_score >= 50 ? 'text-yellow-400' :
+                            'text-red-400'
+                          }`}>
+                            {analysis.relevance_score || 0}%
+                          </div>
+                          <span className={`text-sm px-3 py-1 rounded-full ${
+                            analysis.recommendation === 'MUY ÚTIL' ? 'bg-green-500/20 text-green-400' :
+                            analysis.recommendation === 'ÚTIL' ? 'bg-green-500/20 text-green-300' :
+                            analysis.recommendation === 'PARCIALMENTE ÚTIL' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-red-500/20 text-red-400'
+                          }`}>
+                            {analysis.recommendation || 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <p className="text-gold-muted mt-2 text-sm">{analysis.summary}</p>
+                      
+                      {/* Soporte a Prongs */}
+                      {analysis.supports_prongs && (
+                        <div className="flex items-center gap-4 mt-3">
+                          <span className="text-sm text-gold-muted">
+                            P1: {analysis.supports_prongs.prong1?.supports ? 
+                              <span className="text-green-400">✓ Sí</span> : 
+                              <span className="text-red-400">✗ No</span>}
+                          </span>
+                          <span className="text-sm text-gold-muted">
+                            P2: {analysis.supports_prongs.prong2?.supports ? 
+                              <span className="text-green-400">✓ Sí</span> : 
+                              <span className="text-red-400">✗ No</span>}
+                          </span>
+                          <span className="text-sm text-gold-muted">
+                            P3: {analysis.supports_prongs.prong3?.supports ? 
+                              <span className="text-green-400">✓ Sí</span> : 
+                              <span className="text-red-400">✗ No</span>}
+                          </span>
+                          <span className="text-sm text-blue-300 ml-auto flex items-center">
+                            {showFullAnalysis ? 'Ver menos' : 'Ver más'} 
+                            <ChevronRight className={`h-4 w-4 ml-1 transition-transform ${showFullAnalysis ? 'rotate-90' : ''}`} />
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Detalle expandible */}
+                    {showFullAnalysis && (
+                      <div className="p-4 space-y-4 border-t border-blue-500/30">
+                        {/* Cómo apoya cada Prong */}
+                        {analysis.supports_prongs && (
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className={`p-3 rounded-lg ${analysis.supports_prongs.prong1?.supports ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                              <p className="text-sm font-medium text-gold-muted mb-1">Prong 1</p>
+                              <p className="text-xs text-gold-muted">{analysis.supports_prongs.prong1?.how || 'N/A'}</p>
+                            </div>
+                            <div className={`p-3 rounded-lg ${analysis.supports_prongs.prong2?.supports ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                              <p className="text-sm font-medium text-gold-muted mb-1">Prong 2</p>
+                              <p className="text-xs text-gold-muted">{analysis.supports_prongs.prong2?.how || 'N/A'}</p>
+                            </div>
+                            <div className={`p-3 rounded-lg ${analysis.supports_prongs.prong3?.supports ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                              <p className="text-sm font-medium text-gold-muted mb-1">Prong 3</p>
+                              <p className="text-xs text-gold-muted">{analysis.supports_prongs.prong3?.how || 'N/A'}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Puntos clave */}
+                        {analysis.key_points?.length > 0 && (
+                          <div>
+                            <h5 className="text-sm font-medium text-blue-400 mb-2">📌 Puntos Clave</h5>
+                            <ul className="space-y-1">
+                              {analysis.key_points.map((p, i) => (
+                                <li key={i} className="text-sm text-gold-muted">• {p}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Fortalezas */}
+                        {analysis.strengths?.length > 0 && (
+                          <div>
+                            <h5 className="text-sm font-medium text-green-400 mb-2">✅ Fortalezas</h5>
+                            <ul className="space-y-1">
+                              {analysis.strengths.map((s, i) => (
+                                <li key={i} className="text-sm text-gold-muted flex items-start">
+                                  <CheckCircle className="h-4 w-4 mr-2 text-green-400 flex-shrink-0 mt-0.5" />
+                                  {s}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Debilidades */}
+                        {analysis.weaknesses?.length > 0 && (
+                          <div>
+                            <h5 className="text-sm font-medium text-orange-400 mb-2">⚠️ Debilidades</h5>
+                            <ul className="space-y-1">
+                              {analysis.weaknesses.map((w, i) => (
+                                <li key={i} className="text-sm text-gold-muted flex items-start">
+                                  <AlertTriangle className="h-4 w-4 mr-2 text-orange-400 flex-shrink-0 mt-0.5" />
+                                  {w}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Complementa CV */}
+                        {analysis.complements_cv && (
+                          <div className="p-3 bg-purple-500/10 rounded-lg">
+                            <h5 className="text-sm font-medium text-purple-400 mb-1">🔗 Complementa el CV</h5>
+                            <p className="text-sm text-gold-muted">{analysis.complements_cv}</p>
+                          </div>
+                        )}
+
+                        {/* Sugerencias */}
+                        {analysis.suggestions?.length > 0 && (
+                          <div>
+                            <h5 className="text-sm font-medium text-blue-400 mb-2">💡 Sugerencias</h5>
+                            <ul className="space-y-1">
+                              {analysis.suggestions.map((s, i) => (
+                                <li key={i} className="text-sm text-gold-muted flex items-start">
+                                  <ChevronRight className="h-4 w-4 mr-2 text-blue-400 flex-shrink-0 mt-0.5" />
+                                  {s}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                )
+              })()}
             </div>
           )}
 
