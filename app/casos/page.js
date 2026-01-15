@@ -1190,6 +1190,162 @@ export default function CasosPage() {
                 </div>
               </div>
 
+              {/* Análisis de Aptitud del CV (si el documento es CV y el caso tiene análisis) */}
+              {selectedDocument.doc_type === 'cv' && selectedCase?.cv_analysis && (
+                <div className="border border-purple-500/30 rounded-lg overflow-hidden">
+                  <div className="bg-purple-500/20 px-4 py-3 flex items-center justify-between">
+                    <h4 className="font-semibold text-purple-300 flex items-center">
+                      <Brain className="h-5 w-5 mr-2" />
+                      Análisis de Aptitud para {selectedCase.visa_category}
+                    </h4>
+                    <div className="flex items-center gap-3">
+                      <div className={`text-3xl font-bold ${
+                        selectedCase.cv_analysis.aptitude_score >= 70 ? 'text-green-400' :
+                        selectedCase.cv_analysis.aptitude_score >= 50 ? 'text-yellow-400' :
+                        'text-red-400'
+                      }`}>
+                        {selectedCase.cv_analysis.aptitude_score}%
+                      </div>
+                      <span className={`text-sm px-3 py-1 rounded-full ${
+                        selectedCase.cv_analysis.recommendation === 'ALTAMENTE RECOMENDADO' ? 'bg-green-500/20 text-green-400' :
+                        selectedCase.cv_analysis.recommendation === 'RECOMENDADO' ? 'bg-green-500/20 text-green-300' :
+                        selectedCase.cv_analysis.recommendation === 'POSIBLE CON MEJORAS' ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-red-500/20 text-red-400'
+                      }`}>
+                        {selectedCase.cv_analysis.recommendation}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 space-y-4">
+                    {/* Resumen */}
+                    <div>
+                      <p className="text-gold-muted">{selectedCase.cv_analysis.summary}</p>
+                    </div>
+
+                    {/* Análisis de Prongs */}
+                    {selectedCase.cv_analysis.prong_analysis && (
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="p-3 bg-navy-primary rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm text-gold-muted font-medium">Prong 1</p>
+                            <span className={`text-lg font-bold ${
+                              selectedCase.cv_analysis.prong_analysis.prong1?.score >= 70 ? 'text-green-400' :
+                              selectedCase.cv_analysis.prong_analysis.prong1?.score >= 50 ? 'text-yellow-400' : 'text-red-400'
+                            }`}>
+                              {selectedCase.cv_analysis.prong_analysis.prong1?.score || 0}%
+                            </span>
+                          </div>
+                          <p className="text-xs text-gold-muted">Mérito e Importancia Nacional</p>
+                          <p className="text-xs text-gold-muted mt-1 line-clamp-2">
+                            {selectedCase.cv_analysis.prong_analysis.prong1?.analysis}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-navy-primary rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm text-gold-muted font-medium">Prong 2</p>
+                            <span className={`text-lg font-bold ${
+                              selectedCase.cv_analysis.prong_analysis.prong2?.score >= 70 ? 'text-green-400' :
+                              selectedCase.cv_analysis.prong_analysis.prong2?.score >= 50 ? 'text-yellow-400' : 'text-red-400'
+                            }`}>
+                              {selectedCase.cv_analysis.prong_analysis.prong2?.score || 0}%
+                            </span>
+                          </div>
+                          <p className="text-xs text-gold-muted">Bien Posicionado</p>
+                          <p className="text-xs text-gold-muted mt-1 line-clamp-2">
+                            {selectedCase.cv_analysis.prong_analysis.prong2?.analysis}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-navy-primary rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm text-gold-muted font-medium">Prong 3</p>
+                            <span className={`text-lg font-bold ${
+                              selectedCase.cv_analysis.prong_analysis.prong3?.score >= 70 ? 'text-green-400' :
+                              selectedCase.cv_analysis.prong_analysis.prong3?.score >= 50 ? 'text-yellow-400' : 'text-red-400'
+                            }`}>
+                              {selectedCase.cv_analysis.prong_analysis.prong3?.score || 0}%
+                            </span>
+                          </div>
+                          <p className="text-xs text-gold-muted">Balance de Factores</p>
+                          <p className="text-xs text-gold-muted mt-1 line-clamp-2">
+                            {selectedCase.cv_analysis.prong_analysis.prong3?.analysis}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Fortalezas */}
+                    {selectedCase.cv_analysis.key_qualifications?.length > 0 && (
+                      <div>
+                        <h5 className="text-sm font-medium text-green-400 mb-2">✅ Fortalezas Clave</h5>
+                        <ul className="space-y-1">
+                          {selectedCase.cv_analysis.key_qualifications.map((q, i) => (
+                            <li key={i} className="text-sm text-gold-muted flex items-start">
+                              <CheckCircle className="h-4 w-4 mr-2 text-green-400 flex-shrink-0 mt-0.5" />
+                              {q}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Debilidades/Evidencia Faltante */}
+                    {selectedCase.cv_analysis.missing_evidence?.length > 0 && (
+                      <div>
+                        <h5 className="text-sm font-medium text-orange-400 mb-2">⚠️ Evidencia Faltante</h5>
+                        <ul className="space-y-1">
+                          {selectedCase.cv_analysis.missing_evidence.map((m, i) => (
+                            <li key={i} className="text-sm text-gold-muted flex items-start">
+                              <AlertTriangle className="h-4 w-4 mr-2 text-orange-400 flex-shrink-0 mt-0.5" />
+                              {m}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Próximos Pasos */}
+                    {selectedCase.cv_analysis.next_steps?.length > 0 && (
+                      <div>
+                        <h5 className="text-sm font-medium text-blue-400 mb-2">💡 Próximos Pasos Recomendados</h5>
+                        <ul className="space-y-1">
+                          {selectedCase.cv_analysis.next_steps.map((s, i) => (
+                            <li key={i} className="text-sm text-gold-muted flex items-start">
+                              <ChevronRight className="h-4 w-4 mr-2 text-blue-400 flex-shrink-0 mt-0.5" />
+                              {s}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Razonamiento */}
+                    {selectedCase.cv_analysis.reasoning && (
+                      <div className="pt-3 border-t border-navy-light">
+                        <h5 className="text-sm font-medium text-gold-subtle mb-2">📋 Conclusión Detallada</h5>
+                        <p className="text-sm text-gold-muted">{selectedCase.cv_analysis.reasoning}</p>
+                      </div>
+                    )}
+
+                    {/* Probabilidad de Aprobación */}
+                    {selectedCase.cv_analysis.estimated_approval_chance && (
+                      <div className="flex items-center gap-2 pt-2">
+                        <span className="text-sm text-gold-muted">Probabilidad de Aprobación:</span>
+                        <span className={`text-sm font-bold px-2 py-1 rounded ${
+                          selectedCase.cv_analysis.estimated_approval_chance === 'ALTA' ? 'bg-green-500/20 text-green-400' :
+                          selectedCase.cv_analysis.estimated_approval_chance === 'MEDIA-ALTA' ? 'bg-green-500/20 text-green-300' :
+                          selectedCase.cv_analysis.estimated_approval_chance === 'MEDIA' ? 'bg-yellow-500/20 text-yellow-400' :
+                          selectedCase.cv_analysis.estimated_approval_chance === 'MEDIA-BAJA' ? 'bg-orange-500/20 text-orange-400' :
+                          'bg-red-500/20 text-red-400'
+                        }`}>
+                          {selectedCase.cv_analysis.estimated_approval_chance}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Contenido extraído */}
               <div>
                 <h4 className="font-semibold text-gold-subtle mb-2 flex items-center">
