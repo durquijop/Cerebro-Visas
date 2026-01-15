@@ -25,19 +25,20 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       })
 
       if (error) throw error
 
-      toast.success('¡Bienvenido de vuelta!')
-      router.push(redirectTo)
-      router.refresh()
+      if (data.session) {
+        toast.success('¡Bienvenido de vuelta!')
+        // Usar window.location para forzar recarga completa y actualizar cookies
+        window.location.href = redirectTo
+      }
     } catch (error) {
       toast.error(error.message || 'Error al iniciar sesión')
-    } finally {
       setLoading(false)
     }
   }
