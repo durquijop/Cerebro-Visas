@@ -119,7 +119,7 @@ export default function CasosPage() {
 
   // Upload form
   const [uploadFile, setUploadFile] = useState(null)
-  const [uploadDocType, setUploadDocType] = useState('petition')
+  const [uploadDocType, setUploadDocType] = useState('i140')
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
 
