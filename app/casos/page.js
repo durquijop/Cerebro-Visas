@@ -121,6 +121,9 @@ export default function CasosPage() {
     service_center: ''
   })
   const [creatingCase, setCreatingCase] = useState(false)
+  const [cvFile, setCvFile] = useState(null)
+  const [cvAnalysis, setCvAnalysis] = useState(null)
+  const [analyzingCv, setAnalyzingCv] = useState(false)
 
   // Upload form
   const [uploadFile, setUploadFile] = useState(null)
