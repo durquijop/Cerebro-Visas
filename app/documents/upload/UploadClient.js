@@ -18,7 +18,7 @@ import { toast } from 'sonner'
 export default function UploadClient({ userId, cases, userRole }) {
   const [file, setFile] = useState(null)
   const [docType, setDocType] = useState('RFE')
-  const [caseId, setCaseId] = useState('')
+  const [caseId, setCaseId] = useState('none')
   const [processWithAI, setProcessWithAI] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
