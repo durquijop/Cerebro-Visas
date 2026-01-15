@@ -428,6 +428,7 @@ export default function CasosPage() {
 
   const handleViewDocument = (doc) => {
     setSelectedDocument(doc)
+    setShowFullAnalysis(false)
     setShowDocumentDialog(true)
   }
 
