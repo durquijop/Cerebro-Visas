@@ -994,19 +994,16 @@ export default function CasosPage() {
                                         • {selectedCase.cv_analysis.aptitude_score}% Aptitud
                                       </span>
                                     )}
-                                    {/* Indicador de relevancia para otros documentos */}
+                                    {/* Indicador de si apoya al cliente para otros documentos */}
                                     {doc.doc_type !== 'cv' && doc.analysis_summary && (() => {
                                       try {
                                         const analysis = typeof doc.analysis_summary === 'string' 
                                           ? JSON.parse(doc.analysis_summary) 
                                           : doc.analysis_summary
+                                        const supportsClient = analysis.supports_client !== false && analysis.relevance_score >= 50
                                         return (
-                                          <span className={`text-xs font-bold ${
-                                            analysis.relevance_score >= 70 ? 'text-green-400' :
-                                            analysis.relevance_score >= 50 ? 'text-yellow-400' :
-                                            'text-red-400'
-                                          }`}>
-                                            • {analysis.relevance_score}% Relevancia
+                                          <span className={`text-xs font-bold ${supportsClient ? 'text-green-400' : 'text-red-400'}`}>
+                                            • {supportsClient ? '✓ Apoya' : '✗ No apoya'}
                                           </span>
                                         )
                                       } catch (e) {
