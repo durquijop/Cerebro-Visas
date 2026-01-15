@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { v4 as uuidv4 } from 'uuid'
+import { extractText, normalizeText } from '@/lib/document-processor'
 
 // Supabase Admin client
 const supabaseAdmin = createClient(
@@ -9,80 +10,10 @@ const supabaseAdmin = createClient(
 )
 
 /**
- * Extrae texto de un PDF usando pdf-parse
- */
-async function extractTextFromPDF(buffer) {
-  try {
-    const pdfParse = require('pdf-parse')
-    const data = await pdfParse(buffer)
-    return {
-      success: true,
-      text: data.text,
-      numPages: data.numpages,
-      info: data.info
-    }
-  } catch (error) {
-    console.error('Error extracting PDF:', error)
-    return { success: false, error: error.message, text: '' }
-  }
-}
-
-/**
- * Extrae texto de un DOCX usando mammoth
- */
-async function extractTextFromDOCX(buffer) {
-  try {
-    const mammoth = await import('mammoth')
-    const result = await mammoth.extractRawText({ buffer })
-    return {
-      success: true,
-      text: result.value,
-      messages: result.messages
-    }
-  } catch (error) {
-    console.error('Error extracting DOCX:', error)
-    return { success: false, error: error.message, text: '' }
-  }
-}
-
-/**
- * Extrae texto según el tipo de archivo
- */
-async function extractText(buffer, filename) {
-  const extension = filename.toLowerCase().split('.').pop()
-  
-  switch (extension) {
-    case 'pdf':
-      return await extractTextFromPDF(buffer)
-    case 'docx':
-      return await extractTextFromDOCX(buffer)
-    case 'doc':
-      return { success: false, error: 'Formato .doc no soportado. Convierta a .docx o .pdf', text: '' }
-    case 'txt':
-      return { success: true, text: buffer.toString('utf-8') }
-    default:
-      return { success: false, error: `Formato .${extension} no soportado`, text: '' }
-  }
-}
-
-/**
- * Limpia y normaliza el texto
- */
-function normalizeText(text) {
-  return text
-    .replace(/\s+/g, ' ')
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-}
-
-/**
  * Document Canonicalizer - Convierte documento a formato estándar
  */
 function canonicalizeDocument(filename, docType, extractedText, extractionResult) {
-  const cleanText = normalizeText(extractedText)
+  const cleanText = normalizeText(extractedText || '')
   const words = cleanText.split(/\s+/).filter(w => w.length > 0)
   
   return {
@@ -99,6 +30,7 @@ function canonicalizeDocument(filename, docType, extractedText, extractionResult
       char_count: cleanText.length,
       word_count: words.length,
       extraction_success: extractionResult.success,
+      extraction_method: extractionResult.method || null,
       extraction_error: extractionResult.error || null
     },
     
@@ -170,6 +102,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No se proporcionó archivo' }, { status: 400 })
     }
 
+    console.log(`📤 Ingesta: Procesando ${file.name} (tipo: ${docType})`)
+
     // Convertir archivo a buffer
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
@@ -192,14 +126,18 @@ export async function POST(request) {
       // Continuar aunque falle el storage, igual procesamos el texto
     }
 
-    // 2. Extraer texto del documento
+    // 2. Extraer texto del documento usando el procesador mejorado
+    console.log('🔍 Extrayendo texto del documento...')
     const extractionResult = await extractText(buffer, file.name)
     
-    if (!extractionResult.success && !extractionResult.text) {
-      return NextResponse.json(
-        { error: `Error al extraer texto: ${extractionResult.error}` },
-        { status: 400 }
-      )
+    console.log(`📊 Resultado extracción: success=${extractionResult.success}, método=${extractionResult.method || 'N/A'}`)
+    
+    if (!extractionResult.success && (!extractionResult.text || extractionResult.text.length < 10)) {
+      return NextResponse.json({
+        error: `Error al extraer texto: ${extractionResult.error}`,
+        suggestion: extractionResult.suggestion || 'Intente con un archivo diferente',
+        success: false
+      }, { status: 400 })
     }
 
     // 3. Canonicalizar documento
@@ -209,6 +147,8 @@ export async function POST(request) {
       extractionResult.text,
       extractionResult
     )
+
+    console.log(`📝 Documento canonicalizado: ${canonical.metadata.word_count} palabras`)
 
     // 4. Guardar en base de datos
     const documentRecord = {
@@ -223,7 +163,8 @@ export async function POST(request) {
       word_count: canonical.metadata.word_count,
       content_hash: canonical.content_hash,
       sections: canonical.sections,
-      extraction_success: extractionResult.success
+      extraction_success: extractionResult.success,
+      extraction_method: extractionResult.method || null
     }
 
     const { data: document, error: dbError } = await supabaseAdmin
@@ -239,14 +180,28 @@ export async function POST(request) {
         success: true,
         warning: 'Documento procesado pero no guardado en BD: ' + dbError.message,
         document: { id: fileId, original_name: file.name },
-        canonical
+        canonical,
+        extraction: {
+          success: extractionResult.success,
+          method: extractionResult.method,
+          wordCount: canonical.metadata.word_count
+        }
       })
     }
+
+    console.log(`✅ Documento guardado exitosamente: ${fileId}`)
 
     return NextResponse.json({
       success: true,
       document,
-      canonical
+      canonical,
+      extraction: {
+        success: extractionResult.success,
+        method: extractionResult.method,
+        wordCount: canonical.metadata.word_count,
+        charCount: canonical.metadata.char_count,
+        pageCount: canonical.metadata.page_count
+      }
     })
 
   } catch (error) {
