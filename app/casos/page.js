@@ -352,6 +352,11 @@ export default function CasosPage() {
     }
   }
 
+  const handleViewDocument = (doc) => {
+    setSelectedDocument(doc)
+    setShowDocumentDialog(true)
+  }
+
   const getOutcomeInfo = (outcome) => {
     return CASE_OUTCOMES.find(o => o.value === outcome) || CASE_OUTCOMES[0]
   }
