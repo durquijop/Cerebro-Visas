@@ -1447,16 +1447,35 @@ export default function CasosPage() {
                 
                 return (
                   <div className="border border-blue-500/30 rounded-lg overflow-hidden">
-                    {/* Header del análisis */}
+                    {/* Header - Validez del documento */}
                     <div 
-                      className="bg-blue-500/20 px-4 py-3 cursor-pointer hover:bg-blue-500/30 transition-colors"
+                      className={`px-4 py-3 cursor-pointer transition-colors ${
+                        analysis.is_valid === false ? 'bg-red-500/20 hover:bg-red-500/30' :
+                        analysis.relevance_score >= 70 ? 'bg-green-500/20 hover:bg-green-500/30' :
+                        analysis.relevance_score >= 50 ? 'bg-yellow-500/20 hover:bg-yellow-500/30' :
+                        'bg-blue-500/20 hover:bg-blue-500/30'
+                      }`}
                       onClick={() => setShowFullAnalysis(!showFullAnalysis)}
                     >
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-blue-300 flex items-center">
-                          <Sparkles className="h-5 w-5 mr-2" />
-                          Análisis de Relevancia para el Caso
-                        </h4>
+                      {/* Veredicto principal */}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          {analysis.is_valid === false ? (
+                            <XCircle className="h-6 w-6 text-red-400" />
+                          ) : analysis.verdict === 'APROBAR' ? (
+                            <CheckCircle className="h-6 w-6 text-green-400" />
+                          ) : analysis.verdict === 'REVISAR' ? (
+                            <AlertTriangle className="h-6 w-6 text-yellow-400" />
+                          ) : (
+                            <Sparkles className="h-6 w-6 text-blue-400" />
+                          )}
+                          <h4 className="font-semibold text-gold-subtle">
+                            {analysis.is_valid === false ? '❌ Documento NO VÁLIDO para este perfil' :
+                             analysis.verdict === 'APROBAR' ? '✅ Documento VÁLIDO - Incluir en el caso' :
+                             analysis.verdict === 'REVISAR' ? '⚠️ Documento REQUIERE REVISIÓN' :
+                             'Análisis del Documento'}
+                          </h4>
+                        </div>
                         <div className="flex items-center gap-3">
                           <div className={`text-2xl font-bold ${
                             analysis.relevance_score >= 70 ? 'text-green-400' :
@@ -1466,38 +1485,58 @@ export default function CasosPage() {
                             {analysis.relevance_score || 0}%
                           </div>
                           <span className={`text-sm px-3 py-1 rounded-full ${
-                            analysis.recommendation === 'MUY ÚTIL' ? 'bg-green-500/20 text-green-400' :
+                            analysis.recommendation === 'MUY ÚTIL' ? 'bg-green-500/30 text-green-400' :
                             analysis.recommendation === 'ÚTIL' ? 'bg-green-500/20 text-green-300' :
                             analysis.recommendation === 'PARCIALMENTE ÚTIL' ? 'bg-yellow-500/20 text-yellow-400' :
+                            analysis.recommendation === 'NO VÁLIDO' ? 'bg-red-500/30 text-red-400' :
                             'bg-red-500/20 text-red-400'
                           }`}>
                             {analysis.recommendation || 'N/A'}
                           </span>
                         </div>
                       </div>
+
+                      {/* Por qué es válido o no */}
+                      {analysis.validity_reason && (
+                        <div className={`p-2 rounded mb-2 ${
+                          analysis.is_valid === false ? 'bg-red-500/10' : 'bg-green-500/10'
+                        }`}>
+                          <p className="text-sm text-gold-muted">
+                            <strong>{analysis.is_valid === false ? '❌ Razón:' : '✅ Validez:'}</strong> {analysis.validity_reason}
+                          </p>
+                        </div>
+                      )}
                       
-                      <p className="text-gold-muted mt-2 text-sm">{analysis.summary}</p>
+                      {/* Resumen */}
+                      <p className="text-gold-muted text-sm">{analysis.summary}</p>
+
+                      {/* Cómo ayuda al caso */}
+                      {analysis.how_helps_case && (
+                        <p className="text-gold-muted text-sm mt-2">
+                          <strong>📋 Para el caso:</strong> {analysis.how_helps_case}
+                        </p>
+                      )}
                       
                       {/* Soporte a Prongs */}
                       {analysis.supports_prongs && (
                         <div className="flex items-center gap-4 mt-3">
                           <span className="text-sm text-gold-muted">
                             P1: {analysis.supports_prongs.prong1?.supports ? 
-                              <span className="text-green-400">✓ Sí</span> : 
+                              <span className="text-green-400 font-bold">✓ Apoya</span> : 
                               <span className="text-red-400">✗ No</span>}
                           </span>
                           <span className="text-sm text-gold-muted">
                             P2: {analysis.supports_prongs.prong2?.supports ? 
-                              <span className="text-green-400">✓ Sí</span> : 
+                              <span className="text-green-400 font-bold">✓ Apoya</span> : 
                               <span className="text-red-400">✗ No</span>}
                           </span>
                           <span className="text-sm text-gold-muted">
                             P3: {analysis.supports_prongs.prong3?.supports ? 
-                              <span className="text-green-400">✓ Sí</span> : 
+                              <span className="text-green-400 font-bold">✓ Apoya</span> : 
                               <span className="text-red-400">✗ No</span>}
                           </span>
                           <span className="text-sm text-blue-300 ml-auto flex items-center">
-                            {showFullAnalysis ? 'Ver menos' : 'Ver más'} 
+                            {showFullAnalysis ? 'Ver menos' : 'Ver detalles'} 
                             <ChevronRight className={`h-4 w-4 ml-1 transition-transform ${showFullAnalysis ? 'rotate-90' : ''}`} />
                           </span>
                         </div>
@@ -1510,37 +1549,56 @@ export default function CasosPage() {
                         {/* Cómo apoya cada Prong */}
                         {analysis.supports_prongs && (
                           <div className="grid grid-cols-3 gap-3">
-                            <div className={`p-3 rounded-lg ${analysis.supports_prongs.prong1?.supports ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
-                              <p className="text-sm font-medium text-gold-muted mb-1">Prong 1</p>
-                              <p className="text-xs text-gold-muted">{analysis.supports_prongs.prong1?.how || 'N/A'}</p>
+                            <div className={`p-3 rounded-lg ${analysis.supports_prongs.prong1?.supports ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
+                              <p className="text-sm font-medium text-gold-muted mb-1">Prong 1 - Mérito Nacional</p>
+                              <p className="text-xs text-gold-muted">{analysis.supports_prongs.prong1?.explanation || analysis.supports_prongs.prong1?.how || 'N/A'}</p>
                             </div>
-                            <div className={`p-3 rounded-lg ${analysis.supports_prongs.prong2?.supports ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
-                              <p className="text-sm font-medium text-gold-muted mb-1">Prong 2</p>
-                              <p className="text-xs text-gold-muted">{analysis.supports_prongs.prong2?.how || 'N/A'}</p>
+                            <div className={`p-3 rounded-lg ${analysis.supports_prongs.prong2?.supports ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
+                              <p className="text-sm font-medium text-gold-muted mb-1">Prong 2 - Bien Posicionado</p>
+                              <p className="text-xs text-gold-muted">{analysis.supports_prongs.prong2?.explanation || analysis.supports_prongs.prong2?.how || 'N/A'}</p>
                             </div>
-                            <div className={`p-3 rounded-lg ${analysis.supports_prongs.prong3?.supports ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
-                              <p className="text-sm font-medium text-gold-muted mb-1">Prong 3</p>
-                              <p className="text-xs text-gold-muted">{analysis.supports_prongs.prong3?.how || 'N/A'}</p>
+                            <div className={`p-3 rounded-lg ${analysis.supports_prongs.prong3?.supports ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
+                              <p className="text-sm font-medium text-gold-muted mb-1">Prong 3 - Balance</p>
+                              <p className="text-xs text-gold-muted">{analysis.supports_prongs.prong3?.explanation || analysis.supports_prongs.prong3?.how || 'N/A'}</p>
                             </div>
                           </div>
                         )}
 
-                        {/* Puntos clave */}
-                        {analysis.key_points?.length > 0 && (
-                          <div>
-                            <h5 className="text-sm font-medium text-blue-400 mb-2">📌 Puntos Clave</h5>
-                            <ul className="space-y-1">
-                              {analysis.key_points.map((p, i) => (
-                                <li key={i} className="text-sm text-gold-muted">• {p}</li>
-                              ))}
-                            </ul>
+                        {/* Relación con el perfil del usuario */}
+                        {analysis.matches_profile && (
+                          <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/30">
+                            <h5 className="text-sm font-medium text-purple-400 mb-2">🔗 Relación con el Perfil del Beneficiario</h5>
+                            {analysis.matches_profile.strengthens?.length > 0 && (
+                              <div className="mb-2">
+                                <p className="text-xs text-green-400 font-medium">Refuerza estas fortalezas:</p>
+                                <ul className="text-xs text-gold-muted">
+                                  {analysis.matches_profile.strengthens.map((s, i) => <li key={i}>• {s}</li>)}
+                                </ul>
+                              </div>
+                            )}
+                            {analysis.matches_profile.addresses_weaknesses?.length > 0 && (
+                              <div className="mb-2">
+                                <p className="text-xs text-blue-400 font-medium">Ayuda a cubrir:</p>
+                                <ul className="text-xs text-gold-muted">
+                                  {analysis.matches_profile.addresses_weaknesses.map((w, i) => <li key={i}>• {w}</li>)}
+                                </ul>
+                              </div>
+                            )}
+                            {analysis.matches_profile.mismatches?.length > 0 && (
+                              <div>
+                                <p className="text-xs text-orange-400 font-medium">Inconsistencias detectadas:</p>
+                                <ul className="text-xs text-gold-muted">
+                                  {analysis.matches_profile.mismatches.map((m, i) => <li key={i}>• {m}</li>)}
+                                </ul>
+                              </div>
+                            )}
                           </div>
                         )}
 
                         {/* Fortalezas */}
                         {analysis.strengths?.length > 0 && (
                           <div>
-                            <h5 className="text-sm font-medium text-green-400 mb-2">✅ Fortalezas</h5>
+                            <h5 className="text-sm font-medium text-green-400 mb-2">✅ Fortalezas del Documento</h5>
                             <ul className="space-y-1">
                               {analysis.strengths.map((s, i) => (
                                 <li key={i} className="text-sm text-gold-muted flex items-start">
@@ -1555,7 +1613,7 @@ export default function CasosPage() {
                         {/* Debilidades */}
                         {analysis.weaknesses?.length > 0 && (
                           <div>
-                            <h5 className="text-sm font-medium text-orange-400 mb-2">⚠️ Debilidades</h5>
+                            <h5 className="text-sm font-medium text-orange-400 mb-2">⚠️ Debilidades / Problemas</h5>
                             <ul className="space-y-1">
                               {analysis.weaknesses.map((w, i) => (
                                 <li key={i} className="text-sm text-gold-muted flex items-start">
@@ -1567,23 +1625,15 @@ export default function CasosPage() {
                           </div>
                         )}
 
-                        {/* Complementa CV */}
-                        {analysis.complements_cv && (
-                          <div className="p-3 bg-purple-500/10 rounded-lg">
-                            <h5 className="text-sm font-medium text-purple-400 mb-1">🔗 Complementa el CV</h5>
-                            <p className="text-sm text-gold-muted">{analysis.complements_cv}</p>
-                          </div>
-                        )}
-
-                        {/* Sugerencias */}
-                        {analysis.suggestions?.length > 0 && (
+                        {/* Acciones recomendadas */}
+                        {analysis.action_items?.length > 0 && (
                           <div>
-                            <h5 className="text-sm font-medium text-blue-400 mb-2">💡 Sugerencias</h5>
+                            <h5 className="text-sm font-medium text-blue-400 mb-2">💡 Acciones Recomendadas</h5>
                             <ul className="space-y-1">
-                              {analysis.suggestions.map((s, i) => (
+                              {analysis.action_items.map((a, i) => (
                                 <li key={i} className="text-sm text-gold-muted flex items-start">
                                   <ChevronRight className="h-4 w-4 mr-2 text-blue-400 flex-shrink-0 mt-0.5" />
-                                  {s}
+                                  {a}
                                 </li>
                               ))}
                             </ul>
