@@ -960,6 +960,87 @@ export default function CasosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de Detalle del Documento */}
+      <Dialog open={showDocumentDialog} onOpenChange={setShowDocumentDialog}>
+        <DialogContent className="bg-navy-secondary border-navy-light max-w-4xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle className="text-gold-subtle flex items-center">
+              <FileText className="h-5 w-5 mr-2 text-gold-primary" />
+              Detalle del Documento
+            </DialogTitle>
+            <DialogDescription className="text-gold-muted">
+              {selectedDocument?.original_name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedDocument && (
+            <div className="space-y-4 py-4">
+              {/* Metadatos */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-3 bg-navy-primary rounded-lg">
+                  <p className="text-xs text-gold-muted">Tipo</p>
+                  <p className="text-gold-subtle font-medium">{getDocTypeLabel(selectedDocument.doc_type)}</p>
+                </div>
+                <div className="p-3 bg-navy-primary rounded-lg">
+                  <p className="text-xs text-gold-muted">Palabras</p>
+                  <p className="text-gold-subtle font-medium">{selectedDocument.word_count?.toLocaleString() || 0}</p>
+                </div>
+                <div className="p-3 bg-navy-primary rounded-lg">
+                  <p className="text-xs text-gold-muted">Caracteres</p>
+                  <p className="text-gold-subtle font-medium">{selectedDocument.char_count?.toLocaleString() || 0}</p>
+                </div>
+                <div className="p-3 bg-navy-primary rounded-lg">
+                  <p className="text-xs text-gold-muted">Páginas</p>
+                  <p className="text-gold-subtle font-medium">{selectedDocument.page_count || 'N/A'}</p>
+                </div>
+              </div>
+
+              {/* Contenido extraído */}
+              <div>
+                <h4 className="font-semibold text-gold-subtle mb-2 flex items-center">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Texto Extraído
+                </h4>
+                <div className="p-4 bg-navy-primary rounded-lg border border-navy-light max-h-96 overflow-auto">
+                  <pre className="text-gold-muted text-sm whitespace-pre-wrap font-mono">
+                    {selectedDocument.text_content || 'Sin contenido extraído'}
+                  </pre>
+                </div>
+              </div>
+
+              {/* Análisis del documento si existe */}
+              {selectedDocument.analysis_summary && (
+                <div>
+                  <h4 className="font-semibold text-purple-400 mb-2 flex items-center">
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Análisis IA
+                  </h4>
+                  <div className="p-4 bg-purple-500/10 rounded-lg border border-purple-500/30">
+                    <p className="text-gold-muted text-sm">{selectedDocument.analysis_summary}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="flex gap-2">
+            <Button 
+              variant="destructive" 
+              onClick={() => {
+                handleDeleteDocument(selectedDocument?.id)
+                setShowDocumentDialog(false)
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Eliminar
+            </Button>
+            <Button onClick={() => setShowDocumentDialog(false)} className="bg-gold-primary text-navy-primary">
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
