@@ -567,14 +567,135 @@ export default function CasosPage() {
                           className="bg-navy-primary border-navy-light text-gold-subtle"
                         />
                       </div>
+
+                      {/* Sección de CV obligatorio */}
+                      <div className="border-t border-navy-light pt-4 mt-4">
+                        <Label className="text-gold-subtle flex items-center mb-2">
+                          <FileText className="h-4 w-4 mr-2" />
+                          CV del Beneficiario * (Obligatorio)
+                        </Label>
+                        <div className="space-y-3">
+                          <Input
+                            type="file"
+                            accept=".pdf,.docx,.doc,.txt"
+                            onChange={(e) => {
+                              setCvFile(e.target.files?.[0] || null)
+                              setCvAnalysis(null)
+                            }}
+                            className="bg-navy-primary border-navy-light text-gold-subtle"
+                          />
+                          {cvFile && (
+                            <div className="flex items-center justify-between p-2 bg-navy-primary rounded border border-navy-light">
+                              <span className="text-sm text-gold-muted truncate">{cvFile.name}</span>
+                              <Button
+                                size="sm"
+                                onClick={handleAnalyzeCv}
+                                disabled={analyzingCv || !cvFile}
+                                className="bg-purple-600 hover:bg-purple-700 text-white"
+                              >
+                                {analyzingCv ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                    Analizando...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Brain className="h-4 w-4 mr-1" />
+                                    Analizar Aptitud
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          )}
+
+                          {/* Resultado del análisis de CV */}
+                          {cvAnalysis && (
+                            <div className="p-4 bg-navy-primary rounded-lg border border-navy-light space-y-3">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-semibold text-gold-subtle">Análisis de Aptitud</h4>
+                                <div className="flex items-center gap-2">
+                                  <div className={`text-2xl font-bold ${
+                                    cvAnalysis.aptitude_score >= 70 ? 'text-green-400' :
+                                    cvAnalysis.aptitude_score >= 50 ? 'text-yellow-400' :
+                                    'text-red-400'
+                                  }`}>
+                                    {cvAnalysis.aptitude_score}%
+                                  </div>
+                                  <span className={`text-xs px-2 py-1 rounded ${
+                                    cvAnalysis.recommendation === 'ALTAMENTE RECOMENDADO' ? 'bg-green-500/20 text-green-400' :
+                                    cvAnalysis.recommendation === 'RECOMENDADO' ? 'bg-green-500/20 text-green-300' :
+                                    cvAnalysis.recommendation === 'POSIBLE CON MEJORAS' ? 'bg-yellow-500/20 text-yellow-400' :
+                                    'bg-red-500/20 text-red-400'
+                                  }`}>
+                                    {cvAnalysis.recommendation}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              <p className="text-sm text-gold-muted">{cvAnalysis.summary}</p>
+                              
+                              {cvAnalysis.prong_analysis && (
+                                <div className="grid grid-cols-3 gap-2 text-xs">
+                                  <div className="p-2 bg-navy-secondary rounded">
+                                    <p className="text-gold-muted">Prong 1</p>
+                                    <p className="text-gold-subtle font-semibold">{cvAnalysis.prong_analysis.prong1?.score || 0}%</p>
+                                  </div>
+                                  <div className="p-2 bg-navy-secondary rounded">
+                                    <p className="text-gold-muted">Prong 2</p>
+                                    <p className="text-gold-subtle font-semibold">{cvAnalysis.prong_analysis.prong2?.score || 0}%</p>
+                                  </div>
+                                  <div className="p-2 bg-navy-secondary rounded">
+                                    <p className="text-gold-muted">Prong 3</p>
+                                    <p className="text-gold-subtle font-semibold">{cvAnalysis.prong_analysis.prong3?.score || 0}%</p>
+                                  </div>
+                                </div>
+                              )}
+
+                              {cvAnalysis.key_qualifications?.length > 0 && (
+                                <div>
+                                  <p className="text-xs text-green-400 font-medium mb-1">✅ Fortalezas clave:</p>
+                                  <ul className="text-xs text-gold-muted space-y-0.5">
+                                    {cvAnalysis.key_qualifications.slice(0, 3).map((q, i) => (
+                                      <li key={i}>• {q}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {cvAnalysis.missing_evidence?.length > 0 && (
+                                <div>
+                                  <p className="text-xs text-orange-400 font-medium mb-1">⚠️ Evidencia faltante:</p>
+                                  <ul className="text-xs text-gold-muted space-y-0.5">
+                                    {cvAnalysis.missing_evidence.slice(0, 2).map((m, i) => (
+                                      <li key={i}>• {m}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              <p className="text-xs text-gold-muted border-t border-navy-light pt-2 mt-2">
+                                <strong>Conclusión:</strong> {cvAnalysis.reasoning?.substring(0, 200)}...
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                     <DialogFooter>
-                      <Button variant="outline" onClick={() => setShowNewCaseDialog(false)} className="border-navy-light text-gold-muted">
+                      <Button variant="outline" onClick={() => {
+                        setShowNewCaseDialog(false)
+                        setCvFile(null)
+                        setCvAnalysis(null)
+                      }} className="border-navy-light text-gold-muted">
                         Cancelar
                       </Button>
-                      <Button onClick={handleCreateCase} disabled={creatingCase} className="bg-gold-primary text-navy-primary">
+                      <Button 
+                        onClick={handleCreateCase} 
+                        disabled={creatingCase || !cvAnalysis} 
+                        className="bg-gold-primary text-navy-primary"
+                      >
                         {creatingCase ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                        Crear Caso
+                        {!cvAnalysis ? 'Analiza el CV primero' : 'Crear Caso'}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
