@@ -108,6 +108,7 @@ export default function CasosPage() {
   const [showDocumentDialog, setShowDocumentDialog] = useState(false)
   const [selectedDocument, setSelectedDocument] = useState(null)
   const [showFullAnalysis, setShowFullAnalysis] = useState(false)
+  const [deletingDocId, setDeletingDocId] = useState(null)
   const [analysisResult, setAnalysisResult] = useState(null)
   const [analyzing, setAnalyzing] = useState(false)
   
