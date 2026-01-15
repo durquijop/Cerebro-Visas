@@ -1589,15 +1589,24 @@ export default function CasosPage() {
                           <div className="grid grid-cols-3 gap-3">
                             <div className={`p-3 rounded-lg ${analysis.supports_prongs.prong1?.supports ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
                               <p className="text-sm font-medium text-gold-muted mb-1">Prong 1 - Mérito Nacional</p>
-                              <p className="text-xs text-gold-muted">{analysis.supports_prongs.prong1?.explanation || 'N/A'}</p>
+                              <p className="text-xs text-gold-muted">
+                                {analysis.supports_prongs.prong1?.explanation || 
+                                 (analysis.supports_prongs.prong1?.supports === false ? 'No aporta evidencia para este criterio' : 'Sin información')}
+                              </p>
                             </div>
                             <div className={`p-3 rounded-lg ${analysis.supports_prongs.prong2?.supports ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
                               <p className="text-sm font-medium text-gold-muted mb-1">Prong 2 - Bien Posicionado</p>
-                              <p className="text-xs text-gold-muted">{analysis.supports_prongs.prong2?.explanation || 'N/A'}</p>
+                              <p className="text-xs text-gold-muted">
+                                {analysis.supports_prongs.prong2?.explanation || 
+                                 (analysis.supports_prongs.prong2?.supports === false ? 'No aporta evidencia para este criterio' : 'Sin información')}
+                              </p>
                             </div>
                             <div className={`p-3 rounded-lg ${analysis.supports_prongs.prong3?.supports ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
                               <p className="text-sm font-medium text-gold-muted mb-1">Prong 3 - Balance</p>
-                              <p className="text-xs text-gold-muted">{analysis.supports_prongs.prong3?.explanation || 'N/A'}</p>
+                              <p className="text-xs text-gold-muted">
+                                {analysis.supports_prongs.prong3?.explanation || 
+                                 (analysis.supports_prongs.prong3?.supports === false ? 'No aporta evidencia para este criterio' : 'Sin información')}
+                              </p>
                             </div>
                           </div>
                         )}
