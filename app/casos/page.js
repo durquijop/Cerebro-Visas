@@ -994,6 +994,25 @@ export default function CasosPage() {
                                         • {selectedCase.cv_analysis.aptitude_score}% Aptitud
                                       </span>
                                     )}
+                                    {/* Indicador de relevancia para otros documentos */}
+                                    {doc.doc_type !== 'cv' && doc.analysis_summary && (() => {
+                                      try {
+                                        const analysis = typeof doc.analysis_summary === 'string' 
+                                          ? JSON.parse(doc.analysis_summary) 
+                                          : doc.analysis_summary
+                                        return (
+                                          <span className={`text-xs font-bold ${
+                                            analysis.relevance_score >= 70 ? 'text-green-400' :
+                                            analysis.relevance_score >= 50 ? 'text-yellow-400' :
+                                            'text-red-400'
+                                          }`}>
+                                            • {analysis.relevance_score}% Relevancia
+                                          </span>
+                                        )
+                                      } catch (e) {
+                                        return null
+                                      }
+                                    })()}
                                   </div>
                                 </div>
                               </div>
