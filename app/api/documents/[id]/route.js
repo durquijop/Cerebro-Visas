@@ -18,9 +18,6 @@ export async function GET(request, { params }) {
         cases:case_id (
           id,
           title
-        ),
-        profiles:uploaded_by (
-          full_name
         )
       `)
       .eq('id', id)
