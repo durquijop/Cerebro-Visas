@@ -41,7 +41,7 @@ export async function GET() {
 export async function POST(request) {
   try {
     const body = await request.json()
-    const { title, description, visa_category, outcome, beneficiary_name, filed_date, service_center } = body
+    const { title, description, visa_category, outcome, beneficiary_name, filed_date, service_center, cv_analysis } = body
 
     if (!title) {
       return NextResponse.json({ error: 'El título es requerido' }, { status: 400 })
@@ -57,7 +57,8 @@ export async function POST(request) {
         outcome: outcome || 'pending',
         beneficiary_name,
         filed_date: filed_date || null,
-        service_center
+        service_center,
+        cv_analysis: cv_analysis || null
       })
       .select()
       .single()
