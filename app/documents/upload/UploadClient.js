@@ -237,7 +237,7 @@ export default function UploadClient({ userId, cases, userRole }) {
                       <SelectValue placeholder="Sin caso asociado" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sin caso asociado</SelectItem>
+                      <SelectItem value="none">Sin caso asociado</SelectItem>
                       {cases.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.title}
