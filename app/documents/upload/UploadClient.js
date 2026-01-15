@@ -86,7 +86,7 @@ export default function UploadClient({ userId, cases, userRole }) {
       formData.append('doc_type', docType)
       formData.append('user_id', userId)
       formData.append('process_with_ai', processWithAI.toString())
-      if (caseId) {
+      if (caseId && caseId !== 'none') {
         formData.append('case_id', caseId)
       }
 
