@@ -125,6 +125,19 @@ export default function CasosPage() {
   const [uploadDocType, setUploadDocType] = useState('i140')
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [docTypeOpen, setDocTypeOpen] = useState(false)
+  const [docTypeSearch, setDocTypeSearch] = useState('')
+
+  // Filtrar tipos de documento por búsqueda
+  const filteredDocTypes = useMemo(() => {
+    if (!docTypeSearch) return DOC_TYPES
+    const search = docTypeSearch.toLowerCase()
+    return DOC_TYPES.filter(d => 
+      d.label.toLowerCase().includes(search) || 
+      d.category.toLowerCase().includes(search) ||
+      d.value.toLowerCase().includes(search)
+    )
+  }, [docTypeSearch])
 
   useEffect(() => {
     loadCases()
