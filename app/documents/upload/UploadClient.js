@@ -332,47 +332,95 @@ export default function UploadClient({ userId, cases, userRole }) {
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center">
                     <Brain className="mr-2 h-5 w-5 text-purple-600" />
-                    Análisis con IA
+                    Análisis Estructurado
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Summary */}
-                  {result.aiAnalysis.summary && (
+                  {/* Executive Summary */}
+                  {result.aiAnalysis.summary?.executive_summary && (
                     <div className="p-4 bg-purple-50 rounded-lg">
-                      <h4 className="font-medium text-purple-900 mb-2">Resumen</h4>
-                      <p className="text-purple-800">{result.aiAnalysis.summary}</p>
+                      <h4 className="font-medium text-purple-900 mb-2">Resumen Ejecutivo</h4>
+                      <p className="text-purple-800">{result.aiAnalysis.summary.executive_summary}</p>
+                      {result.aiAnalysis.summary.overall_severity && (
+                        <span className={`inline-block mt-2 px-2 py-1 rounded text-xs font-medium ${
+                          result.aiAnalysis.summary.overall_severity === 'critical' ? 'bg-red-200 text-red-800' :
+                          result.aiAnalysis.summary.overall_severity === 'high' ? 'bg-orange-200 text-orange-800' :
+                          result.aiAnalysis.summary.overall_severity === 'medium' ? 'bg-yellow-200 text-yellow-800' :
+                          'bg-green-200 text-green-800'
+                        }`}>
+                          Severidad: {result.aiAnalysis.summary.overall_severity}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Prongs Affected */}
+                  {result.aiAnalysis.summary?.prongs_affected && (
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm text-gray-600">Prongs afectados:</span>
+                      <div className="flex gap-2">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          result.aiAnalysis.summary.prongs_affected.P1 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                        }`}>
+                          P1 {result.aiAnalysis.summary.prongs_affected.P1 ? '⚠️' : '✓'}
+                        </span>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          result.aiAnalysis.summary.prongs_affected.P2 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                        }`}>
+                          P2 {result.aiAnalysis.summary.prongs_affected.P2 ? '⚠️' : '✓'}
+                        </span>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          result.aiAnalysis.summary.prongs_affected.P3 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                        }`}>
+                          P3 {result.aiAnalysis.summary.prongs_affected.P3 ? '⚠️' : '✓'}
+                        </span>
+                      </div>
                     </div>
                   )}
 
                   {/* Document Info */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-600">Tipo:</span>
-                      <span className="ml-2 font-medium">{result.aiAnalysis.document_type}</span>
+                  {result.aiAnalysis.document_info && (
+                    <div className="grid grid-cols-2 gap-4 text-sm p-4 bg-gray-50 rounded-lg">
+                      {result.aiAnalysis.document_info.outcome_type && (
+                        <div>
+                          <span className="text-gray-600">Tipo:</span>
+                          <span className="ml-2 font-medium">{result.aiAnalysis.document_info.outcome_type}</span>
+                        </div>
+                      )}
+                      {result.aiAnalysis.document_info.visa_category && (
+                        <div>
+                          <span className="text-gray-600">Visa:</span>
+                          <span className="ml-2 font-medium">{result.aiAnalysis.document_info.visa_category}</span>
+                        </div>
+                      )}
+                      {result.aiAnalysis.document_info.receipt_number && (
+                        <div>
+                          <span className="text-gray-600">Receipt #:</span>
+                          <span className="ml-2 font-medium">{result.aiAnalysis.document_info.receipt_number}</span>
+                        </div>
+                      )}
+                      {result.aiAnalysis.document_info.service_center && (
+                        <div>
+                          <span className="text-gray-600">Service Center:</span>
+                          <span className="ml-2 font-medium">{result.aiAnalysis.document_info.service_center}</span>
+                        </div>
+                      )}
+                      {result.aiAnalysis.document_info.beneficiary_name && (
+                        <div className="col-span-2">
+                          <span className="text-gray-600">Beneficiario:</span>
+                          <span className="ml-2 font-medium">{result.aiAnalysis.document_info.beneficiary_name}</span>
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <span className="text-gray-600">Categoría:</span>
-                      <span className="ml-2 font-medium">{result.aiAnalysis.visa_category}</span>
-                    </div>
-                    {result.aiAnalysis.receipt_number && (
-                      <div>
-                        <span className="text-gray-600">Receipt #:</span>
-                        <span className="ml-2 font-medium">{result.aiAnalysis.receipt_number}</span>
-                      </div>
-                    )}
-                    {result.aiAnalysis.service_center && (
-                      <div>
-                        <span className="text-gray-600">Service Center:</span>
-                        <span className="ml-2 font-medium">{result.aiAnalysis.service_center}</span>
-                      </div>
-                    )}
-                  </div>
+                  )}
 
                   {/* Issues Found */}
                   {result.aiAnalysis.issues && result.aiAnalysis.issues.length > 0 && (
                     <div>
-                      <h4 className="font-medium text-gray-900 mb-3">Motivos Identificados</h4>
-                      <div className="space-y-2">
+                      <h4 className="font-medium text-gray-900 mb-3">
+                        Issues Identificados ({result.aiAnalysis.issues.length})
+                      </h4>
+                      <div className="space-y-2 max-h-60 overflow-auto">
                         {result.aiAnalysis.issues.map((issue, idx) => (
                           <div
                             key={idx}
@@ -384,11 +432,20 @@ export default function UploadClient({ userId, cases, userRole }) {
                             }`}
                           >
                             <div className="flex items-start justify-between">
-                              <div>
-                                <code className="text-xs bg-white px-2 py-1 rounded">
-                                  {issue.taxonomy_code}
-                                </code>
-                                <p className="mt-1 text-sm font-medium">{issue.description}</p>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <code className="text-xs bg-white px-2 py-0.5 rounded border">
+                                    {issue.taxonomy_code}
+                                  </code>
+                                  {issue.prong_affected && (
+                                    <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">
+                                      {issue.prong_affected}
+                                    </span>
+                                  )}
+                                </div>
+                                {issue.officer_reasoning && (
+                                  <p className="mt-1 text-sm text-gray-700">{issue.officer_reasoning}</p>
+                                )}
                               </div>
                               <span className={`text-xs px-2 py-1 rounded-full ${
                                 issue.severity === 'critical' ? 'bg-red-200 text-red-800' :
@@ -399,9 +456,9 @@ export default function UploadClient({ userId, cases, userRole }) {
                                 {issue.severity}
                               </span>
                             </div>
-                            {issue.quote && (
+                            {issue.extracted_quote && (
                               <blockquote className="mt-2 text-xs text-gray-600 italic border-l-2 border-gray-300 pl-2">
-                                "{issue.quote}"
+                                "{issue.extracted_quote.substring(0, 200)}{issue.extracted_quote.length > 200 ? '...' : ''}"
                               </blockquote>
                             )}
                           </div>
@@ -410,19 +467,21 @@ export default function UploadClient({ userId, cases, userRole }) {
                     </div>
                   )}
 
-                  {/* Evidence Requested */}
-                  {result.aiAnalysis.evidence_requested && result.aiAnalysis.evidence_requested.length > 0 && (
+                  {/* Requests */}
+                  {result.aiAnalysis.requests && result.aiAnalysis.requests.length > 0 && (
                     <div>
-                      <h4 className="font-medium text-gray-900 mb-3">Evidencia Solicitada</h4>
+                      <h4 className="font-medium text-gray-900 mb-3">
+                        Evidencia Solicitada ({result.aiAnalysis.requests.length})
+                      </h4>
                       <ul className="space-y-2">
-                        {result.aiAnalysis.evidence_requested.map((item, idx) => (
-                          <li key={idx} className="flex items-start space-x-2 text-sm">
-                            <span className={`px-2 py-0.5 rounded text-xs ${
-                              item.priority === 'required' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                        {result.aiAnalysis.requests.map((req, idx) => (
+                          <li key={idx} className="flex items-start space-x-2 text-sm p-2 bg-blue-50 rounded">
+                            <span className={`shrink-0 px-2 py-0.5 rounded text-xs ${
+                              req.priority === 'required' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
                             }`}>
-                              {item.prong_mapping}
+                              {req.prong_mapping || 'General'}
                             </span>
-                            <span>{item.item}</span>
+                            <span className="text-gray-700">{req.request_text}</span>
                           </li>
                         ))}
                       </ul>
