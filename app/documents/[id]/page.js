@@ -6,10 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
-  Brain, ArrowLeft, FileText, Download, Trash2, 
-  Calendar, User, FolderOpen, Loader2, AlertCircle,
-  CheckCircle, XCircle, FileCheck
+  Brain, ArrowLeft, FileText, Trash2, 
+  Calendar, FolderOpen, Loader2, AlertCircle,
+  AlertTriangle, CheckCircle2, XCircle, FileCheck,
+  ClipboardList, Scale, Target, MessageSquareWarning,
+  Building2, User2, Hash, Clock
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -18,6 +21,8 @@ export default function DocumentDetailPage() {
   const params = useParams()
   const router = useRouter()
   const [document, setDocument] = useState(null)
+  const [issues, setIssues] = useState([])
+  const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState(null)
@@ -44,11 +49,36 @@ export default function DocumentDetailPage() {
 
       const data = await response.json()
       setDocument(data)
+      
+      // Cargar issues y requests si existen
+      if (data.id) {
+        fetchIssuesAndRequests(data.id)
+      }
     } catch (err) {
       setError(err.message)
       toast.error(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchIssuesAndRequests = async (docId) => {
+    try {
+      // Fetch issues
+      const issuesRes = await fetch(`/api/documents/${docId}/issues`)
+      if (issuesRes.ok) {
+        const issuesData = await issuesRes.json()
+        setIssues(issuesData.issues || [])
+      }
+      
+      // Fetch requests
+      const requestsRes = await fetch(`/api/documents/${docId}/requests`)
+      if (requestsRes.ok) {
+        const requestsData = await requestsRes.json()
+        setRequests(requestsData.requests || [])
+      }
+    } catch (err) {
+      console.error('Error fetching issues/requests:', err)
     }
   }
 
@@ -74,17 +104,58 @@ export default function DocumentDetailPage() {
     }
   }
 
-  const getDocTypeBadge = (type) => {
-    const badges = {
-      'RFE': 'bg-orange-100 text-orange-800 border-orange-200',
-      'NOID': 'bg-red-100 text-red-800 border-red-200',
-      'Denial': 'bg-red-200 text-red-900 border-red-300',
-      'Brief': 'bg-blue-100 text-blue-800 border-blue-200',
-      'CV': 'bg-purple-100 text-purple-800 border-purple-200',
-      'Recommendation': 'bg-green-100 text-green-800 border-green-200',
-      'Other': 'bg-gray-100 text-gray-800 border-gray-200'
+  const getSeverityBadge = (severity) => {
+    const styles = {
+      critical: 'bg-red-100 text-red-800 border-red-300',
+      high: 'bg-orange-100 text-orange-800 border-orange-300',
+      medium: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+      low: 'bg-blue-100 text-blue-800 border-blue-300'
     }
-    return badges[type] || badges['Other']
+    const labels = {
+      critical: 'Crítico',
+      high: 'Alto',
+      medium: 'Medio',
+      low: 'Bajo'
+    }
+    return (
+      <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${styles[severity] || styles.medium}`}>
+        {labels[severity] || severity}
+      </span>
+    )
+  }
+
+  const getProngBadge = (prong) => {
+    const styles = {
+      P1: 'bg-purple-100 text-purple-800',
+      P2: 'bg-blue-100 text-blue-800',
+      P3: 'bg-green-100 text-green-800',
+      EVIDENCE: 'bg-amber-100 text-amber-800',
+      COHERENCE: 'bg-pink-100 text-pink-800',
+      PROCEDURAL: 'bg-gray-100 text-gray-800'
+    }
+    const labels = {
+      P1: 'Prong 1 - Mérito/Importancia',
+      P2: 'Prong 2 - Bien Posicionado',
+      P3: 'Prong 3 - Balance',
+      EVIDENCE: 'Evidencia',
+      COHERENCE: 'Coherencia',
+      PROCEDURAL: 'Procedural'
+    }
+    return (
+      <span className={`px-2 py-0.5 rounded text-xs font-medium ${styles[prong] || 'bg-gray-100'}`}>
+        {labels[prong] || prong}
+      </span>
+    )
+  }
+
+  const getOutcomeIcon = (outcome) => {
+    switch (outcome) {
+      case 'RFE': return <AlertTriangle className="h-5 w-5 text-orange-500" />
+      case 'NOID': return <XCircle className="h-5 w-5 text-red-500" />
+      case 'Denial': return <XCircle className="h-5 w-5 text-red-700" />
+      case 'Approval': return <CheckCircle2 className="h-5 w-5 text-green-500" />
+      default: return <FileText className="h-5 w-5 text-gray-500" />
+    }
   }
 
   if (loading) {
@@ -119,17 +190,9 @@ export default function DocumentDetailPage() {
 
   if (!document) return null
 
-  // Parse analysis if available
-  let analysis = null
-  try {
-    if (document.analysis_summary) {
-      analysis = typeof document.analysis_summary === 'string' 
-        ? JSON.parse(document.analysis_summary) 
-        : document.analysis_summary
-    }
-  } catch (e) {
-    console.error('Error parsing analysis:', e)
-  }
+  const structuredData = document.structured_data || {}
+  const docInfo = structuredData.document_info || {}
+  const summary = structuredData.summary || {}
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -144,7 +207,7 @@ export default function DocumentDetailPage() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-8 max-w-4xl">
+      <main className="container mx-auto px-6 py-8 max-w-6xl">
         <div className="mb-6">
           <Link href="/documents">
             <Button variant="ghost" className="mb-4">
@@ -153,20 +216,30 @@ export default function DocumentDetailPage() {
           </Link>
         </div>
 
-        {/* Document Header Card */}
+        {/* Document Header */}
         <Card className="mb-6">
           <CardHeader>
             <div className="flex items-start justify-between">
               <div className="flex items-start space-x-4">
                 <div className="p-3 bg-blue-100 rounded-lg">
-                  <FileText className="h-8 w-8 text-blue-600" />
+                  {getOutcomeIcon(document.outcome_type || document.doc_type)}
                 </div>
                 <div>
-                  <CardTitle className="text-2xl">{document.name}</CardTitle>
-                  <CardDescription className="mt-1">
-                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium border ${getDocTypeBadge(document.doc_type)}`}>
-                      {document.doc_type}
-                    </span>
+                  <CardTitle className="text-2xl flex items-center gap-3">
+                    {document.name}
+                    {document.outcome_type && (
+                      <Badge variant="outline" className="text-sm">
+                        {document.outcome_type}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <CardDescription className="mt-1 flex items-center gap-2">
+                    {document.visa_category && (
+                      <Badge className="bg-indigo-100 text-indigo-800">
+                        {document.visa_category}
+                      </Badge>
+                    )}
+                    {summary.overall_severity && getSeverityBadge(summary.overall_severity)}
                   </CardDescription>
                 </div>
               </div>
@@ -191,173 +264,233 @@ export default function DocumentDetailPage() {
               <div className="flex items-center space-x-2">
                 <Calendar className="h-4 w-4 text-gray-400" />
                 <div>
-                  <p className="text-gray-500">Fecha del Documento</p>
+                  <p className="text-gray-500">Fecha Documento</p>
                   <p className="font-medium">
-                    {document.document_date 
-                      ? new Date(document.document_date + 'T00:00:00').toLocaleDateString('es-ES', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
+                    {document.document_date || docInfo.document_date
+                      ? new Date((document.document_date || docInfo.document_date) + 'T00:00:00').toLocaleDateString('es-ES', {
+                          year: 'numeric', month: 'long', day: 'numeric'
                         })
-                      : new Date(document.created_at).toLocaleDateString('es-ES', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })
+                      : 'No detectada'
                     }
                   </p>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <FolderOpen className="h-4 w-4 text-gray-400" />
+                <Clock className="h-4 w-4 text-gray-400" />
                 <div>
-                  <p className="text-gray-500">Caso Asociado</p>
+                  <p className="text-gray-500">Deadline Respuesta</p>
                   <p className="font-medium">
-                    {document.cases?.title || 'Sin caso'}
+                    {docInfo.response_deadline 
+                      ? new Date(docInfo.response_deadline + 'T00:00:00').toLocaleDateString('es-ES')
+                      : 'No especificado'
+                    }
                   </p>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <FileCheck className="h-4 w-4 text-gray-400" />
+                <Building2 className="h-4 w-4 text-gray-400" />
                 <div>
-                  <p className="text-gray-500">Caracteres</p>
-                  <p className="font-medium">
-                    {document.char_count?.toLocaleString() || document.text_content?.length?.toLocaleString() || '0'}
-                  </p>
+                  <p className="text-gray-500">Service Center</p>
+                  <p className="font-medium">{document.service_center || docInfo.service_center || 'No especificado'}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <User className="h-4 w-4 text-gray-400" />
+                <Hash className="h-4 w-4 text-gray-400" />
                 <div>
-                  <p className="text-gray-500">ID Documento</p>
-                  <p className="font-medium text-xs">
-                    {document.id?.substring(0, 8)}...
-                  </p>
+                  <p className="text-gray-500">Receipt #</p>
+                  <p className="font-medium text-xs">{document.receipt_number || docInfo.receipt_number || 'No detectado'}</p>
                 </div>
               </div>
             </div>
+            
+            {/* Beneficiary Info */}
+            {(document.beneficiary_name || docInfo.beneficiary_name) && (
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <User2 className="h-4 w-4 text-gray-400" />
+                  <span className="text-sm text-gray-500">Beneficiario:</span>
+                  <span className="font-medium">{document.beneficiary_name || docInfo.beneficiary_name}</span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Analysis Results */}
-        {analysis && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Brain className="h-5 w-5 mr-2 text-purple-600" />
-                Análisis del Documento
+        {/* Executive Summary */}
+        {summary.executive_summary && (
+          <Card className="mb-6 border-l-4 border-l-blue-500">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Brain className="h-5 w-5 text-blue-600" />
+                Resumen Ejecutivo
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Verdict */}
-              {analysis.verdict && (
-                <div className={`p-4 rounded-lg ${
-                  analysis.verdict === 'APOYA AL CLIENTE' 
-                    ? 'bg-green-50 border border-green-200' 
-                    : 'bg-red-50 border border-red-200'
-                }`}>
-                  <div className="flex items-center space-x-2">
-                    {analysis.verdict === 'APOYA AL CLIENTE' ? (
-                      <CheckCircle className="h-6 w-6 text-green-600" />
-                    ) : (
-                      <XCircle className="h-6 w-6 text-red-600" />
-                    )}
-                    <span className={`text-lg font-bold ${
-                      analysis.verdict === 'APOYA AL CLIENTE' ? 'text-green-800' : 'text-red-800'
-                    }`}>
-                      {analysis.verdict}
-                    </span>
+            <CardContent>
+              <p className="text-gray-700">{summary.executive_summary}</p>
+              
+              {/* Prongs Affected */}
+              {summary.prongs_affected && (
+                <div className="mt-4 flex items-center gap-4">
+                  <span className="text-sm text-gray-500">Prongs afectados:</span>
+                  <div className="flex gap-2">
+                    <Badge variant={summary.prongs_affected.P1 ? "destructive" : "outline"} className="text-xs">
+                      P1 {summary.prongs_affected.P1 ? '⚠️' : '✓'}
+                    </Badge>
+                    <Badge variant={summary.prongs_affected.P2 ? "destructive" : "outline"} className="text-xs">
+                      P2 {summary.prongs_affected.P2 ? '⚠️' : '✓'}
+                    </Badge>
+                    <Badge variant={summary.prongs_affected.P3 ? "destructive" : "outline"} className="text-xs">
+                      P3 {summary.prongs_affected.P3 ? '⚠️' : '✓'}
+                    </Badge>
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
 
-              {/* Relevance Score */}
-              {analysis.relevance_percentage !== undefined && (
-                <div className="flex items-center space-x-4">
-                  <span className="text-gray-600">Relevancia:</span>
-                  <div className="flex-1 bg-gray-200 rounded-full h-3">
-                    <div 
-                      className={`h-3 rounded-full ${
-                        analysis.relevance_percentage >= 70 ? 'bg-green-500' :
-                        analysis.relevance_percentage >= 40 ? 'bg-yellow-500' : 'bg-red-500'
-                      }`}
-                      style={{ width: `${analysis.relevance_percentage}%` }}
-                    />
-                  </div>
-                  <span className="font-bold text-lg">{analysis.relevance_percentage}%</span>
-                </div>
-              )}
+        {/* Tabs for Issues, Requests, Text */}
+        <Tabs defaultValue="issues" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="issues" className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Issues ({structuredData.issues?.length || issues.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="requests" className="flex items-center gap-2">
+              <ClipboardList className="h-4 w-4" />
+              Requests ({structuredData.requests?.length || requests.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="text" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Texto
+            </TabsTrigger>
+          </TabsList>
 
-              {/* Summary */}
-              {analysis.summary && (
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Resumen</h4>
-                  <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">{analysis.summary}</p>
-                </div>
-              )}
-
-              {/* Why it supports/doesn't support */}
-              {analysis.why_supports && (
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">¿Por qué apoya la solicitud?</h4>
-                  <p className="text-gray-700 bg-green-50 p-3 rounded-lg border border-green-100">
-                    {analysis.why_supports}
-                  </p>
-                </div>
-              )}
-
-              {/* Prong Analysis */}
-              {analysis.prong_analysis && (
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Análisis por Prongs EB-2 NIW</h4>
-                  <div className="grid gap-2">
-                    {Object.entries(analysis.prong_analysis).map(([prong, value]) => (
-                      <div key={prong} className="flex items-start space-x-3 p-2 bg-gray-50 rounded">
-                        <Badge variant="outline" className="shrink-0">{prong}</Badge>
-                        <span className="text-sm text-gray-700">{value || 'N/A'}</span>
+          {/* Issues Tab */}
+          <TabsContent value="issues">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquareWarning className="h-5 w-5 text-orange-500" />
+                  Deficiencias Identificadas
+                </CardTitle>
+                <CardDescription>
+                  Issues extraídos del documento mapeados a la taxonomía NIW
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {(structuredData.issues || issues).length > 0 ? (
+                  <div className="space-y-4">
+                    {(structuredData.issues || issues).map((issue, idx) => (
+                      <div key={idx} className="p-4 border rounded-lg bg-white hover:shadow-sm transition-shadow">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            {getProngBadge(issue.prong_affected)}
+                            {getSeverityBadge(issue.severity)}
+                          </div>
+                          {issue.page_ref && (
+                            <span className="text-xs text-gray-400">Pág. {issue.page_ref}</span>
+                          )}
+                        </div>
+                        
+                        <p className="text-sm font-medium text-gray-800 mb-2">
+                          <code className="text-xs bg-gray-100 px-1 rounded mr-2">{issue.taxonomy_code}</code>
+                        </p>
+                        
+                        {issue.officer_reasoning && (
+                          <p className="text-sm text-gray-700 mb-2">{issue.officer_reasoning}</p>
+                        )}
+                        
+                        {issue.extracted_quote && (
+                          <blockquote className="text-sm text-gray-600 italic border-l-2 border-gray-300 pl-3 mt-2">
+                            "{issue.extracted_quote}"
+                          </blockquote>
+                        )}
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No se encontraron issues estructurados.</p>
+                    <p className="text-sm">El documento puede no haber sido procesado con IA aún.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-              {/* Key Points */}
-              {analysis.key_points && analysis.key_points.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Puntos Clave</h4>
-                  <ul className="space-y-1">
-                    {analysis.key_points.map((point, idx) => (
-                      <li key={idx} className="flex items-start space-x-2 text-sm">
-                        <span className="text-green-500 mt-1">•</span>
-                        <span className="text-gray-700">{point}</span>
-                      </li>
+          {/* Requests Tab */}
+          <TabsContent value="requests">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ClipboardList className="h-5 w-5 text-blue-500" />
+                  Evidencia Solicitada por USCIS
+                </CardTitle>
+                <CardDescription>
+                  Documentos y explicaciones que USCIS pide en este {document.outcome_type || document.doc_type}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {(structuredData.requests || requests).length > 0 ? (
+                  <div className="space-y-3">
+                    {(structuredData.requests || requests).map((req, idx) => (
+                      <div key={idx} className="p-4 border rounded-lg bg-white hover:shadow-sm transition-shadow">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            {req.prong_mapping && getProngBadge(req.prong_mapping)}
+                            <Badge variant={req.priority === 'required' ? 'default' : 'secondary'} className="text-xs">
+                              {req.priority === 'required' ? '⚡ Requerido' : '📌 Recomendado'}
+                            </Badge>
+                          </div>
+                          {req.evidence_type && (
+                            <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
+                              {req.evidence_type}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-800">{req.request_text}</p>
+                      </div>
                     ))}
-                  </ul>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <ClipboardList className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No se encontraron requests estructurados.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        {/* Text Content Preview */}
-        {document.text_content && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <FileText className="h-5 w-5 mr-2 text-gray-600" />
-                Contenido Extraído
-              </CardTitle>
-              <CardDescription>
-                Vista previa del texto extraído del documento
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <pre className="text-sm bg-gray-50 p-4 rounded-lg overflow-auto max-h-96 whitespace-pre-wrap font-mono">
-                {document.text_content}
-              </pre>
-            </CardContent>
-          </Card>
-        )}
+          {/* Text Tab */}
+          <TabsContent value="text">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-gray-500" />
+                  Contenido Extraído
+                </CardTitle>
+                <CardDescription>
+                  {document.text_content?.length?.toLocaleString() || 0} caracteres extraídos del documento
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {document.text_content ? (
+                  <pre className="text-sm bg-gray-50 p-4 rounded-lg overflow-auto max-h-[600px] whitespace-pre-wrap font-mono">
+                    {document.text_content}
+                  </pre>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No hay texto extraído disponible.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   )
