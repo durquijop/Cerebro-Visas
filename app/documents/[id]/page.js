@@ -454,9 +454,9 @@ export default function DocumentDetailPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {(structuredData.issues || issues).length > 0 ? (
+                {displayIssues.length > 0 ? (
                   <div className="space-y-4">
-                    {(structuredData.issues || issues).map((issue, idx) => (
+                    {displayIssues.map((issue, idx) => (
                       <div key={idx} className="p-4 border rounded-lg bg-white hover:shadow-sm transition-shadow">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center gap-2">
