@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { 
   Brain, LogOut, Users, FileText, TrendingUp, Upload, 
-  FolderOpen, Settings, BarChart3, Shield, ChevronRight, Loader2
+  FolderOpen, Settings, BarChart3, Shield, ChevronRight, Loader2,
+  Tag, Briefcase
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
