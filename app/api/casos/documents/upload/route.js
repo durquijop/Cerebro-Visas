@@ -96,33 +96,23 @@ export async function POST(request) {
         if (extractionResult.success) {
           structuredData = extractionResult.data
           
-          // También guardar en tabla documents para consistencia con tendencias
-          const { data: docRecord } = await supabaseAdmin
-            .from('documents')
-            .insert({
-              id: fileId,
-              name: file.name,
-              doc_type: outcomeType,
-              case_id: caseId,
-              storage_path: storagePath,
-              text_content: cleanText.substring(0, 50000),
-              outcome_type: structuredData.document_info?.outcome_type || outcomeType,
-              visa_category: structuredData.document_info?.visa_category,
-              document_date: structuredData.document_info?.document_date,
-              receipt_number: structuredData.document_info?.receipt_number,
-              service_center: structuredData.document_info?.service_center,
-              beneficiary_name: structuredData.document_info?.beneficiary_name,
+          // IMPORTANTE: Guardar structured_data directamente en case_documents
+          // No usar document_issues/document_requests porque tienen FK restrictivo a 'documents'
+          const { error: updateError } = await supabaseAdmin
+            .from('case_documents')
+            .update({ 
               structured_data: structuredData,
-              extraction_status: 'completed',
               analyzed_at: new Date().toISOString()
             })
-            .select()
-            .single()
+            .eq('id', fileId)
           
-          // Guardar issues y requests
-          await saveStructuredData(supabaseAdmin, fileId, structuredData)
+          if (updateError) {
+            console.error('Error actualizando structured_data:', updateError)
+          } else {
+            console.log(`✅ Case Miner completado y guardado en case_documents.structured_data`)
+          }
           
-          console.log(`✅ Case Miner completado: ${structuredData.issues?.length || 0} issues, ${structuredData.requests?.length || 0} requests`)
+          console.log(`✅ Issues: ${structuredData.issues?.length || 0}, Requests: ${structuredData.requests?.length || 0}`)
           
           documentAnalysis = {
             issues_count: structuredData.issues?.length || 0,
