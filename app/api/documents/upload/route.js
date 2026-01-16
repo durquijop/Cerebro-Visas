@@ -10,6 +10,79 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
+/**
+ * Extrae la fecha del documento del texto
+ * Busca patrones comunes de fecha al inicio del documento
+ */
+function extractDocumentDate(text) {
+  if (!text) return null
+  
+  // Tomar solo los primeros 1000 caracteres para buscar la fecha
+  const header = text.substring(0, 1000)
+  
+  // Patrones de fecha comunes en documentos USCIS
+  const patterns = [
+    // December 22, 2025
+    /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})\b/i,
+    // 22 December 2025
+    /\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/i,
+    // 12/22/2025 or 12-22-2025
+    /\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/,
+    // 2025-12-22
+    /\b(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\b/
+  ]
+  
+  const monthMap = {
+    'january': '01', 'february': '02', 'march': '03', 'april': '04',
+    'may': '05', 'june': '06', 'july': '07', 'august': '08',
+    'september': '09', 'october': '10', 'november': '11', 'december': '12'
+  }
+  
+  for (const pattern of patterns) {
+    const match = header.match(pattern)
+    if (match) {
+      try {
+        let year, month, day
+        
+        if (pattern === patterns[0]) {
+          // December 22, 2025
+          month = monthMap[match[1].toLowerCase()]
+          day = match[2].padStart(2, '0')
+          year = match[3]
+        } else if (pattern === patterns[1]) {
+          // 22 December 2025
+          day = match[1].padStart(2, '0')
+          month = monthMap[match[2].toLowerCase()]
+          year = match[3]
+        } else if (pattern === patterns[2]) {
+          // 12/22/2025
+          month = match[1].padStart(2, '0')
+          day = match[2].padStart(2, '0')
+          year = match[3]
+        } else if (pattern === patterns[3]) {
+          // 2025-12-22
+          year = match[1]
+          month = match[2].padStart(2, '0')
+          day = match[3].padStart(2, '0')
+        }
+        
+        if (year && month && day) {
+          const dateStr = `${year}-${month}-${day}`
+          // Validar que sea una fecha válida
+          const date = new Date(dateStr)
+          if (!isNaN(date.getTime())) {
+            return dateStr
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing date:', e)
+      }
+    }
+  }
+  
+  return null
+}
+
 export async function POST(request) {
   try {
     const formData = await request.formData()
