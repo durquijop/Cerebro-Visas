@@ -261,8 +261,8 @@ export default function TrendsClient() {
                 </CardHeader>
                 <CardContent>
                   {data.prongDistribution && data.prongDistribution.length > 0 ? (
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-96">
+                      <ResponsiveContainer width="100%" height="70%">
                         <RechartsPie>
                           <Pie
                             data={data.prongDistribution}
@@ -270,18 +270,32 @@ export default function TrendsClient() {
                             cy="50%"
                             labelLine={false}
                             label={({ prong, percentage }) => `${prong} (${percentage}%)`}
-                            outerRadius={100}
+                            outerRadius={90}
                             fill="#8884d8"
                             dataKey="count"
+                            nameKey="label"
                           >
                             {data.prongDistribution.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={COLORS[entry.prong] || PRONG_COLORS[index % PRONG_COLORS.length]} />
                             ))}
                           </Pie>
-                          <Tooltip formatter={(value, name, props) => [value, props.payload.label]} />
-                          <Legend />
+                          <Tooltip formatter={(value, name, props) => [value + ' issues', props.payload.label]} />
                         </RechartsPie>
                       </ResponsiveContainer>
+                      {/* Leyenda personalizada */}
+                      <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                        {data.prongDistribution.map((item, index) => (
+                          <div key={item.prong} className="flex items-center gap-2">
+                            <span 
+                              className="w-3 h-3 rounded-full shrink-0" 
+                              style={{ backgroundColor: COLORS[item.prong] || PRONG_COLORS[index % PRONG_COLORS.length] }}
+                            />
+                            <span className="text-gray-700 truncate">
+                              <strong>{item.prong}:</strong> {item.label.replace('Prong 1 - ', '').replace('Prong 2 - ', '').replace('Prong 3 - ', '')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ) : (
                     <div className="h-80 flex items-center justify-center text-gray-500">
