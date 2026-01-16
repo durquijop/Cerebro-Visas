@@ -223,9 +223,33 @@ export default function DocumentDetailPage() {
 
   if (!document) return null
 
-  const structuredData = document.structured_data || {}
+  // Parsear structured_data o analysis_summary
+  let structuredData = document.structured_data || {}
+  
+  // Si no hay structured_data, intentar parsear analysis_summary
+  if (Object.keys(structuredData).length === 0 && document.analysis_summary) {
+    try {
+      const parsed = typeof document.analysis_summary === 'string' 
+        ? JSON.parse(document.analysis_summary) 
+        : document.analysis_summary
+      
+      // Si tiene formato de summary, envolverlo
+      if (parsed && !parsed.document_info && !parsed.issues) {
+        structuredData = { summary: parsed }
+      } else {
+        structuredData = parsed
+      }
+    } catch (e) {
+      console.error('Error parsing analysis_summary:', e)
+    }
+  }
+  
   const docInfo = structuredData.document_info || {}
   const summary = structuredData.summary || {}
+  
+  // Usar issues de structuredData si existen, sino usar del estado
+  const displayIssues = structuredData.issues || issues
+  const displayRequests = structuredData.requests || requests
 
   return (
     <div className="min-h-screen bg-gray-50">
