@@ -953,12 +953,11 @@ export default function CasosPage() {
                     <Sparkles className="h-4 w-4 mr-2" /> Analizar Caso con IA
                   </Button>
 
-                  <Button 
-                    onClick={() => {/* TODO: Implement view full details */}}
-                    className="flex-1 bg-green-600 hover:bg-green-700"
-                  >
-                    <Eye className="h-4 w-4 mr-2" /> Ver Detalle Completo
-                  </Button>
+                  <Link href={`/casos/${selectedCase.id}`}>
+                    <Button className="flex-1 bg-green-600 hover:bg-green-700">
+                      <Eye className="h-4 w-4 mr-2" /> Ver Detalle Completo
+                    </Button>
+                  </Link>
                 </div>
 
                 {/* Documentos del Caso */}
