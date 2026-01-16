@@ -325,7 +325,7 @@ export default function CaseDetailPage() {
                         <div className="flex items-center gap-3">
                           <FileText className="h-8 w-8 text-blue-500" />
                           <div>
-                            <p className="font-medium">{doc.name}</p>
+                            <p className="font-medium">{doc.name || doc.original_name || 'Sin nombre'}</p>
                             <div className="flex items-center gap-2 text-sm text-gray-500">
                               <Badge variant="outline" className="text-xs">{doc.doc_type}</Badge>
                               {doc.document_date && (
