@@ -70,6 +70,15 @@ export async function POST(request) {
       extractionSuccess = true
     }
 
+    // 2.5 Extraer fecha del documento del texto
+    let documentDate = null
+    if (textContent && textContent.length > 20) {
+      documentDate = extractDocumentDate(textContent)
+      if (documentDate) {
+        console.log(`📅 Fecha del documento detectada: ${documentDate}`)
+      }
+    }
+
     // 3. Crear registro en la base de datos
     const documentRecord = {
       id: fileId,
@@ -78,7 +87,8 @@ export async function POST(request) {
       case_id: caseId || null,
       storage_path: storagePath,
       text_content: textContent.substring(0, 50000), // Limitar a 50k caracteres
-      created_by: userId || null
+      created_by: userId || null,
+      document_date: documentDate
     }
 
     const { data: document, error: dbError } = await supabaseAdmin
