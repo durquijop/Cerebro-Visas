@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { extractText, normalizeText } from '@/lib/document-processor'
-import { extractDocumentInfo } from '@/lib/llm-client'
+import { extractStructuredData, saveStructuredData } from '@/lib/case-miner'
 import { v4 as uuidv4 } from 'uuid'
 
 // Supabase Admin client
