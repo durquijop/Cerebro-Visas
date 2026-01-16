@@ -80,7 +80,63 @@ export async function POST(request) {
 
     // Analizar automáticamente si no es CV y no se saltó el análisis
     let documentAnalysis = null
-    if (docType !== 'cv' && !skipAnalysis && extraction.success && cleanText.length > 100) {
+    let structuredData = null
+    
+    // Para documentos RFE/NOID/Denial, usar el Case Miner
+    const isRFEorNOID = ['rfe_document', 'noid_document', 'denial_notice'].includes(docType)
+    
+    if (isRFEorNOID && extraction.success && cleanText.length > 100) {
+      console.log('🔬 Iniciando extracción estructurada (Case Miner)...')
+      try {
+        const outcomeType = docType === 'rfe_document' ? 'RFE' : 
+                           docType === 'noid_document' ? 'NOID' : 'Denial'
+        
+        const extractionResult = await extractStructuredData(cleanText, outcomeType)
+        
+        if (extractionResult.success) {
+          structuredData = extractionResult.data
+          
+          // También guardar en tabla documents para consistencia con tendencias
+          const { data: docRecord } = await supabaseAdmin
+            .from('documents')
+            .insert({
+              id: fileId,
+              name: file.name,
+              doc_type: outcomeType,
+              case_id: caseId,
+              storage_path: storagePath,
+              text_content: cleanText.substring(0, 50000),
+              outcome_type: structuredData.document_info?.outcome_type || outcomeType,
+              visa_category: structuredData.document_info?.visa_category,
+              document_date: structuredData.document_info?.document_date,
+              receipt_number: structuredData.document_info?.receipt_number,
+              service_center: structuredData.document_info?.service_center,
+              beneficiary_name: structuredData.document_info?.beneficiary_name,
+              structured_data: structuredData,
+              extraction_status: 'completed',
+              analyzed_at: new Date().toISOString()
+            })
+            .select()
+            .single()
+          
+          // Guardar issues y requests
+          await saveStructuredData(supabaseAdmin, fileId, structuredData)
+          
+          console.log(`✅ Case Miner completado: ${structuredData.issues?.length || 0} issues, ${structuredData.requests?.length || 0} requests`)
+          
+          documentAnalysis = {
+            issues_count: structuredData.issues?.length || 0,
+            requests_count: structuredData.requests?.length || 0,
+            prongs_affected: structuredData.summary?.prongs_affected,
+            executive_summary: structuredData.summary?.executive_summary,
+            overall_severity: structuredData.summary?.overall_severity
+          }
+        }
+      } catch (mineError) {
+        console.error('Error en Case Miner:', mineError.message)
+      }
+    } else if (docType !== 'cv' && !skipAnalysis && extraction.success && cleanText.length > 100) {
+      // Para otros documentos, usar análisis de relevancia
       console.log('🧠 Iniciando análisis automático del documento...')
       try {
         documentAnalysis = await analyzeDocumentForCase(document, caseId, cleanText)
@@ -97,7 +153,6 @@ export async function POST(request) {
         console.log(`✅ Análisis completado: ${documentAnalysis.relevance_score}% relevancia`)
       } catch (analysisError) {
         console.error('Error en análisis:', analysisError.message)
-        // No fallar el upload si falla el análisis
       }
     }
 
