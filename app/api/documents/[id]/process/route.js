@@ -73,15 +73,22 @@ export async function POST(request, { params }) {
 
     // 5. Actualizar el documento con los datos estructurados
     const updateData = {
-      outcome_type: structuredData.document_info?.outcome_type || outcomeType,
-      visa_category: structuredData.document_info?.visa_category,
-      document_date: structuredData.document_info?.document_date,
-      receipt_number: structuredData.document_info?.receipt_number,
-      service_center: structuredData.document_info?.service_center,
-      beneficiary_name: structuredData.document_info?.beneficiary_name,
       structured_data: structuredData,
-      extraction_status: 'completed',
       analyzed_at: new Date().toISOString()
+    }
+
+    // Solo agregar campos que existen en la tabla
+    if (tableName === 'documents') {
+      updateData.outcome_type = structuredData.document_info?.outcome_type || outcomeType
+      updateData.visa_category = structuredData.document_info?.visa_category
+      updateData.document_date = structuredData.document_info?.document_date
+      updateData.receipt_number = structuredData.document_info?.receipt_number
+      updateData.service_center = structuredData.document_info?.service_center
+      updateData.beneficiary_name = structuredData.document_info?.beneficiary_name
+      updateData.extraction_status = 'completed'
+    } else {
+      // Para case_documents, guardar en analysis_summary
+      updateData.analysis_summary = JSON.stringify(structuredData.summary)
     }
 
     await supabase
@@ -89,8 +96,59 @@ export async function POST(request, { params }) {
       .update(updateData)
       .eq('id', id)
 
-    // 6. Guardar issues y requests
-    await saveStructuredData(supabase, id, structuredData)
+    // 6. Guardar issues en document_issues
+    if (structuredData.issues && structuredData.issues.length > 0) {
+      // Eliminar issues anteriores
+      await supabase
+        .from('document_issues')
+        .delete()
+        .eq('document_id', id)
+
+      // Insertar nuevos issues
+      const issuesToInsert = structuredData.issues.map(issue => ({
+        document_id: id,
+        taxonomy_code: issue.taxonomy_code,
+        severity: issue.severity,
+        extracted_quote: issue.extracted_quote,
+        page_ref: issue.page_ref,
+        prong_affected: issue.prong_affected,
+        officer_reasoning: issue.officer_reasoning
+      }))
+
+      const { error: issuesError } = await supabase
+        .from('document_issues')
+        .insert(issuesToInsert)
+
+      if (issuesError) {
+        console.error('Error guardando issues:', issuesError)
+      }
+    }
+
+    // 7. Guardar requests en document_requests
+    if (structuredData.requests && structuredData.requests.length > 0) {
+      // Eliminar requests anteriores
+      await supabase
+        .from('document_requests')
+        .delete()
+        .eq('document_id', id)
+
+      // Insertar nuevos requests
+      const requestsToInsert = structuredData.requests.map(req => ({
+        document_id: id,
+        request_text: req.request_text,
+        evidence_type: req.evidence_type,
+        prong_mapping: req.prong_mapping,
+        priority: req.priority
+      }))
+
+      const { error: reqError } = await supabase
+        .from('document_requests')
+        .insert(requestsToInsert)
+
+      if (reqError) {
+        console.error('Error guardando requests:', reqError)
+      }
+    }
 
     console.log(`✅ Documento procesado: ${structuredData.issues?.length || 0} issues, ${structuredData.requests?.length || 0} requests`)
 
