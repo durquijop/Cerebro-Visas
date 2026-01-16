@@ -1,17 +1,45 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Brain, ArrowLeft, FileText, Upload, Search, Filter, Eye } from 'lucide-react'
+import { Brain, ArrowLeft, FileText, Upload, Search, Filter, Eye, Trash2, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { toast } from 'sonner'
 
-export default function DocumentsClient({ documents, userRole }) {
+export default function DocumentsClient({ documents: initialDocuments, userRole }) {
+  const [documents, setDocuments] = useState(initialDocuments)
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [deletingId, setDeletingId] = useState(null)
+  const router = useRouter()
+
+  const handleDelete = async (docId, docName) => {
+    if (!confirm(`¿Está seguro de eliminar "${docName}"?`)) return
+
+    try {
+      setDeletingId(docId)
+      const response = await fetch(`/api/documents/${docId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        throw new Error('Error al eliminar el documento')
+      }
+
+      // Actualizar lista local
+      setDocuments(documents.filter(d => d.id !== docId))
+      toast.success('Documento eliminado correctamente')
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const filteredDocuments = documents.filter(doc => {
     const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase())
