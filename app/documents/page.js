@@ -2,6 +2,10 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DocumentsClient from './DocumentsClient'
 
+// Deshabilitar caché para siempre mostrar datos frescos
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function DocumentsPage() {
   const supabase = await createClient()
   
@@ -18,7 +22,7 @@ export default async function DocumentsPage() {
     .eq('id', user.id)
     .single()
 
-  // Obtener documentos según el rol
+  // Obtener documentos de la tabla 'documents'
   let documentsQuery = supabase
     .from('documents')
     .select(`
@@ -27,11 +31,8 @@ export default async function DocumentsPage() {
       doc_type,
       storage_path,
       created_at,
-      case_id,
-      cases (
-        id,
-        title
-      )
+      document_date,
+      case_id
     `)
     .order('created_at', { ascending: false })
 
@@ -40,7 +41,11 @@ export default async function DocumentsPage() {
     documentsQuery = documentsQuery.eq('created_by', user.id)
   }
 
-  const { data: documents } = await documentsQuery
+  const { data: documents, error } = await documentsQuery
+  
+  if (error) {
+    console.error('Error fetching documents:', error)
+  }
 
   return <DocumentsClient documents={documents || []} userRole={profile?.role} />
 }
