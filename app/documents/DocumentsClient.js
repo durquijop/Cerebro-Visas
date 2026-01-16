@@ -135,7 +135,10 @@ export default function DocumentsClient({ documents, userRole }) {
                         )}
                       </TableCell>
                       <TableCell className="text-gray-500">
-                        {new Date(doc.created_at).toLocaleDateString('es-ES')}
+                        {doc.document_date 
+                          ? new Date(doc.document_date + 'T00:00:00').toLocaleDateString('es-ES')
+                          : <span className="text-gray-400 italic">Sin fecha</span>
+                        }
                       </TableCell>
                       <TableCell>
                         <Link href={`/documents/${doc.id}`}>
