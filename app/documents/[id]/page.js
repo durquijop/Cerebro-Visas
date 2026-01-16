@@ -226,7 +226,7 @@ export default function DocumentDetailPage() {
                 </div>
                 <div>
                   <CardTitle className="text-2xl flex items-center gap-3">
-                    {document.name}
+                    {document.name || document.original_name || 'Sin nombre'}
                     {document.outcome_type && (
                       <Badge variant="outline" className="text-sm">
                         {document.outcome_type}
