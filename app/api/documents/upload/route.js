@@ -178,39 +178,30 @@ export async function POST(request) {
       )
     }
 
-    // 4. Procesar con IA si se solicitó y hay texto
+    // 4. Procesar con IA si se solicitó y hay texto (EXTRACCIÓN ESTRUCTURADA)
     let aiAnalysis = null
+    let structuredData = null
+    
     if (processWithAI && textContent && textContent.length > 100) {
       try {
-        const analysisResult = await extractDocumentInfo(textContent, docType)
-        if (analysisResult.success) {
-          aiAnalysis = analysisResult.data
-
-          // Guardar el análisis en el documento
-          await supabaseAdmin
-            .from('documents')
-            .update({ 
-              ai_analysis: aiAnalysis,
-              analyzed_at: new Date().toISOString()
-            })
-            .eq('id', fileId)
-
-          // Guardar los issues extraídos en la tabla issues
-          if (aiAnalysis.issues && aiAnalysis.issues.length > 0) {
-            const issuesToInsert = aiAnalysis.issues.map(issue => ({
-              case_id: caseId || null,
-              document_id: fileId,
-              taxonomy_code: issue.taxonomy_code,
-              severity: issue.severity || 'medium',
-              description: issue.description,
-              extracted_quote: issue.quote,
-              page_ref: issue.page_reference
-            }))
-
-            await supabaseAdmin
-              .from('issues')
-              .insert(issuesToInsert)
-          }
+        console.log('🔬 Iniciando extracción estructurada con Case Miner...')
+        
+        // Usar el Case Miner para extracción estructurada
+        const extractionResult = await extractStructuredData(textContent, docType)
+        
+        if (extractionResult.success) {
+          structuredData = extractionResult.data
+          aiAnalysis = structuredData
+          
+          // Guardar datos estructurados (issues, requests, metadata)
+          await saveStructuredData(supabaseAdmin, fileId, structuredData)
+          
+          console.log(`✅ Extracción estructurada completada:`)
+          console.log(`   - Issues encontrados: ${structuredData.issues?.length || 0}`)
+          console.log(`   - Requests de USCIS: ${structuredData.requests?.length || 0}`)
+          console.log(`   - Prongs afectados: P1=${structuredData.summary?.prongs_affected?.P1}, P2=${structuredData.summary?.prongs_affected?.P2}, P3=${structuredData.summary?.prongs_affected?.P3}`)
+        } else {
+          console.error('❌ Error en extracción estructurada:', extractionResult.error)
         }
       } catch (aiError) {
         console.error('AI analysis error:', aiError)
