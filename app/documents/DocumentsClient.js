@@ -111,7 +111,7 @@ export default function DocumentsClient({ documents, userRole }) {
                     <TableHead>Nombre</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Caso Asociado</TableHead>
-                    <TableHead>Fecha</TableHead>
+                    <TableHead>Fecha Doc.</TableHead>
                     <TableHead>Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
