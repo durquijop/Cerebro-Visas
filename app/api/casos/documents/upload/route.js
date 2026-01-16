@@ -169,7 +169,13 @@ export async function POST(request) {
         pageCount: extraction.numPages,
         method: extraction.method
       },
-      analysis: documentAnalysis
+      analysis: documentAnalysis,
+      structuredData: structuredData ? {
+        issues_count: structuredData.issues?.length || 0,
+        requests_count: structuredData.requests?.length || 0,
+        prongs_affected: structuredData.summary?.prongs_affected,
+        executive_summary: structuredData.summary?.executive_summary
+      } : null
     })
   } catch (error) {
     console.error('Upload error:', error)
