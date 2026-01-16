@@ -508,9 +508,9 @@ export default function DocumentDetailPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {(structuredData.requests || requests).length > 0 ? (
+                {displayRequests.length > 0 ? (
                   <div className="space-y-3">
-                    {(structuredData.requests || requests).map((req, idx) => (
+                    {displayRequests.map((req, idx) => (
                       <div key={idx} className="p-4 border rounded-lg bg-white hover:shadow-sm transition-shadow">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center gap-2">
