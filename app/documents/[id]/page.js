@@ -276,20 +276,38 @@ export default function DocumentDetailPage() {
                   </CardDescription>
                 </div>
               </div>
-              <Button 
-                variant="destructive" 
-                size="sm"
-                onClick={handleDelete}
-                disabled={deleting}
-              >
-                {deleting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4 mr-1" /> Eliminar
-                  </>
+              <div className="flex gap-2">
+                {/* Botón Procesar con IA - solo si no tiene análisis */}
+                {(!structuredData.issues || structuredData.issues.length === 0) && document.text_content && document.text_content.length > 100 && (
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={handleProcessWithAI}
+                    disabled={processing}
+                    className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                  >
+                    {processing ? (
+                      <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Procesando...</>
+                    ) : (
+                      <><Brain className="h-4 w-4 mr-1" /> Procesar con IA</>
+                    )}
+                  </Button>
                 )}
-              </Button>
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                >
+                  {deleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-1" /> Eliminar
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
