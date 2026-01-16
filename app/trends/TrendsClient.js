@@ -106,6 +106,13 @@ export default function TrendsClient() {
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
+        {/* Back Button */}
+        <Link href="/dashboard">
+          <Button variant="ghost" className="mb-4">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Volver al Dashboard
+          </Button>
+        </Link>
+
         {/* Page Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
