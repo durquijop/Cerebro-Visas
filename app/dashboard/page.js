@@ -97,11 +97,9 @@ export default function DashboardPage() {
     // Admin only
     ...(profile?.role === 'admin' ? [
       { href: '/admin/users', icon: Users, label: 'Gestionar Usuarios', desc: 'Administrar roles y permisos' },
-      { href: '/admin/taxonomy', icon: Tag, label: 'Taxonomía', desc: 'Gestionar códigos de issues' },
     ] : []),
     // Admin & Attorney
     ...(profile?.role === 'admin' || profile?.role === 'attorney' ? [
-      { href: '/casos', icon: Briefcase, label: 'Casos', desc: 'Gestionar casos de visa' },
       { href: '/trends', icon: TrendingUp, label: 'Tendencias', desc: 'Dashboard de análisis' },
     ] : []),
     // Admin, Attorney & Drafter
@@ -109,7 +107,9 @@ export default function DashboardPage() {
       { href: '/documents/upload', icon: Upload, label: 'Subir Documento', desc: 'Cargar RFE/NOID/Denial' },
     ] : []),
     // All users
+    { href: '/casos', icon: Briefcase, label: 'Casos', desc: 'Gestionar casos de visa' },
     { href: '/documents', icon: FileText, label: 'Documentos', desc: 'Ver documentos cargados' },
+    { href: '/admin/taxonomy', icon: Tag, label: 'Taxonomía', desc: 'Gestionar códigos de issues' },
   ]
 
   return (
