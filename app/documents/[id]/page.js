@@ -105,6 +105,38 @@ export default function DocumentDetailPage() {
     }
   }
 
+  const handleProcessWithAI = async () => {
+    if (!document?.text_content || document.text_content.length < 100) {
+      toast.error('El documento no tiene suficiente texto para procesar')
+      return
+    }
+
+    try {
+      setProcessing(true)
+      toast.info('Procesando documento con IA... Esto puede tardar un momento.')
+
+      const response = await fetch(`/api/documents/${params.id}/process`, {
+        method: 'POST'
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Error al procesar el documento')
+      }
+
+      const result = await response.json()
+      
+      toast.success(`Procesamiento completado: ${result.issues_count || 0} issues encontrados`)
+      
+      // Recargar el documento para ver los resultados
+      fetchDocument()
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setProcessing(false)
+    }
+  }
+
   const getSeverityBadge = (severity) => {
     const styles = {
       critical: 'bg-red-100 text-red-800 border-red-300',
