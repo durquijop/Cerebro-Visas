@@ -191,13 +191,20 @@ export default function DocumentDetailPage() {
               <div className="flex items-center space-x-2">
                 <Calendar className="h-4 w-4 text-gray-400" />
                 <div>
-                  <p className="text-gray-500">Fecha</p>
+                  <p className="text-gray-500">Fecha del Documento</p>
                   <p className="font-medium">
-                    {new Date(document.created_at).toLocaleDateString('es-ES', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
+                    {document.document_date 
+                      ? new Date(document.document_date + 'T00:00:00').toLocaleDateString('es-ES', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })
+                      : new Date(document.created_at).toLocaleDateString('es-ES', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })
+                    }
                   </p>
                 </div>
               </div>
