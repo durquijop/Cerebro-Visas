@@ -97,10 +97,11 @@ export default function DashboardPage() {
     // Admin only
     ...(profile?.role === 'admin' ? [
       { href: '/admin/users', icon: Users, label: 'Gestionar Usuarios', desc: 'Administrar roles y permisos' },
+      { href: '/admin/taxonomy', icon: Tag, label: 'Taxonomía', desc: 'Gestionar códigos de issues' },
     ] : []),
     // Admin & Attorney
     ...(profile?.role === 'admin' || profile?.role === 'attorney' ? [
-      { href: '/cases', icon: FolderOpen, label: 'Casos', desc: 'Ver todos los casos' },
+      { href: '/casos', icon: Briefcase, label: 'Casos', desc: 'Gestionar casos de visa' },
       { href: '/trends', icon: TrendingUp, label: 'Tendencias', desc: 'Dashboard de análisis' },
     ] : []),
     // Admin, Attorney & Drafter
