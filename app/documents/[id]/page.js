@@ -25,6 +25,7 @@ export default function DocumentDetailPage() {
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
+  const [processing, setProcessing] = useState(false)
   const [error, setError] = useState(null)
 
   useEffect(() => {
