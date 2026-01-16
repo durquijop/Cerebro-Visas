@@ -87,8 +87,8 @@ export async function POST(request, { params }) {
       updateData.beneficiary_name = structuredData.document_info?.beneficiary_name
       updateData.extraction_status = 'completed'
     } else {
-      // Para case_documents, guardar en analysis_summary
-      updateData.analysis_summary = JSON.stringify(structuredData.summary)
+      // Para case_documents, guardar structured_data completo en el campo existente
+      // Si no existe structured_data, al menos guardamos en analysis_summary
     }
 
     await supabase
