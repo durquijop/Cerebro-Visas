@@ -169,11 +169,26 @@ export default function DocumentsClient({ documents: initialDocuments, userRole 
                         }
                       </TableCell>
                       <TableCell>
-                        <Link href={`/documents/${doc.id}`}>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4 mr-1" /> Ver
+                        <div className="flex items-center gap-2">
+                          <Link href={`/documents/${doc.id}`}>
+                            <Button variant="ghost" size="sm">
+                              <Eye className="h-4 w-4 mr-1" /> Ver
+                            </Button>
+                          </Link>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleDelete(doc.id, doc.name)}
+                            disabled={deletingId === doc.id}
+                          >
+                            {deletingId === doc.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
                           </Button>
-                        </Link>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
