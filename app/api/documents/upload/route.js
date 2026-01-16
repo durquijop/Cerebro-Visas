@@ -216,13 +216,22 @@ export async function POST(request) {
         name: document.name,
         doc_type: document.doc_type,
         storage_path: document.storage_path,
-        created_at: document.created_at
+        created_at: document.created_at,
+        document_date: documentDate
       },
       extraction: {
         success: extractionSuccess,
         textLength: textContent.length,
         preview: textContent.substring(0, 500) + (textContent.length > 500 ? '...' : '')
       },
+      structuredData: structuredData ? {
+        document_info: structuredData.document_info,
+        issues_count: structuredData.issues?.length || 0,
+        requests_count: structuredData.requests?.length || 0,
+        prongs_affected: structuredData.summary?.prongs_affected,
+        overall_severity: structuredData.summary?.overall_severity,
+        executive_summary: structuredData.summary?.executive_summary
+      } : null,
       aiAnalysis
     })
 
