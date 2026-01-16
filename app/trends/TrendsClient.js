@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { 
   Brain, TrendingUp, AlertTriangle, FileText, 
   BarChart3, PieChart, Loader2, RefreshCw,
-  ArrowUp, ArrowDown, Minus, Building2
+  ArrowUp, ArrowDown, Minus, Building2, ArrowLeft
 } from 'lucide-react'
 import Link from 'next/link'
 import {
