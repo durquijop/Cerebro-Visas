@@ -429,11 +429,11 @@ export default function DocumentDetailPage() {
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="issues" className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
-              Issues ({structuredData.issues?.length || issues.length || 0})
+              Issues ({displayIssues.length})
             </TabsTrigger>
             <TabsTrigger value="requests" className="flex items-center gap-2">
               <ClipboardList className="h-4 w-4" />
-              Requests ({structuredData.requests?.length || requests.length || 0})
+              Requests ({displayRequests.length})
             </TabsTrigger>
             <TabsTrigger value="text" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
