@@ -43,28 +43,110 @@ export async function GET(request, { params }) {
     // Obtener IDs de documentos para buscar issues
     const docIds = allDocuments.map(d => d.id)
 
-    // Obtener issues de los documentos del caso
+    // ESTRATEGIA HÍBRIDA: Extraer issues de múltiples fuentes
     let caseIssues = []
-    if (docIds.length > 0) {
-      const { data: issues } = await supabaseAdmin
-        .from('document_issues')
-        .select('*')
-        .in('document_id', docIds)
-        .order('severity', { ascending: true })
-      
-      caseIssues = issues || []
+    let caseRequests = []
+
+    // 1. Extraer issues/requests desde structured_data de case_documents
+    if (caseDocuments && caseDocuments.length > 0) {
+      caseDocuments.forEach(doc => {
+        if (doc.structured_data) {
+          const sd = typeof doc.structured_data === 'string' 
+            ? JSON.parse(doc.structured_data) 
+            : doc.structured_data
+          
+          // Agregar issues desde structured_data
+          if (sd.issues && Array.isArray(sd.issues)) {
+            sd.issues.forEach(issue => {
+              caseIssues.push({
+                ...issue,
+                document_id: doc.id,
+                document_name: doc.original_name,
+                source: 'case_documents'
+              })
+            })
+          }
+          
+          // Agregar requests desde structured_data
+          if (sd.requests && Array.isArray(sd.requests)) {
+            sd.requests.forEach(req => {
+              caseRequests.push({
+                ...req,
+                document_id: doc.id,
+                document_name: doc.original_name,
+                source: 'case_documents'
+              })
+            })
+          }
+        }
+      })
     }
 
-    // Obtener requests de los documentos del caso
-    let caseRequests = []
-    if (docIds.length > 0) {
-      const { data: requests } = await supabaseAdmin
+    // 2. También buscar en document_issues/document_requests para documentos en tabla 'documents'
+    const docsTableIds = (documents || []).map(d => d.id)
+    if (docsTableIds.length > 0) {
+      const { data: dbIssues } = await supabaseAdmin
+        .from('document_issues')
+        .select('*')
+        .in('document_id', docsTableIds)
+        .order('severity', { ascending: true })
+      
+      if (dbIssues && dbIssues.length > 0) {
+        dbIssues.forEach(issue => {
+          const doc = documents.find(d => d.id === issue.document_id)
+          caseIssues.push({
+            ...issue,
+            document_name: doc?.name || 'Documento',
+            source: 'documents'
+          })
+        })
+      }
+
+      const { data: dbRequests } = await supabaseAdmin
         .from('document_requests')
         .select('*')
-        .in('document_id', docIds)
+        .in('document_id', docsTableIds)
         .order('priority', { ascending: true })
       
-      caseRequests = requests || []
+      if (dbRequests && dbRequests.length > 0) {
+        dbRequests.forEach(req => {
+          const doc = documents.find(d => d.id === req.document_id)
+          caseRequests.push({
+            ...req,
+            document_name: doc?.name || 'Documento',
+            source: 'documents'
+          })
+        })
+      }
+    }
+
+    // 3. También extraer desde structured_data de documentos en tabla 'documents'
+    if (documents && documents.length > 0) {
+      documents.forEach(doc => {
+        if (doc.structured_data) {
+          const sd = typeof doc.structured_data === 'string' 
+            ? JSON.parse(doc.structured_data) 
+            : doc.structured_data
+          
+          // Solo agregar si no están ya en document_issues (evitar duplicados)
+          if (sd.issues && Array.isArray(sd.issues)) {
+            const existingCodes = caseIssues
+              .filter(i => i.document_id === doc.id)
+              .map(i => i.taxonomy_code)
+            
+            sd.issues.forEach(issue => {
+              if (!existingCodes.includes(issue.taxonomy_code)) {
+                caseIssues.push({
+                  ...issue,
+                  document_id: doc.id,
+                  document_name: doc.name,
+                  source: 'documents_structured'
+                })
+              }
+            })
+          }
+        }
+      })
     }
 
     // Calcular estadísticas del caso
