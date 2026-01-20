@@ -69,28 +69,27 @@ export default function Home() {
           </div>
           <div className="flex items-center space-x-4">
             {user ? (
-              <Button 
-                onClick={() => window.location.href = '/dashboard'}
-                className="bg-gold-primary text-navy-primary hover:bg-gold-dark"
-              >
-                Ir al Dashboard
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
+              <Link href="/dashboard">
+                <Button className="bg-gold-primary text-navy-primary hover:bg-gold-dark">
+                  Ir al Dashboard
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             ) : (
               <>
-                <Button 
-                  variant="ghost" 
-                  onClick={() => window.location.href = '/auth/login'}
-                  className="text-gold-subtle hover:text-gold-primary hover:bg-navy-secondary"
-                >
-                  Iniciar Sesión
-                </Button>
-                <Button 
-                  onClick={() => window.location.href = '/auth/signup'}
-                  className="bg-gold-primary text-navy-primary hover:bg-gold-dark"
-                >
-                  Registrarse
-                </Button>
+                <Link href="/auth/login">
+                  <Button 
+                    variant="ghost" 
+                    className="text-gold-subtle hover:text-gold-primary hover:bg-navy-secondary"
+                  >
+                    Iniciar Sesión
+                  </Button>
+                </Link>
+                <Link href="/auth/signup">
+                  <Button className="bg-gold-primary text-navy-primary hover:bg-gold-dark">
+                    Registrarse
+                  </Button>
+                </Link>
               </>
             )}
           </div>
