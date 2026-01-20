@@ -79,6 +79,9 @@ export default function TrendsClient() {
     if (activeTab === 'drift') {
       fetchDriftData()
     }
+    if (activeTab === 'cohorts') {
+      fetchCohortData()
+    }
   }, [activeTab, driftConfig])
 
   const fetchTrends = async () => {
