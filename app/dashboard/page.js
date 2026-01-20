@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { 
   Brain, LogOut, Users, FileText, TrendingUp, Upload, 
   FolderOpen, Settings, BarChart3, Shield, ChevronRight, Loader2,
-  Tag, Briefcase
+  Tag, Briefcase, Layers
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
