@@ -54,28 +54,44 @@ export default function CohortsPage() {
   const fetchData = async () => {
     try {
       setLoading(true)
-      const params = new URLSearchParams({ 
-        groupBy: 'quarter', 
-        year,
-        outcome_type: outcomeType !== 'all' ? outcomeType : ''
-      })
-      const response = await fetch(`/api/trends/cohorts?${params}`)
-      const result = await response.json()
-      setData(result)
+      // Obtener datos de múltiples años para comparación más rica
+      const years = ['2024', '2025', '2026']
+      let allCohorts = []
+      
+      for (const y of years) {
+        const params = new URLSearchParams({ 
+          groupBy: 'quarter', 
+          year: y,
+          outcome_type: outcomeType !== 'all' ? outcomeType : ''
+        })
+        const response = await fetch(`/api/trends/cohorts?${params}`)
+        const result = await response.json()
+        
+        if (result.cohorts) {
+          allCohorts = [...allCohorts, ...result.cohorts]
+        }
+      }
+      
+      // Ordenar por fecha
+      allCohorts.sort((a, b) => a.key.localeCompare(b.key))
+      
+      // Filtrar solo los que tienen datos o son recientes
+      const relevantCohorts = allCohorts.filter(c => 
+        c.stats?.total > 0 || c.key.startsWith('2026') || c.key.startsWith('2025')
+      )
+      
+      setData({ cohorts: relevantCohorts })
 
-      // Auto-seleccionar períodos si hay datos
-      if (result.cohorts?.length >= 2) {
-        const nonEmpty = result.cohorts.filter(c => c.stats.total > 0)
-        if (nonEmpty.length >= 1) {
-          // Seleccionar el período con datos como B y el anterior como A
-          const lastWithData = nonEmpty[nonEmpty.length - 1]
-          const idx = result.cohorts.findIndex(c => c.key === lastWithData.key)
-          if (idx > 0) {
-            setPeriodA(result.cohorts[idx - 1].key)
-          } else {
-            setPeriodA(result.cohorts[0].key)
-          }
-          setPeriodB(lastWithData.key)
+      // Auto-seleccionar períodos con datos
+      const withData = relevantCohorts.filter(c => c.stats?.total > 0)
+      if (withData.length >= 2) {
+        setPeriodA(withData[withData.length - 2].key)
+        setPeriodB(withData[withData.length - 1].key)
+      } else if (withData.length === 1) {
+        const idx = relevantCohorts.findIndex(c => c.key === withData[0].key)
+        if (idx > 0) {
+          setPeriodA(relevantCohorts[idx - 1].key)
+          setPeriodB(withData[0].key)
         }
       }
     } catch (err) {
