@@ -6,11 +6,14 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { 
   Brain, TrendingUp, AlertTriangle, FileText, 
   BarChart3, PieChart, Loader2, RefreshCw,
   ArrowUp, ArrowDown, Minus, Building2, ArrowLeft,
-  Activity, Zap, Bell, TrendingDown, Sparkles, AlertOctagon
+  Activity, Zap, Bell, TrendingDown, Sparkles, AlertOctagon,
+  Filter, X, Calendar, SlidersHorizontal
 } from 'lucide-react'
 import Link from 'next/link'
 import {
@@ -39,6 +42,21 @@ export default function TrendsClient() {
   const [period, setPeriod] = useState('6months')
   const [error, setError] = useState(null)
   
+  // Filtros state
+  const [filters, setFilters] = useState({
+    visaCategory: '',
+    serviceCenter: '',
+    outcomeType: '',
+    dateFrom: '',
+    dateTo: ''
+  })
+  const [filterOptions, setFilterOptions] = useState({
+    visaCategories: [],
+    serviceCenters: [],
+    outcomeTypes: ['RFE', 'NOID', 'Denial']
+  })
+  const [showFilters, setShowFilters] = useState(false)
+  
   // Drift Detector state
   const [driftData, setDriftData] = useState(null)
   const [driftLoading, setDriftLoading] = useState(false)
@@ -47,7 +65,7 @@ export default function TrendsClient() {
 
   useEffect(() => {
     fetchTrends()
-  }, [period])
+  }, [period, filters])
 
   useEffect(() => {
     if (activeTab === 'drift') {
