@@ -660,8 +660,8 @@ export default function CohortsPage() {
               <TabsContent value="timeline">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Evolución en {year}</CardTitle>
-                    <CardDescription>Tendencia de issues por trimestre</CardDescription>
+                    <CardTitle>Evolución Histórica</CardTitle>
+                    <CardDescription>Tendencia de issues por trimestre (períodos con datos)</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="h-80">
