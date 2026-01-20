@@ -64,6 +64,13 @@ export default function TrendsClient() {
   const [driftConfig, setDriftConfig] = useState({ recentDays: '60', baselineDays: '180' })
   const [activeTab, setActiveTab] = useState('overview')
 
+  // Cohort Analyzer state
+  const [cohortData, setCohortData] = useState(null)
+  const [cohortLoading, setCohortLoading] = useState(false)
+  const [periodA, setPeriodA] = useState('')
+  const [periodB, setPeriodB] = useState('')
+  const [cohortComparison, setCohortComparison] = useState(null)
+
   useEffect(() => {
     fetchTrends()
   }, [period, filters])
