@@ -382,15 +382,6 @@ export default function TrendsClient() {
                             />
                           </Badge>
                         )}
-                        {filters.serviceCenter && (
-                          <Badge variant="secondary" className="flex items-center gap-1">
-                            Centro: {filters.serviceCenter}
-                            <X 
-                              className="h-3 w-3 cursor-pointer" 
-                              onClick={() => setFilters({...filters, serviceCenter: ''})}
-                            />
-                          </Badge>
-                        )}
                         {filters.outcomeType && (
                           <Badge variant="secondary" className="flex items-center gap-1">
                             Tipo: {filters.outcomeType}
