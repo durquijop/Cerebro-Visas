@@ -13,7 +13,8 @@ import {
   BarChart3, PieChart, Loader2, RefreshCw,
   ArrowUp, ArrowDown, Minus, Building2, ArrowLeft,
   Activity, Zap, Bell, TrendingDown, Sparkles, AlertOctagon,
-  Filter, X, Calendar, SlidersHorizontal
+  Filter, X, Calendar, SlidersHorizontal, ArrowRightLeft,
+  ChevronRight, Lightbulb, Target
 } from 'lucide-react'
 import Link from 'next/link'
 import {
