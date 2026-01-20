@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
+import { Skeleton } from '@/components/ui/skeleton-loaders'
 import { 
   Brain, ArrowLeft, FileText, Trash2, Upload,
   Calendar, Loader2, AlertCircle, AlertTriangle,
