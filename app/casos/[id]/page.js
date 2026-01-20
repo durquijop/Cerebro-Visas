@@ -255,6 +255,19 @@ export default function CaseDetailPage() {
                 </div>
               </div>
               <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={runAudit}
+                  disabled={auditing}
+                  className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                >
+                  {auditing ? (
+                    <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Auditando...</>
+                  ) : (
+                    <><ClipboardCheck className="h-4 w-4 mr-1" /> Auditar</>
+                  )}
+                </Button>
                 <Link href="/documents/upload">
                   <Button variant="outline" size="sm">
                     <Upload className="h-4 w-4 mr-1" /> Subir Doc
