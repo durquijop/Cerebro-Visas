@@ -39,7 +39,6 @@ export default function CohortsPage() {
   
   // Filters
   const [outcomeType, setOutcomeType] = useState('all')
-  const [year, setYear] = useState(new Date().getFullYear().toString())
 
   useEffect(() => {
     fetchData()
