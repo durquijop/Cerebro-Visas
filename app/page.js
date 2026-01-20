@@ -10,16 +10,23 @@ export default function Home() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
+    const supabase = createClient()
+    
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      setLoading(false)
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        setUser(user)
+      } catch (error) {
+        console.error('Error checking user:', error)
+      } finally {
+        setLoading(false)
+      }
     }
+    
     checkUser()
-  }, [supabase.auth])
+  }, [])
 
   const features = [
     {
