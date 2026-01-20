@@ -77,7 +77,17 @@ export default function TrendsClient() {
     try {
       setLoading(true)
       setError(null)
-      const response = await fetch(`/api/trends?period=${period}`)
+      
+      // Construir query params con filtros
+      const params = new URLSearchParams()
+      params.append('period', period)
+      if (filters.visaCategory) params.append('visa_category', filters.visaCategory)
+      if (filters.serviceCenter) params.append('service_center', filters.serviceCenter)
+      if (filters.outcomeType) params.append('outcome_type', filters.outcomeType)
+      if (filters.dateFrom) params.append('date_from', filters.dateFrom)
+      if (filters.dateTo) params.append('date_to', filters.dateTo)
+      
+      const response = await fetch(`/api/trends?${params.toString()}`)
       
       if (!response.ok) {
         throw new Error('Error al cargar tendencias')
@@ -85,11 +95,39 @@ export default function TrendsClient() {
 
       const result = await response.json()
       setData(result)
+      
+      // Actualizar opciones de filtros si están disponibles
+      if (result.filterOptions) {
+        setFilterOptions(result.filterOptions)
+      }
     } catch (err) {
       setError(err.message)
     } finally {
       setLoading(false)
     }
+  }
+
+  const clearFilters = () => {
+    setFilters({
+      visaCategory: '',
+      serviceCenter: '',
+      outcomeType: '',
+      dateFrom: '',
+      dateTo: ''
+    })
+  }
+
+  const hasActiveFilters = () => {
+    return filters.visaCategory || filters.serviceCenter || filters.outcomeType || filters.dateFrom || filters.dateTo
+  }
+
+  const getActiveFiltersCount = () => {
+    let count = 0
+    if (filters.visaCategory) count++
+    if (filters.serviceCenter) count++
+    if (filters.outcomeType) count++
+    if (filters.dateFrom && filters.dateTo) count++
+    return count
   }
 
   const fetchDriftData = async () => {
