@@ -246,7 +246,7 @@ export default function TrendsClient() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Vista General
@@ -254,6 +254,10 @@ export default function TrendsClient() {
             <TabsTrigger value="drift" className="flex items-center gap-2">
               <Activity className="h-4 w-4" />
               Drift Detector
+            </TabsTrigger>
+            <TabsTrigger value="cohorts" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Comparar Períodos
             </TabsTrigger>
           </TabsList>
 
