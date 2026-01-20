@@ -579,6 +579,165 @@ export default function CaseDetailPage() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Audit Tab */}
+          <TabsContent value="audit">
+            {auditReport ? (
+              <div className="space-y-6">
+                {/* Score Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className={`border-2 ${getScoreBg(auditReport.summary.overallScore)}`}>
+                    <CardContent className="pt-6">
+                      <div className="text-center">
+                        <Target className={`h-8 w-8 mx-auto mb-2 ${getScoreColor(auditReport.summary.overallScore)}`} />
+                        <p className="text-sm text-gray-600">Score General</p>
+                        <p className={`text-4xl font-bold ${getScoreColor(auditReport.summary.overallScore)}`}>
+                          {auditReport.summary.overallScore}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  {Object.entries(auditReport.prongAnalysis).map(([key, prong]) => (
+                    <Card key={key} className={`border-l-4 ${
+                      prong.score >= 80 ? 'border-l-green-500' :
+                      prong.score >= 60 ? 'border-l-yellow-500' :
+                      prong.score >= 40 ? 'border-l-orange-500' : 'border-l-red-500'
+                    }`}>
+                      <CardContent className="pt-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Badge variant="outline">{key}</Badge>
+                          <span className={`text-xl font-bold ${getScoreColor(prong.score)}`}>{prong.score}</span>
+                        </div>
+                        <p className="text-xs text-gray-500 line-clamp-1">{prong.name.split(' - ')[1]}</p>
+                        <Progress 
+                          value={prong.score} 
+                          className={`h-1.5 mt-2 ${
+                            prong.score >= 80 ? '[&>div]:bg-green-500' :
+                            prong.score >= 60 ? '[&>div]:bg-yellow-500' :
+                            prong.score >= 40 ? '[&>div]:bg-orange-500' : '[&>div]:bg-red-500'
+                          }`}
+                        />
+                        <p className="text-xs text-gray-400 mt-1">{prong.issueCount} issues • {prong.requestCount} requests</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Recommendations */}
+                {auditReport.recommendations.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Lightbulb className="h-5 w-5 text-yellow-600" />
+                        Recomendaciones Prioritarias ({auditReport.recommendations.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {auditReport.recommendations.slice(0, 5).map((rec, i) => (
+                          <div 
+                            key={i}
+                            className={`p-4 rounded-lg border-l-4 ${
+                              rec.priority === 'critical' ? 'bg-red-50 border-red-500' :
+                              rec.priority === 'high' ? 'bg-orange-50 border-orange-500' :
+                              'bg-yellow-50 border-yellow-500'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge className={getPriorityColor(rec.priority)}>{rec.priority.toUpperCase()}</Badge>
+                              {rec.prong && <Badge variant="outline">{rec.prong}</Badge>}
+                            </div>
+                            <p className="font-medium text-sm">{rec.title}</p>
+                            <p className="text-xs text-gray-600 mt-1">{rec.description}</p>
+                            {rec.actions && rec.actions.length > 0 && (
+                              <ul className="mt-2 space-y-1">
+                                {rec.actions.slice(0, 2).map((action, j) => (
+                                  <li key={j} className="text-xs text-gray-700 flex items-start gap-1">
+                                    <ChevronRight className="h-3 w-3 mt-0.5 text-gray-400 shrink-0" />
+                                    {action}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Evidence Checklist */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-blue-600" />
+                      Checklist de Evidencia
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="font-medium mb-3 text-sm text-gray-700">Documentos Esenciales</h4>
+                        <ul className="space-y-2">
+                          {auditReport.evidenceChecklist.essential.map((item, i) => (
+                            <li key={i} className={`p-2 rounded flex items-center justify-between ${
+                              item.status === 'present' ? 'bg-green-50' :
+                              item.status === 'missing' ? 'bg-red-50' : 'bg-gray-50'
+                            }`}>
+                              <span className="text-sm">{item.item}</span>
+                              {item.status === 'present' ? (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              ) : item.status === 'missing' ? (
+                                <XCircle className="h-4 w-4 text-red-600" />
+                              ) : (
+                                <Info className="h-4 w-4 text-gray-400" />
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <h4 className="font-medium mb-3 text-sm text-gray-700">Solicitudes Pendientes ({auditReport.evidenceChecklist.requestedByUSCIS.length})</h4>
+                        {auditReport.evidenceChecklist.requestedByUSCIS.length > 0 ? (
+                          <ul className="space-y-2">
+                            {auditReport.evidenceChecklist.requestedByUSCIS.slice(0, 4).map((item, i) => (
+                              <li key={i} className="p-2 bg-purple-50 rounded">
+                                <p className="text-xs text-gray-700 line-clamp-2">{item.item}</p>
+                                <div className="flex gap-1 mt-1">
+                                  <Badge className="text-xs" variant="outline">{item.importance}</Badge>
+                                  {item.prong && <Badge className="text-xs" variant="outline">{item.prong}</Badge>}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-gray-500 text-center py-4">Sin solicitudes pendientes</p>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="py-16">
+                  <div className="text-center text-gray-500">
+                    <ClipboardCheck className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                    <h3 className="text-lg font-medium text-gray-700 mb-2">Auditoría del Expediente</h3>
+                    <p className="mb-4">Analiza el caso completo contra los 3 prongs del test Dhanasar</p>
+                    <Button onClick={runAudit} disabled={auditing} className="bg-purple-600 hover:bg-purple-700">
+                      {auditing ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analizando...</>
+                      ) : (
+                        <><ClipboardCheck className="h-4 w-4 mr-2" /> Ejecutar Auditoría</>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
         </Tabs>
 
         {/* CV Analysis if exists */}
