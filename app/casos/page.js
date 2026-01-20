@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { CasesListSkeleton, CaseDetailSkeleton } from '@/components/ui/skeleton-loaders'
 import { 
   Brain, FolderOpen, Plus, FileText, Upload, CheckCircle, 
   AlertTriangle, XCircle, Clock, Loader2, Eye, Trash2,
