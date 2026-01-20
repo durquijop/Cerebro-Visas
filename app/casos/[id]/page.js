@@ -50,6 +50,11 @@ export default function CaseDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [deletingDocId, setDeletingDocId] = useState(null)
   const [error, setError] = useState(null)
+  
+  // Auditor state
+  const [auditReport, setAuditReport] = useState(null)
+  const [auditing, setAuditing] = useState(false)
+  const [activeTab, setActiveTab] = useState('documents')
 
   useEffect(() => {
     if (params.id) {
