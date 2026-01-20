@@ -711,9 +711,7 @@ export default function CasosPage() {
               </CardHeader>
               <CardContent className="space-y-2 max-h-[calc(100vh-300px)] overflow-auto">
                 {loading ? (
-                  <div className="text-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-gold-primary" />
-                  </div>
+                  <CasesListSkeleton />
                 ) : cases.length > 0 ? (
                   cases.map((caseItem) => {
                     const outcomeInfo = getOutcomeInfo(caseItem.outcome)
