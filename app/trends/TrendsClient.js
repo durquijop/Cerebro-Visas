@@ -108,6 +108,26 @@ export default function TrendsClient() {
     return parts.length > 2 ? parts.slice(2).join('.') : code
   }
 
+  const getDriftScoreColor = (score) => {
+    if (score >= 70) return 'text-red-600'
+    if (score >= 40) return 'text-orange-500'
+    if (score >= 20) return 'text-yellow-500'
+    return 'text-green-500'
+  }
+
+  const getDriftScoreBg = (score) => {
+    if (score >= 70) return 'bg-red-100 border-red-300'
+    if (score >= 40) return 'bg-orange-100 border-orange-300'
+    if (score >= 20) return 'bg-yellow-100 border-yellow-300'
+    return 'bg-green-100 border-green-300'
+  }
+
+  const getDirectionIcon = (direction) => {
+    if (direction === 'up') return <ArrowUp className="h-4 w-4 text-red-500" />
+    if (direction === 'down') return <ArrowDown className="h-4 w-4 text-green-500" />
+    return <Minus className="h-4 w-4 text-gray-400" />
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
