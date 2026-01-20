@@ -1169,6 +1169,227 @@ export default function TrendsClient() {
               </Card>
             )}
           </TabsContent>
+
+          {/* COHORT ANALYZER TAB */}
+          <TabsContent value="cohorts">
+            {/* Period Selector */}
+            <Card className="mb-6 border-indigo-200 bg-indigo-50/50">
+              <CardContent className="pt-6">
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="bg-gray-100">Período A</Badge>
+                    <Select value={periodA} onValueChange={setPeriodA}>
+                      <SelectTrigger className="w-52">
+                        <SelectValue placeholder="Seleccionar..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cohortData?.cohorts?.map(c => (
+                          <SelectItem key={c.key} value={c.key}>
+                            {c.label} ({c.stats?.total || 0} issues)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <ChevronRight className="h-5 w-5 text-gray-400" />
+
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="bg-indigo-100 text-indigo-700">Período B</Badge>
+                    <Select value={periodB} onValueChange={setPeriodB}>
+                      <SelectTrigger className="w-52">
+                        <SelectValue placeholder="Seleccionar..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cohortData?.cohorts?.map(c => (
+                          <SelectItem key={c.key} value={c.key}>
+                            {c.label} ({c.stats?.total || 0} issues)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button variant="outline" onClick={fetchCohortData} disabled={cohortLoading} className="ml-auto">
+                    <RefreshCw className={`h-4 w-4 mr-2 ${cohortLoading ? 'animate-spin' : ''}`} />
+                    Actualizar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {cohortLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
+              </div>
+            ) : cohortComparison ? (
+              <>
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <p className="text-sm text-gray-500 mb-1">{cohortComparison.periodA?.shortLabel}</p>
+                      <p className="text-3xl font-bold text-gray-700">{cohortComparison.totalA}</p>
+                      <p className="text-xs text-gray-400">issues</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-indigo-200 bg-indigo-50">
+                    <CardContent className="pt-6">
+                      <p className="text-sm text-gray-500 mb-1">{cohortComparison.periodB?.shortLabel}</p>
+                      <p className="text-3xl font-bold text-indigo-700">{cohortComparison.totalB}</p>
+                      <p className="text-xs text-gray-400">issues</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className={cohortComparison.totalDiff > 0 ? 'border-red-200 bg-red-50' : cohortComparison.totalDiff < 0 ? 'border-green-200 bg-green-50' : ''}>
+                    <CardContent className="pt-6">
+                      <p className="text-sm text-gray-500 mb-1">Cambio</p>
+                      <div className="flex items-center gap-2">
+                        {cohortComparison.totalDiff > 0 ? <ArrowUp className="h-5 w-5 text-red-500" /> : 
+                         cohortComparison.totalDiff < 0 ? <ArrowDown className="h-5 w-5 text-green-500" /> :
+                         <Minus className="h-5 w-5 text-gray-400" />}
+                        <p className={`text-3xl font-bold ${cohortComparison.totalDiff > 0 ? 'text-red-600' : cohortComparison.totalDiff < 0 ? 'text-green-600' : 'text-gray-500'}`}>
+                          {cohortComparison.totalDiff > 0 ? '+' : ''}{cohortComparison.totalDiff}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="pt-6">
+                      <p className="text-sm text-gray-500 mb-1">Issues Emergentes</p>
+                      <p className="text-3xl font-bold text-orange-600">{cohortComparison.emerging?.length || 0}</p>
+                      <p className="text-xs text-gray-400">{cohortComparison.emerging?.filter(e => e.isNew).length || 0} nuevos</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Two Column Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                  {/* Emerging Issues */}
+                  <Card className="border-red-200">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-red-700">
+                        <TrendingUp className="h-5 w-5" />
+                        Issues en Aumento ({cohortComparison.emerging?.length || 0})
+                      </CardTitle>
+                      <CardDescription>Requieren atención</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {cohortComparison.emerging?.length > 0 ? (
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                          {cohortComparison.emerging.slice(0, 8).map((item, i) => (
+                            <div key={i} className={`p-3 rounded-lg border ${item.isNew ? 'bg-red-100 border-red-300' : 'bg-red-50 border-red-200'}`}>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  {item.isNew && <Badge className="bg-red-600 text-white text-xs">NUEVO</Badge>}
+                                  <code className="text-xs font-mono">{formatCohortCode(item.code)}</code>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-gray-500">{item.countA}</span>
+                                  <ArrowUp className="h-3 w-3 text-red-500" />
+                                  <span className="text-sm font-bold text-red-600">{item.countB}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-center py-8 text-gray-500">No hay issues en aumento</p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Declining Issues */}
+                  <Card className="border-green-200">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-green-700">
+                        <TrendingDown className="h-5 w-5" />
+                        Issues en Descenso ({cohortComparison.declining?.length || 0})
+                      </CardTitle>
+                      <CardDescription>Buenas noticias</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {cohortComparison.declining?.length > 0 ? (
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                          {cohortComparison.declining.slice(0, 8).map((item, i) => (
+                            <div key={i} className="p-3 rounded-lg border bg-green-50 border-green-200">
+                              <div className="flex items-center justify-between">
+                                <code className="text-xs font-mono">{formatCohortCode(item.code)}</code>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-gray-500">{item.countA}</span>
+                                  <ArrowDown className="h-3 w-3 text-green-500" />
+                                  <span className="text-sm font-bold text-green-600">{item.countB}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-center py-8 text-gray-500">No hay issues en descenso</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Prong Changes */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Cambios por Prong</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-4">
+                      {['P1', 'P2', 'P3'].map(prong => {
+                        const change = cohortComparison.prongChanges?.[prong] || { countA: 0, countB: 0, diff: 0 }
+                        const labels = {
+                          P1: 'Mérito Nacional',
+                          P2: 'Bien Posicionado',
+                          P3: 'Balance'
+                        }
+                        return (
+                          <Card key={prong} className={`border-l-4 ${
+                            change.diff > 0 ? 'border-l-red-500 bg-red-50' :
+                            change.diff < 0 ? 'border-l-green-500 bg-green-50' :
+                            'border-l-gray-300'
+                          }`}>
+                            <CardContent className="pt-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <Badge style={{ backgroundColor: COLORS[prong], color: 'white' }}>{prong}</Badge>
+                                {change.diff > 0 ? <ArrowUp className="h-4 w-4 text-red-500" /> :
+                                 change.diff < 0 ? <ArrowDown className="h-4 w-4 text-green-500" /> :
+                                 <Minus className="h-4 w-4 text-gray-400" />}
+                              </div>
+                              <p className="text-sm text-gray-600 mb-2">{labels[prong]}</p>
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">{change.countA}</span>
+                                <span className={`font-bold ${change.diff > 0 ? 'text-red-600' : change.diff < 0 ? 'text-green-600' : 'text-gray-500'}`}>
+                                  → {change.countB}
+                                </span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <Card>
+                <CardContent className="py-16">
+                  <div className="text-center text-gray-500">
+                    <ArrowRightLeft className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                    <h3 className="text-lg font-medium text-gray-700 mb-2">Comparar Períodos</h3>
+                    <p className="mb-4">Selecciona dos trimestres para ver qué cambió</p>
+                    <Button onClick={fetchCohortData} disabled={cohortLoading}>
+                      <RefreshCw className="h-4 w-4 mr-2" /> Cargar Datos
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
         </Tabs>
       </main>
     </div>
