@@ -302,7 +302,7 @@ export default function TrendsClient() {
             {showFilters && (
               <Card className="mb-6 border-blue-200 bg-blue-50/50">
                 <CardContent className="pt-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {/* Visa Category Filter */}
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-gray-700">Categoría de Visa</Label>
