@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Brain, Shield, FileText, TrendingUp, ChevronRight } from 'lucide-react'
+import Link from 'next/link'
 
 export default function Home() {
   const [user, setUser] = useState(null)
