@@ -2,14 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Brain, Shield, FileText, TrendingUp, Users, ChevronRight } from 'lucide-react'
+import { Brain, Shield, FileText, TrendingUp, ChevronRight } from 'lucide-react'
 
 export default function Home() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const router = useRouter()
 
   useEffect(() => {
     const supabase = createClient()
