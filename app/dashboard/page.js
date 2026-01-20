@@ -101,6 +101,7 @@ export default function DashboardPage() {
     // Admin & Attorney
     ...(profile?.role === 'admin' || profile?.role === 'attorney' ? [
       { href: '/trends', icon: TrendingUp, label: 'Tendencias', desc: 'Dashboard de análisis' },
+      { href: '/auditor', icon: Shield, label: 'Auditor de Expediente', desc: 'Evaluar fortalezas y debilidades' },
     ] : []),
     // Admin, Attorney & Drafter
     ...(profile?.role !== 'analyst' ? [
