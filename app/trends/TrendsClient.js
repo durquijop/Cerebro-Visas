@@ -5,10 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   Brain, TrendingUp, AlertTriangle, FileText, 
   BarChart3, PieChart, Loader2, RefreshCw,
-  ArrowUp, ArrowDown, Minus, Building2, ArrowLeft
+  ArrowUp, ArrowDown, Minus, Building2, ArrowLeft,
+  Activity, Zap, Bell, TrendingDown, Sparkles, AlertOctagon
 } from 'lucide-react'
 import Link from 'next/link'
 import {
@@ -36,6 +38,12 @@ export default function TrendsClient() {
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('6months')
   const [error, setError] = useState(null)
+  
+  // Drift Detector state
+  const [driftData, setDriftData] = useState(null)
+  const [driftLoading, setDriftLoading] = useState(false)
+  const [driftConfig, setDriftConfig] = useState({ recentDays: '60', baselineDays: '180' })
+  const [activeTab, setActiveTab] = useState('overview')
 
   useEffect(() => {
     fetchTrends()
