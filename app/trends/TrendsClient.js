@@ -168,7 +168,7 @@ export default function TrendsClient() {
         </Link>
 
         {/* Page Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
               <TrendingUp className="h-8 w-8 text-blue-600" />
@@ -177,21 +177,6 @@ export default function TrendsClient() {
             <p className="text-gray-600 mt-1">
               Análisis de issues y patrones en RFE/NOID/Denial
             </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="3months">Últimos 3 meses</SelectItem>
-                <SelectItem value="6months">Últimos 6 meses</SelectItem>
-                <SelectItem value="1year">Último año</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" onClick={fetchTrends}>
-              <RefreshCw className="h-4 w-4 mr-2" /> Actualizar
-            </Button>
           </div>
         </div>
 
@@ -203,21 +188,53 @@ export default function TrendsClient() {
           </Card>
         )}
 
-        {data && (
-          <>
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-500">Total Documentos</p>
-                      <p className="text-3xl font-bold text-gray-900">{data.totalDocuments}</p>
-                    </div>
-                    <FileText className="h-10 w-10 text-blue-500 opacity-50" />
-                  </div>
-                </CardContent>
-              </Card>
+        {/* Main Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Vista General
+            </TabsTrigger>
+            <TabsTrigger value="drift" className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Drift Detector
+            </TabsTrigger>
+          </TabsList>
+
+          {/* OVERVIEW TAB */}
+          <TabsContent value="overview">
+            {/* Period Selector */}
+            <div className="flex items-center gap-4 mb-6">
+              <Select value={period} onValueChange={setPeriod}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3months">Últimos 3 meses</SelectItem>
+                  <SelectItem value="6months">Últimos 6 meses</SelectItem>
+                  <SelectItem value="1year">Último año</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={fetchTrends}>
+                <RefreshCw className="h-4 w-4 mr-2" /> Actualizar
+              </Button>
+            </div>
+
+            {data && (
+              <>
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500">Total Documentos</p>
+                          <p className="text-3xl font-bold text-gray-900">{data.totalDocuments}</p>
+                        </div>
+                        <FileText className="h-10 w-10 text-blue-500 opacity-50" />
+                      </div>
+                    </CardContent>
+                  </Card>
               
               <Card>
                 <CardContent className="pt-6">
