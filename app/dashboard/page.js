@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DashboardSkeleton } from '@/components/ui/skeleton-loaders'
 import { 
   Brain, LogOut, Users, FileText, TrendingUp, Upload, 
   FolderOpen, Settings, BarChart3, Shield, ChevronRight, Loader2,
