@@ -296,9 +296,10 @@ export default function CohortsPage() {
     return parts.length > 2 ? parts.slice(2).join('.') : code
   }
 
-  // Datos para gráficos
-  const timelineData = data?.cohorts?.map(c => ({
+  // Datos para gráficos - solo períodos con datos
+  const timelineData = data?.cohorts?.filter(c => c.stats?.total > 0).map(c => ({
     name: c.shortLabel,
+    fullName: c.label,
     issues: c.stats?.total || 0,
     critical: c.stats?.bySeverity?.critical || 0,
     high: c.stats?.bySeverity?.high || 0
