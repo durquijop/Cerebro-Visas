@@ -85,14 +85,7 @@ export default function DashboardPage() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-navy-primary flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 text-gold-primary animate-spin mx-auto" />
-          <p className="mt-4 text-gold-subtle">Cargando dashboard...</p>
-        </div>
-      </div>
-    )
+    return <DashboardSkeleton />
   }
 
   const menuItems = [
