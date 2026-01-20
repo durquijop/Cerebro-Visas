@@ -259,8 +259,8 @@ export default function TrendsClient() {
 
           {/* OVERVIEW TAB */}
           <TabsContent value="overview">
-            {/* Period Selector */}
-            <div className="flex items-center gap-4 mb-6">
+            {/* Controls Row: Period + Filters */}
+            <div className="flex flex-wrap items-center gap-4 mb-6">
               <Select value={period} onValueChange={setPeriod}>
                 <SelectTrigger className="w-40">
                   <SelectValue />
@@ -269,12 +269,175 @@ export default function TrendsClient() {
                   <SelectItem value="3months">Últimos 3 meses</SelectItem>
                   <SelectItem value="6months">Últimos 6 meses</SelectItem>
                   <SelectItem value="1year">Último año</SelectItem>
+                  <SelectItem value="all">Todo el historial</SelectItem>
                 </SelectContent>
               </Select>
+              
+              <Button 
+                variant={showFilters ? "default" : "outline"} 
+                onClick={() => setShowFilters(!showFilters)}
+                className="relative"
+              >
+                <SlidersHorizontal className="h-4 w-4 mr-2" />
+                Filtros
+                {hasActiveFilters() && (
+                  <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-blue-600">
+                    {getActiveFiltersCount()}
+                  </Badge>
+                )}
+              </Button>
+              
               <Button variant="outline" onClick={fetchTrends}>
                 <RefreshCw className="h-4 w-4 mr-2" /> Actualizar
               </Button>
+
+              {hasActiveFilters() && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="text-gray-500">
+                  <X className="h-4 w-4 mr-1" /> Limpiar filtros
+                </Button>
+              )}
             </div>
+
+            {/* Filters Panel */}
+            {showFilters && (
+              <Card className="mb-6 border-blue-200 bg-blue-50/50">
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {/* Visa Category Filter */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Categoría de Visa</Label>
+                      <Select 
+                        value={filters.visaCategory} 
+                        onValueChange={(v) => setFilters({...filters, visaCategory: v === 'all' ? '' : v})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Todas las categorías" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todas las categorías</SelectItem>
+                          {filterOptions.visaCategories.map(cat => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                          ))}
+                          <SelectItem value="EB2-NIW">EB2-NIW</SelectItem>
+                          <SelectItem value="EB1A">EB1A</SelectItem>
+                          <SelectItem value="EB1B">EB1B</SelectItem>
+                          <SelectItem value="O-1A">O-1A</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Service Center Filter */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Service Center</Label>
+                      <Select 
+                        value={filters.serviceCenter} 
+                        onValueChange={(v) => setFilters({...filters, serviceCenter: v === 'all' ? '' : v})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Todos los centros" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos los centros</SelectItem>
+                          {filterOptions.serviceCenters.map(center => (
+                            <SelectItem key={center} value={center}>{center}</SelectItem>
+                          ))}
+                          <SelectItem value="TSC">Texas Service Center</SelectItem>
+                          <SelectItem value="NSC">Nebraska Service Center</SelectItem>
+                          <SelectItem value="CSC">California Service Center</SelectItem>
+                          <SelectItem value="VSC">Vermont Service Center</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Outcome Type Filter */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Tipo de Documento</Label>
+                      <Select 
+                        value={filters.outcomeType} 
+                        onValueChange={(v) => setFilters({...filters, outcomeType: v === 'all' ? '' : v})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Todos los tipos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos los tipos</SelectItem>
+                          <SelectItem value="RFE">RFE</SelectItem>
+                          <SelectItem value="NOID">NOID</SelectItem>
+                          <SelectItem value="Denial">Denial</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Date From */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Desde</Label>
+                      <Input 
+                        type="date" 
+                        value={filters.dateFrom}
+                        onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
+                        className="w-full"
+                      />
+                    </div>
+
+                    {/* Date To */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Hasta</Label>
+                      <Input 
+                        type="date" 
+                        value={filters.dateTo}
+                        onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Active Filters Summary */}
+                  {hasActiveFilters() && (
+                    <div className="mt-4 pt-4 border-t border-blue-200">
+                      <p className="text-sm text-gray-600 mb-2">Filtros activos:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {filters.visaCategory && (
+                          <Badge variant="secondary" className="flex items-center gap-1">
+                            Visa: {filters.visaCategory}
+                            <X 
+                              className="h-3 w-3 cursor-pointer" 
+                              onClick={() => setFilters({...filters, visaCategory: ''})}
+                            />
+                          </Badge>
+                        )}
+                        {filters.serviceCenter && (
+                          <Badge variant="secondary" className="flex items-center gap-1">
+                            Centro: {filters.serviceCenter}
+                            <X 
+                              className="h-3 w-3 cursor-pointer" 
+                              onClick={() => setFilters({...filters, serviceCenter: ''})}
+                            />
+                          </Badge>
+                        )}
+                        {filters.outcomeType && (
+                          <Badge variant="secondary" className="flex items-center gap-1">
+                            Tipo: {filters.outcomeType}
+                            <X 
+                              className="h-3 w-3 cursor-pointer" 
+                              onClick={() => setFilters({...filters, outcomeType: ''})}
+                            />
+                          </Badge>
+                        )}
+                        {filters.dateFrom && filters.dateTo && (
+                          <Badge variant="secondary" className="flex items-center gap-1">
+                            Fechas: {filters.dateFrom} - {filters.dateTo}
+                            <X 
+                              className="h-3 w-3 cursor-pointer" 
+                              onClick={() => setFilters({...filters, dateFrom: '', dateTo: ''})}
+                            />
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {data && (
               <>
