@@ -43,7 +43,7 @@ export default function CohortsPage() {
 
   useEffect(() => {
     fetchData()
-  }, [year, outcomeType])
+  }, [outcomeType])
 
   useEffect(() => {
     if (periodA && periodB && data) {
