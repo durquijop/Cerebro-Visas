@@ -12,7 +12,8 @@ import {
   Calendar, Loader2, AlertCircle, AlertTriangle,
   CheckCircle, XCircle, Clock, User, Building2,
   FolderOpen, BarChart3, ClipboardList, Eye,
-  TrendingUp
+  TrendingUp, ClipboardCheck, Target, Lightbulb, Shield,
+  ChevronRight, AlertOctagon, Info, BookOpen
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
