@@ -345,29 +345,15 @@ export default function CohortsPage() {
           <CardContent>
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700">Año:</span>
-                <Select value={year} onValueChange={setYear}>
-                  <SelectTrigger className="w-24">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="2026">2026</SelectItem>
-                    <SelectItem value="2025">2025</SelectItem>
-                    <SelectItem value="2024">2024</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-2">
                 <Badge variant="outline" className="bg-gray-100">Período A</Badge>
                 <Select value={periodA} onValueChange={setPeriodA}>
-                  <SelectTrigger className="w-44">
+                  <SelectTrigger className="w-52">
                     <SelectValue placeholder="Seleccionar..." />
                   </SelectTrigger>
                   <SelectContent>
                     {data?.cohorts?.map(c => (
                       <SelectItem key={c.key} value={c.key}>
-                        {c.label} ({c.stats?.total || 0})
+                        {c.label} ({c.stats?.total || 0} issues)
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -379,21 +365,21 @@ export default function CohortsPage() {
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="bg-indigo-100 text-indigo-700">Período B</Badge>
                 <Select value={periodB} onValueChange={setPeriodB}>
-                  <SelectTrigger className="w-44">
+                  <SelectTrigger className="w-52">
                     <SelectValue placeholder="Seleccionar..." />
                   </SelectTrigger>
                   <SelectContent>
                     {data?.cohorts?.map(c => (
                       <SelectItem key={c.key} value={c.key}>
-                        {c.label} ({c.stats?.total || 0})
+                        {c.label} ({c.stats?.total || 0} issues)
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="flex items-center gap-2 ml-4">
-                <span className="text-sm text-gray-500">Filtrar:</span>
+              <div className="flex items-center gap-2 ml-4 pl-4 border-l">
+                <span className="text-sm text-gray-500">Filtrar por tipo:</span>
                 <Select value={outcomeType} onValueChange={setOutcomeType}>
                   <SelectTrigger className="w-32">
                     <SelectValue />
