@@ -179,11 +179,92 @@ export default function CaseDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
-          <p className="mt-4 text-gray-600">Cargando caso...</p>
-        </div>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header skeleton */}
+        <header className="bg-navy-primary border-b border-navy-light">
+          <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div className="flex items-center space-x-3">
+              <Skeleton className="h-8 w-8 rounded-lg bg-navy-light" />
+              <Skeleton className="h-6 w-32 bg-navy-light" />
+            </div>
+          </div>
+        </header>
+        <main className="container mx-auto px-6 py-8 max-w-7xl">
+          <Skeleton className="h-10 w-32 mb-6" />
+          {/* Case Header Skeleton */}
+          <Card className="mb-6">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex items-start space-x-4">
+                  <Skeleton className="h-14 w-14 rounded-lg" />
+                  <div>
+                    <Skeleton className="h-8 w-64 mb-2" />
+                    <Skeleton className="h-4 w-40 mb-3" />
+                    <div className="flex items-center space-x-4">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Skeleton className="h-9 w-24" />
+                  <Skeleton className="h-9 w-24" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                {[1,2,3,4,5].map(i => (
+                  <div key={i} className="flex items-center space-x-2">
+                    <Skeleton className="h-4 w-4" />
+                    <div>
+                      <Skeleton className="h-3 w-20 mb-1" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          {/* Stats Skeleton */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {[1,2,3,4].map(i => (
+              <Card key={i} className="border-l-4 border-l-gray-300">
+                <CardContent className="pt-4">
+                  <Skeleton className="h-3 w-16 mb-2" />
+                  <Skeleton className="h-8 w-12" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          {/* Tabs Skeleton */}
+          <Skeleton className="h-10 w-full max-w-lg mb-4" />
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {[1,2,3].map(i => (
+                  <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-8 w-8" />
+                      <div>
+                        <Skeleton className="h-4 w-48 mb-1" />
+                        <Skeleton className="h-3 w-32" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-8 w-8" />
+                      <Skeleton className="h-8 w-8" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </main>
       </div>
     )
   }
