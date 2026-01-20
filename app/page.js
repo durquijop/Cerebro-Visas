@@ -108,14 +108,15 @@ export default function Home() {
         </p>
         <div className="flex justify-center space-x-4">
           {!user && (
-            <Button 
-              size="lg"
-              onClick={() => window.location.href = '/auth/signup'}
-              className="bg-gold-primary text-navy-primary hover:bg-gold-dark text-lg px-8 py-6"
-            >
-              Comenzar Ahora
-              <ChevronRight className="ml-2 h-5 w-5" />
-            </Button>
+            <Link href="/auth/signup">
+              <Button 
+                size="lg"
+                className="bg-gold-primary text-navy-primary hover:bg-gold-dark text-lg px-8 py-6"
+              >
+                Comenzar Ahora
+                <ChevronRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
           )}
         </div>
       </section>
