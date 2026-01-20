@@ -312,14 +312,7 @@ export default function TrendsClient() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
-          <p className="mt-4 text-gray-600">Cargando tendencias...</p>
-        </div>
-      </div>
-    )
+    return <TrendsSkeleton />
   }
 
   return (
