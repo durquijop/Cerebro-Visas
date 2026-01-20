@@ -52,9 +52,9 @@ export default function TestAuthPage() {
       } else if (data.session) {
         setMessage(`Login exitoso! User: ${data.user.email}`)
         setUser(data.user)
-        // Esperar un momento y redirigir
+        // Esperar un momento y redirigir usando router para navegación más rápida
         setTimeout(() => {
-          window.location.href = '/dashboard'
+          window.location.href = '/dashboard' // Mantenemos window.location aquí para test/debug
         }, 1500)
       } else {
         setMessage('No se recibió sesión')

@@ -69,7 +69,8 @@ export default function DashboardPage() {
     setLoggingOut(true)
     await supabase.auth.signOut()
     toast.success('Sesión cerrada')
-    window.location.href = '/'
+    router.push('/')
+    router.refresh()
   }
 
   const getRoleBadgeColor = (role) => {

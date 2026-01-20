@@ -34,8 +34,9 @@ export default function LoginPage() {
 
       if (data.session) {
         toast.success('¡Bienvenido de vuelta!')
-        // Usar window.location para forzar recarga completa y actualizar cookies
-        window.location.href = redirectTo
+        // Usar router.push para navegación cliente-side más rápida
+        router.push(redirectTo)
+        router.refresh()
       }
     } catch (error) {
       toast.error(error.message || 'Error al iniciar sesión')

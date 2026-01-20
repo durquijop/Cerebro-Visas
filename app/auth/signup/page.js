@@ -40,7 +40,8 @@ export default function SignUpPage() {
       // Si la confirmación de email está desactivada, redirigir directo al dashboard
       if (data.session) {
         toast.success('¡Cuenta creada exitosamente!')
-        window.location.href = '/dashboard'
+        router.push('/dashboard')
+        router.refresh()
       } else {
         toast.success('¡Cuenta creada! Revisa tu email para verificar.')
         router.push('/auth/verify')
