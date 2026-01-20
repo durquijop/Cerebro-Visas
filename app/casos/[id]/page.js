@@ -360,8 +360,8 @@ export default function CaseDetailPage() {
         )}
 
         {/* Tabs */}
-        <Tabs defaultValue="documents" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="documents" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Documentos ({stats.totalDocuments || 0})
@@ -373,6 +373,10 @@ export default function CaseDetailPage() {
             <TabsTrigger value="requests" className="flex items-center gap-2">
               <ClipboardList className="h-4 w-4" />
               Requests ({stats.totalRequests || 0})
+            </TabsTrigger>
+            <TabsTrigger value="audit" className="flex items-center gap-2">
+              <ClipboardCheck className="h-4 w-4" />
+              Auditoría {auditReport && <Badge className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">{auditReport.summary.overallScore}</Badge>}
             </TabsTrigger>
           </TabsList>
 
