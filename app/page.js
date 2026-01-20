@@ -112,7 +112,7 @@ export default function Home() {
           {!user && (
             <Button 
               size="lg"
-              onClick={() => router.push('/auth/signup')}
+              onClick={() => window.location.href = '/auth/signup'}
               className="bg-gold-primary text-navy-primary hover:bg-gold-dark text-lg px-8 py-6"
             >
               Comenzar Ahora
