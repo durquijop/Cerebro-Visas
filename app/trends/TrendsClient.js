@@ -49,6 +49,12 @@ export default function TrendsClient() {
     fetchTrends()
   }, [period])
 
+  useEffect(() => {
+    if (activeTab === 'drift') {
+      fetchDriftData()
+    }
+  }, [activeTab, driftConfig])
+
   const fetchTrends = async () => {
     try {
       setLoading(true)
@@ -65,6 +71,26 @@ export default function TrendsClient() {
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchDriftData = async () => {
+    try {
+      setDriftLoading(true)
+      const response = await fetch(
+        `/api/trends/drift?recentDays=${driftConfig.recentDays}&baselineDays=${driftConfig.baselineDays}`
+      )
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar drift data')
+      }
+
+      const result = await response.json()
+      setDriftData(result)
+    } catch (err) {
+      console.error('Error fetching drift:', err)
+    } finally {
+      setDriftLoading(false)
     }
   }
 
