@@ -8,54 +8,75 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   ArrowLeft, Loader2, TrendingUp, TrendingDown, Minus,
-  BarChart3, Calendar, Building2, RefreshCw, ArrowUp, ArrowDown,
-  AlertTriangle, PieChart, Layers, Activity
+  BarChart3, Calendar, RefreshCw, ArrowUp, ArrowDown,
+  AlertTriangle, Layers, Activity, Zap, Target,
+  ChevronRight, Lightbulb, ArrowRightLeft, Clock
 } from 'lucide-react'
 import Link from 'next/link'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  LineChart, Line, AreaChart, Area, PieChart as RechartsPie, Pie, Cell
+  LineChart, Line, AreaChart, Area, Cell
 } from 'recharts'
 
 const COLORS = {
   P1: '#8b5cf6',
   P2: '#3b82f6',
   P3: '#10b981',
-  EVIDENCE: '#f59e0b',
-  COHERENCE: '#ec4899',
-  PROCEDURAL: '#6b7280',
   critical: '#ef4444',
   high: '#f97316',
   medium: '#eab308',
   low: '#22c55e'
 }
 
-const PRONG_COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#6b7280']
-
 export default function CohortsPage() {
-  const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [groupBy, setGroupBy] = useState('quarter')
+  const [data, setData] = useState(null)
+  
+  // Comparison mode
+  const [periodA, setPeriodA] = useState('') // Período anterior
+  const [periodB, setPeriodB] = useState('') // Período reciente
+  const [comparison, setComparison] = useState(null)
+  
+  // Filters
+  const [outcomeType, setOutcomeType] = useState('all')
   const [year, setYear] = useState(new Date().getFullYear().toString())
-  const [availableYears, setAvailableYears] = useState([])
 
   useEffect(() => {
-    fetchCohortData()
-  }, [groupBy, year])
+    fetchData()
+  }, [year, outcomeType])
 
-  const fetchCohortData = async () => {
+  useEffect(() => {
+    if (periodA && periodB && data) {
+      calculateComparison()
+    }
+  }, [periodA, periodB, data])
+
+  const fetchData = async () => {
     try {
       setLoading(true)
-      const params = new URLSearchParams({ groupBy, year })
+      const params = new URLSearchParams({ 
+        groupBy: 'quarter', 
+        year,
+        outcome_type: outcomeType !== 'all' ? outcomeType : ''
+      })
       const response = await fetch(`/api/trends/cohorts?${params}`)
-      
-      if (!response.ok) throw new Error('Error al cargar datos')
-
       const result = await response.json()
       setData(result)
-      
-      if (result.filters?.availableYears?.length > 0) {
-        setAvailableYears(result.filters.availableYears)
+
+      // Auto-seleccionar períodos si hay datos
+      if (result.cohorts?.length >= 2) {
+        const nonEmpty = result.cohorts.filter(c => c.stats.total > 0)
+        if (nonEmpty.length >= 1) {
+          // Seleccionar el período con datos como B y el anterior como A
+          const lastWithData = nonEmpty[nonEmpty.length - 1]
+          const idx = result.cohorts.findIndex(c => c.key === lastWithData.key)
+          if (idx > 0) {
+            setPeriodA(result.cohorts[idx - 1].key)
+          } else {
+            setPeriodA(result.cohorts[0].key)
+          }
+          setPeriodB(lastWithData.key)
+        }
       }
     } catch (err) {
       console.error('Error:', err)
@@ -64,39 +85,208 @@ export default function CohortsPage() {
     }
   }
 
-  const getChangeIcon = (direction) => {
-    if (direction === 'up') return <ArrowUp className="h-4 w-4 text-red-500" />
-    if (direction === 'down') return <ArrowDown className="h-4 w-4 text-green-500" />
+  const calculateComparison = () => {
+    if (!data?.cohorts) return
+
+    const cohortA = data.cohorts.find(c => c.key === periodA)
+    const cohortB = data.cohorts.find(c => c.key === periodB)
+
+    if (!cohortA || !cohortB) return
+
+    // Calcular cambios por issue code
+    const issueCodesA = {}
+    const issueCodesB = {}
+
+    cohortA.issues?.forEach(i => {
+      const code = i.taxonomy_code || 'UNKNOWN'
+      issueCodesA[code] = (issueCodesA[code] || 0) + 1
+    })
+
+    cohortB.issues?.forEach(i => {
+      const code = i.taxonomy_code || 'UNKNOWN'
+      issueCodesB[code] = (issueCodesB[code] || 0) + 1
+    })
+
+    // Issues emergentes (nuevos o aumentaron significativamente)
+    const emerging = []
+    const declining = []
+    const stable = []
+
+    const allCodes = new Set([...Object.keys(issueCodesA), ...Object.keys(issueCodesB)])
+
+    allCodes.forEach(code => {
+      const countA = issueCodesA[code] || 0
+      const countB = issueCodesB[code] || 0
+      const diff = countB - countA
+      const pctChange = countA > 0 ? Math.round((diff / countA) * 100) : (countB > 0 ? 100 : 0)
+
+      const item = { code, countA, countB, diff, pctChange }
+
+      if (countA === 0 && countB > 0) {
+        emerging.push({ ...item, isNew: true })
+      } else if (diff > 0) {
+        emerging.push(item)
+      } else if (diff < 0) {
+        declining.push(item)
+      } else if (countA > 0 && countB > 0) {
+        stable.push(item)
+      }
+    })
+
+    // Ordenar
+    emerging.sort((a, b) => b.diff - a.diff)
+    declining.sort((a, b) => a.diff - b.diff)
+
+    // Cambios por prong
+    const prongChanges = {}
+    const prongs = ['P1', 'P2', 'P3']
+    prongs.forEach(p => {
+      const countA = cohortA.stats?.byProng?.[p] || 0
+      const countB = cohortB.stats?.byProng?.[p] || 0
+      const diff = countB - countA
+      const pctChange = countA > 0 ? Math.round((diff / countA) * 100) : (countB > 0 ? 100 : 0)
+      prongChanges[p] = { countA, countB, diff, pctChange }
+    })
+
+    // Cambios por severidad
+    const severityChanges = {}
+    const severities = ['critical', 'high', 'medium', 'low']
+    severities.forEach(s => {
+      const countA = cohortA.stats?.bySeverity?.[s] || 0
+      const countB = cohortB.stats?.bySeverity?.[s] || 0
+      const diff = countB - countA
+      severityChanges[s] = { countA, countB, diff }
+    })
+
+    // Generar insights
+    const insights = generateInsights(cohortA, cohortB, emerging, declining, prongChanges, severityChanges)
+
+    setComparison({
+      periodA: cohortA,
+      periodB: cohortB,
+      totalA: cohortA.stats?.total || 0,
+      totalB: cohortB.stats?.total || 0,
+      totalDiff: (cohortB.stats?.total || 0) - (cohortA.stats?.total || 0),
+      emerging,
+      declining,
+      stable,
+      prongChanges,
+      severityChanges,
+      insights
+    })
+  }
+
+  const generateInsights = (cohortA, cohortB, emerging, declining, prongChanges, severityChanges) => {
+    const insights = []
+    const totalA = cohortA.stats?.total || 0
+    const totalB = cohortB.stats?.total || 0
+    const totalDiff = totalB - totalA
+
+    // Insight sobre volumen total
+    if (totalDiff > 0 && totalA > 0) {
+      const pct = Math.round((totalDiff / totalA) * 100)
+      if (pct >= 50) {
+        insights.push({
+          type: 'warning',
+          icon: AlertTriangle,
+          title: 'Aumento significativo de issues',
+          text: `Los issues aumentaron ${pct}% (de ${totalA} a ${totalB}). USCIS puede estar aplicando criterios más estrictos.`,
+          action: 'Revisar los nuevos issues emergentes y reforzar esas áreas en peticiones futuras.'
+        })
+      }
+    } else if (totalDiff < 0 && totalA > 0) {
+      const pct = Math.round(Math.abs(totalDiff / totalA) * 100)
+      if (pct >= 30) {
+        insights.push({
+          type: 'success',
+          icon: TrendingDown,
+          title: 'Reducción en issues',
+          text: `Los issues disminuyeron ${pct}% (de ${totalA} a ${totalB}). Tendencia positiva.`,
+          action: 'Mantener las estrategias actuales de documentación.'
+        })
+      }
+    }
+
+    // Insight sobre issues emergentes
+    const newIssues = emerging.filter(e => e.isNew)
+    if (newIssues.length >= 2) {
+      insights.push({
+        type: 'alert',
+        icon: Zap,
+        title: `${newIssues.length} nuevos tipos de issues`,
+        text: `Aparecieron issues que no existían antes: ${newIssues.slice(0, 2).map(i => i.code.split('.').pop()).join(', ')}`,
+        action: 'Investigar estos nuevos criterios y ajustar la preparación de casos.'
+      })
+    }
+
+    // Insight sobre prongs
+    const p1Change = prongChanges.P1?.pctChange || 0
+    const p2Change = prongChanges.P2?.pctChange || 0
+    
+    if (p1Change > 30) {
+      insights.push({
+        type: 'warning',
+        icon: Target,
+        title: 'Mayor escrutinio en Prong 1',
+        text: `Issues de P1 (Mérito Nacional) aumentaron ${p1Change}%. USCIS está cuestionando más la importancia nacional.`,
+        action: 'Fortalecer argumentos de impacto nacional con datos cuantificables.'
+      })
+    }
+    
+    if (p2Change > 30) {
+      insights.push({
+        type: 'warning',
+        icon: Target,
+        title: 'Mayor escrutinio en Prong 2',
+        text: `Issues de P2 (Bien Posicionado) aumentaron ${p2Change}%. USCIS cuestiona la capacidad de ejecución.`,
+        action: 'Incluir evidencia sólida de recursos, experiencia y plan de acción.'
+      })
+    }
+
+    // Insight sobre severidad
+    const criticalDiff = severityChanges.critical?.diff || 0
+    if (criticalDiff > 0) {
+      insights.push({
+        type: 'alert',
+        icon: AlertTriangle,
+        title: 'Aumento en issues críticos',
+        text: `Los issues de severidad crítica aumentaron en ${criticalDiff}. Mayor riesgo de denegación.`,
+        action: 'Priorizar la respuesta a estos issues en casos activos.'
+      })
+    }
+
+    // Si no hay issues en el período más reciente
+    if (totalB === 0 && totalA > 0) {
+      insights.push({
+        type: 'info',
+        icon: Clock,
+        title: 'Sin datos recientes',
+        text: 'No hay issues registrados en el período seleccionado.',
+        action: 'Puede que no haya documentos procesados en este período.'
+      })
+    }
+
+    return insights
+  }
+
+  const getChangeIcon = (diff) => {
+    if (diff > 0) return <ArrowUp className="h-4 w-4 text-red-500" />
+    if (diff < 0) return <ArrowDown className="h-4 w-4 text-green-500" />
     return <Minus className="h-4 w-4 text-gray-400" />
   }
 
-  const getChangeColor = (change) => {
-    if (change > 20) return 'text-red-600'
-    if (change > 0) return 'text-orange-500'
-    if (change < -20) return 'text-green-600'
-    if (change < 0) return 'text-green-500'
-    return 'text-gray-500'
+  const formatCode = (code) => {
+    if (!code) return 'N/A'
+    const parts = code.split('.')
+    return parts.length > 2 ? parts.slice(2).join('.') : code
   }
 
-  const getTrendIcon = (trend) => {
-    if (trend === 'increasing') return <TrendingUp className="h-5 w-5 text-red-500" />
-    if (trend === 'decreasing') return <TrendingDown className="h-5 w-5 text-green-500" />
-    return <Minus className="h-5 w-5 text-gray-400" />
-  }
-
-  // Preparar datos para gráficos
-  const chartData = data?.cohorts?.map(c => ({
+  // Datos para gráficos
+  const timelineData = data?.cohorts?.map(c => ({
     name: c.shortLabel,
-    fullName: c.label,
-    total: c.stats.total,
-    critical: c.stats.bySeverity.critical,
-    high: c.stats.bySeverity.high,
-    medium: c.stats.bySeverity.medium,
-    low: c.stats.bySeverity.low,
-    P1: c.stats.byProng.P1,
-    P2: c.stats.byProng.P2,
-    P3: c.stats.byProng.P3,
-    severityScore: c.stats.severityScore
+    issues: c.stats?.total || 0,
+    critical: c.stats?.bySeverity?.critical || 0,
+    high: c.stats?.bySeverity?.high || 0
   })) || []
 
   return (
@@ -111,10 +301,6 @@ export default function CohortsPage() {
               </Button>
             </Link>
             <span className="text-gray-300">/</span>
-            <Link href="/trends">
-              <Button variant="ghost" size="sm">Tendencias</Button>
-            </Link>
-            <span className="text-gray-300">/</span>
             <span className="text-gray-600 font-medium">Cohort Analyzer</span>
           </nav>
         </div>
@@ -122,54 +308,90 @@ export default function CohortsPage() {
 
       <main className="container mx-auto px-6 py-8">
         {/* Page Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Layers className="h-8 w-8 text-indigo-600" />
-              Cohort Analyzer
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Compara tendencias de issues por períodos de tiempo o segmentos
-            </p>
-          </div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <Layers className="h-8 w-8 text-indigo-600" />
+            Cohort Analyzer
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Compara períodos para detectar cambios en los criterios de USCIS
+          </p>
         </div>
 
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
+        {/* Period Selector */}
+        <Card className="mb-6 border-indigo-200 bg-indigo-50/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ArrowRightLeft className="h-5 w-5 text-indigo-600" />
+              Comparar Períodos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Agrupar por:</span>
-                <Select value={groupBy} onValueChange={setGroupBy}>
-                  <SelectTrigger className="w-40">
+                <span className="text-sm font-medium text-gray-700">Año:</span>
+                <Select value={year} onValueChange={setYear}>
+                  <SelectTrigger className="w-24">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="month">Por Mes</SelectItem>
-                    <SelectItem value="quarter">Por Trimestre</SelectItem>
-                    <SelectItem value="year">Por Año</SelectItem>
-                    <SelectItem value="industry">Por Industria</SelectItem>
+                    <SelectItem value="2026">2026</SelectItem>
+                    <SelectItem value="2025">2025</SelectItem>
+                    <SelectItem value="2024">2024</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {(groupBy === 'month' || groupBy === 'quarter') && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">Año:</span>
-                  <Select value={year} onValueChange={setYear}>
-                    <SelectTrigger className="w-28">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(availableYears.length > 0 ? availableYears : [2026, 2025, 2024]).map(y => (
-                        <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="bg-gray-100">Período A</Badge>
+                <Select value={periodA} onValueChange={setPeriodA}>
+                  <SelectTrigger className="w-44">
+                    <SelectValue placeholder="Seleccionar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {data?.cohorts?.map(c => (
+                      <SelectItem key={c.key} value={c.key}>
+                        {c.label} ({c.stats?.total || 0})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-              <Button variant="outline" onClick={fetchCohortData} disabled={loading}>
+              <ChevronRight className="h-5 w-5 text-gray-400" />
+
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="bg-indigo-100 text-indigo-700">Período B</Badge>
+                <Select value={periodB} onValueChange={setPeriodB}>
+                  <SelectTrigger className="w-44">
+                    <SelectValue placeholder="Seleccionar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {data?.cohorts?.map(c => (
+                      <SelectItem key={c.key} value={c.key}>
+                        {c.label} ({c.stats?.total || 0})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2 ml-4">
+                <span className="text-sm text-gray-500">Filtrar:</span>
+                <Select value={outcomeType} onValueChange={setOutcomeType}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="RFE">Solo RFE</SelectItem>
+                    <SelectItem value="NOID">Solo NOID</SelectItem>
+                    <SelectItem value="Denial">Solo Denial</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button variant="outline" onClick={fetchData} disabled={loading} className="ml-auto">
                 <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 Actualizar
               </Button>
@@ -181,379 +403,290 @@ export default function CohortsPage() {
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
           </div>
-        ) : data ? (
+        ) : comparison ? (
           <>
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            {/* Comparison Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <Card>
                 <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-500">Total Issues</p>
-                      <p className="text-3xl font-bold">{data.summary?.totalIssues || 0}</p>
-                    </div>
-                    <AlertTriangle className="h-10 w-10 text-orange-500 opacity-50" />
+                  <p className="text-sm text-gray-500 mb-1">{comparison.periodA.shortLabel}</p>
+                  <p className="text-3xl font-bold text-gray-700">{comparison.totalA}</p>
+                  <p className="text-xs text-gray-400">issues</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-indigo-200 bg-indigo-50">
+                <CardContent className="pt-6">
+                  <p className="text-sm text-gray-500 mb-1">{comparison.periodB.shortLabel}</p>
+                  <p className="text-3xl font-bold text-indigo-700">{comparison.totalB}</p>
+                  <p className="text-xs text-gray-400">issues</p>
+                </CardContent>
+              </Card>
+
+              <Card className={comparison.totalDiff > 0 ? 'border-red-200 bg-red-50' : comparison.totalDiff < 0 ? 'border-green-200 bg-green-50' : ''}>
+                <CardContent className="pt-6">
+                  <p className="text-sm text-gray-500 mb-1">Cambio</p>
+                  <div className="flex items-center gap-2">
+                    {getChangeIcon(comparison.totalDiff)}
+                    <p className={`text-3xl font-bold ${comparison.totalDiff > 0 ? 'text-red-600' : comparison.totalDiff < 0 ? 'text-green-600' : 'text-gray-500'}`}>
+                      {comparison.totalDiff > 0 ? '+' : ''}{comparison.totalDiff}
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-400 mt-2">
-                    Promedio: {data.summary?.avgPerCohort || 0} por {groupBy === 'month' ? 'mes' : groupBy === 'quarter' ? 'trimestre' : 'período'}
-                  </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-500">Períodos Analizados</p>
-                      <p className="text-3xl font-bold">{data.summary?.cohortsAnalyzed || 0}</p>
-                    </div>
-                    <Calendar className="h-10 w-10 text-indigo-500 opacity-50" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-500">Pico de Issues</p>
-                      <p className="text-xl font-bold">{data.summary?.peakCohort?.label}</p>
-                      <p className="text-sm text-gray-400">{data.summary?.peakCohort?.count} issues</p>
-                    </div>
-                    <BarChart3 className="h-10 w-10 text-red-500 opacity-50" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className={`border-2 ${
-                data.summary?.trend === 'increasing' ? 'border-red-200 bg-red-50' :
-                data.summary?.trend === 'decreasing' ? 'border-green-200 bg-green-50' :
-                'border-gray-200'
-              }`}>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-500">Tendencia</p>
-                      <p className="text-xl font-bold">{data.summary?.trendLabel}</p>
-                    </div>
-                    {getTrendIcon(data.summary?.trend)}
-                  </div>
+                  <p className="text-sm text-gray-500 mb-1">Issues Emergentes</p>
+                  <p className="text-3xl font-bold text-orange-600">{comparison.emerging.length}</p>
+                  <p className="text-xs text-gray-400">{comparison.emerging.filter(e => e.isNew).length} nuevos</p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Main Charts */}
-            <Tabs defaultValue="timeline" className="space-y-6">
-              <TabsList className="grid w-full max-w-lg grid-cols-3">
-                <TabsTrigger value="timeline">Línea de Tiempo</TabsTrigger>
-                <TabsTrigger value="comparison">Comparación</TabsTrigger>
+            {/* Insights */}
+            {comparison.insights.length > 0 && (
+              <Card className="mb-6 border-yellow-200 bg-yellow-50/50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-yellow-800">
+                    <Lightbulb className="h-5 w-5" />
+                    Insights Clave ({comparison.insights.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {comparison.insights.map((insight, i) => (
+                      <div 
+                        key={i}
+                        className={`p-4 rounded-lg border ${
+                          insight.type === 'alert' ? 'bg-red-50 border-red-200' :
+                          insight.type === 'warning' ? 'bg-orange-50 border-orange-200' :
+                          insight.type === 'success' ? 'bg-green-50 border-green-200' :
+                          'bg-blue-50 border-blue-200'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <insight.icon className={`h-5 w-5 shrink-0 mt-0.5 ${
+                            insight.type === 'alert' ? 'text-red-600' :
+                            insight.type === 'warning' ? 'text-orange-600' :
+                            insight.type === 'success' ? 'text-green-600' :
+                            'text-blue-600'
+                          }`} />
+                          <div>
+                            <p className="font-semibold text-sm text-gray-900">{insight.title}</p>
+                            <p className="text-sm text-gray-600 mt-1">{insight.text}</p>
+                            <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                              <ChevronRight className="h-3 w-3" />
+                              {insight.action}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Main Content Tabs */}
+            <Tabs defaultValue="changes" className="space-y-6">
+              <TabsList className="grid w-full max-w-md grid-cols-3">
+                <TabsTrigger value="changes">¿Qué Cambió?</TabsTrigger>
                 <TabsTrigger value="prongs">Por Prong</TabsTrigger>
+                <TabsTrigger value="timeline">Tendencia</TabsTrigger>
               </TabsList>
 
-              {/* Timeline Tab */}
-              <TabsContent value="timeline">
+              {/* Changes Tab */}
+              <TabsContent value="changes">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Total Issues Over Time */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Issues por {groupBy === 'month' ? 'Mes' : groupBy === 'quarter' ? 'Trimestre' : 'Período'}</CardTitle>
-                      <CardDescription>Evolución del volumen total de issues</CardDescription>
+                  {/* Emerging Issues */}
+                  <Card className="border-red-200">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-red-700">
+                        <TrendingUp className="h-5 w-5" />
+                        Issues en Aumento ({comparison.emerging.length})
+                      </CardTitle>
+                      <CardDescription>Requieren atención - están aumentando</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip 
-                              formatter={(value, name) => [value, name === 'total' ? 'Total Issues' : name]}
-                              labelFormatter={(label) => chartData.find(d => d.name === label)?.fullName || label}
-                            />
-                            <Area 
-                              type="monotone" 
-                              dataKey="total" 
-                              stroke="#6366f1" 
-                              fill="#6366f1" 
-                              fillOpacity={0.3}
-                              name="Total Issues"
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
+                      {comparison.emerging.length > 0 ? (
+                        <div className="space-y-2">
+                          {comparison.emerging.slice(0, 8).map((item, i) => (
+                            <div key={i} className={`p-3 rounded-lg border ${item.isNew ? 'bg-red-100 border-red-300' : 'bg-red-50 border-red-200'}`}>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  {item.isNew && <Badge className="bg-red-600 text-white text-xs">NUEVO</Badge>}
+                                  <code className="text-xs font-mono">{formatCode(item.code)}</code>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-gray-500">{item.countA}</span>
+                                  <ArrowUp className="h-3 w-3 text-red-500" />
+                                  <span className="text-sm font-bold text-red-600">{item.countB}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-center py-8 text-gray-500">No hay issues en aumento</p>
+                      )}
                     </CardContent>
                   </Card>
 
-                  {/* Severity Score Over Time */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Índice de Severidad</CardTitle>
-                      <CardDescription>Ponderación de severidad (0-100, mayor = más severo)</CardDescription>
+                  {/* Declining Issues */}
+                  <Card className="border-green-200">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-green-700">
+                        <TrendingDown className="h-5 w-5" />
+                        Issues en Descenso ({comparison.declining.length})
+                      </CardTitle>
+                      <CardDescription>Buenas noticias - están disminuyendo</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis domain={[0, 100]} />
-                            <Tooltip />
-                            <Line 
-                              type="monotone" 
-                              dataKey="severityScore" 
-                              stroke="#ef4444" 
-                              strokeWidth={2}
-                              dot={{ fill: '#ef4444' }}
-                              name="Severidad"
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Stacked Bar - By Severity */}
-                  <Card className="lg:col-span-2">
-                    <CardHeader>
-                      <CardTitle>Distribución por Severidad</CardTitle>
-                      <CardDescription>Desglose de issues por nivel de severidad en cada período</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Bar dataKey="critical" stackId="a" fill={COLORS.critical} name="Crítico" />
-                            <Bar dataKey="high" stackId="a" fill={COLORS.high} name="Alto" />
-                            <Bar dataKey="medium" stackId="a" fill={COLORS.medium} name="Medio" />
-                            <Bar dataKey="low" stackId="a" fill={COLORS.low} name="Bajo" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
+                      {comparison.declining.length > 0 ? (
+                        <div className="space-y-2">
+                          {comparison.declining.slice(0, 8).map((item, i) => (
+                            <div key={i} className="p-3 rounded-lg border bg-green-50 border-green-200">
+                              <div className="flex items-center justify-between">
+                                <code className="text-xs font-mono">{formatCode(item.code)}</code>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-gray-500">{item.countA}</span>
+                                  <ArrowDown className="h-3 w-3 text-green-500" />
+                                  <span className="text-sm font-bold text-green-600">{item.countB}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-center py-8 text-gray-500">No hay issues en descenso</p>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
-              </TabsContent>
-
-              {/* Comparison Tab */}
-              <TabsContent value="comparison">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Cambios Entre Períodos</CardTitle>
-                    <CardDescription>Comparación secuencial de volumen y severidad</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {data.comparisons && data.comparisons.length > 0 ? (
-                      <div className="space-y-4">
-                        {data.comparisons.map((comp, idx) => (
-                          <div 
-                            key={idx}
-                            className={`p-4 rounded-lg border ${
-                              comp.totalChange > 20 ? 'bg-red-50 border-red-200' :
-                              comp.totalChange < -20 ? 'bg-green-50 border-green-200' :
-                              'bg-gray-50 border-gray-200'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline">{comp.fromLabel}</Badge>
-                                <span className="text-gray-400">→</span>
-                                <Badge variant="outline">{comp.toLabel}</Badge>
-                              </div>
-                              <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-1">
-                                  {getChangeIcon(comp.totalDirection)}
-                                  <span className={`font-bold ${getChangeColor(comp.totalChange)}`}>
-                                    {comp.totalChange > 0 ? '+' : ''}{comp.totalChange}%
-                                  </span>
-                                  <span className="text-xs text-gray-500">issues</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  {getChangeIcon(comp.severityDirection)}
-                                  <span className={`font-bold ${
-                                    comp.severityChange > 0 ? 'text-red-600' : 
-                                    comp.severityChange < 0 ? 'text-green-600' : 'text-gray-500'
-                                  }`}>
-                                    {comp.severityChange > 0 ? '+' : ''}{comp.severityChange}
-                                  </span>
-                                  <span className="text-xs text-gray-500">severidad</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Prong changes */}
-                            <div className="flex flex-wrap gap-2">
-                              {Object.entries(comp.prongChanges)
-                                .filter(([_, data]) => data.change !== 0)
-                                .map(([prong, data]) => (
-                                  <Badge 
-                                    key={prong}
-                                    className={`${
-                                      data.direction === 'up' ? 'bg-red-100 text-red-700' :
-                                      data.direction === 'down' ? 'bg-green-100 text-green-700' :
-                                      'bg-gray-100 text-gray-700'
-                                    }`}
-                                  >
-                                    {prong}: {data.change > 0 ? '+' : ''}{data.change}%
-                                  </Badge>
-                                ))
-                              }
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-12 text-gray-500">
-                        <Activity className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                        <p>No hay suficientes datos para comparar</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
               </TabsContent>
 
               {/* Prongs Tab */}
               <TabsContent value="prongs">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Stacked Bar by Prong */}
-                  <Card className="lg:col-span-2">
-                    <CardHeader>
-                      <CardTitle>Issues por Prong</CardTitle>
-                      <CardDescription>Distribución por área del test Dhanasar</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Bar dataKey="P1" fill={COLORS.P1} name="P1 - Mérito" />
-                            <Bar dataKey="P2" fill={COLORS.P2} name="P2 - Posición" />
-                            <Bar dataKey="P3" fill={COLORS.P3} name="P3 - Balance" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </CardContent>
-                  </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Cambios por Prong</CardTitle>
+                    <CardDescription>Cómo cambió el escrutinio en cada área del test Dhanasar</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {['P1', 'P2', 'P3'].map(prong => {
+                        const change = comparison.prongChanges[prong]
+                        const labels = {
+                          P1: { name: 'Prong 1', desc: 'Mérito Sustancial e Importancia Nacional' },
+                          P2: { name: 'Prong 2', desc: 'Bien Posicionado para Avanzar' },
+                          P3: { name: 'Prong 3', desc: 'Balance de Factores' }
+                        }
+                        return (
+                          <Card key={prong} className={`border-2 ${
+                            change.diff > 0 ? 'border-red-200 bg-red-50' :
+                            change.diff < 0 ? 'border-green-200 bg-green-50' :
+                            'border-gray-200'
+                          }`}>
+                            <CardContent className="pt-6">
+                              <div className="flex items-center justify-between mb-2">
+                                <Badge style={{ backgroundColor: COLORS[prong], color: 'white' }}>{prong}</Badge>
+                                {getChangeIcon(change.diff)}
+                              </div>
+                              <p className="font-semibold">{labels[prong].name}</p>
+                              <p className="text-xs text-gray-500 mb-4">{labels[prong].desc}</p>
+                              
+                              <div className="flex items-end justify-between">
+                                <div className="text-center">
+                                  <p className="text-2xl font-bold text-gray-500">{change.countA}</p>
+                                  <p className="text-xs text-gray-400">{comparison.periodA.shortLabel}</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className={`text-3xl font-bold ${
+                                    change.diff > 0 ? 'text-red-600' : change.diff < 0 ? 'text-green-600' : 'text-gray-700'
+                                  }`}>
+                                    {change.countB}
+                                  </p>
+                                  <p className="text-xs text-gray-400">{comparison.periodB.shortLabel}</p>
+                                </div>
+                              </div>
+                              
+                              {change.pctChange !== 0 && (
+                                <p className={`text-sm font-medium mt-3 text-center ${
+                                  change.diff > 0 ? 'text-red-600' : 'text-green-600'
+                                }`}>
+                                  {change.pctChange > 0 ? '+' : ''}{change.pctChange}%
+                                </p>
+                              )}
+                            </CardContent>
+                          </Card>
+                        )
+                      })}
+                    </div>
 
-                  {/* Top Issues by Cohort */}
-                  <Card className="lg:col-span-2">
-                    <CardHeader>
-                      <CardTitle>Top Issues por Período</CardTitle>
-                      <CardDescription>Los 5 issues más frecuentes en cada período</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="text-left py-2 px-3 font-medium text-gray-600">Período</th>
-                              <th className="text-left py-2 px-3 font-medium text-gray-600">Top Issues</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {data.cohorts?.map(cohort => (
-                              <tr key={cohort.key} className="border-b hover:bg-gray-50">
-                                <td className="py-3 px-3">
-                                  <span className="font-medium">{cohort.shortLabel}</span>
-                                  <span className="text-gray-400 text-xs ml-2">({cohort.stats.total})</span>
-                                </td>
-                                <td className="py-3 px-3">
-                                  <div className="flex flex-wrap gap-1">
-                                    {cohort.stats.topCodes.slice(0, 3).map((item, i) => (
-                                      <Badge key={i} variant="outline" className="text-xs">
-                                        {item.code.split('.').slice(-1)[0]} ({item.count})
-                                      </Badge>
-                                    ))}
-                                    {cohort.stats.topCodes.length === 0 && (
-                                      <span className="text-gray-400 text-xs">Sin datos</span>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                    {/* Severity Changes */}
+                    <div className="mt-6 pt-6 border-t">
+                      <h4 className="font-medium mb-4">Cambios por Severidad</h4>
+                      <div className="grid grid-cols-4 gap-4">
+                        {['critical', 'high', 'medium', 'low'].map(sev => {
+                          const change = comparison.severityChanges[sev]
+                          const labels = { critical: 'Crítico', high: 'Alto', medium: 'Medio', low: 'Bajo' }
+                          return (
+                            <div key={sev} className={`p-4 rounded-lg text-center ${
+                              change.diff > 0 && sev === 'critical' ? 'bg-red-100' :
+                              change.diff < 0 && sev === 'critical' ? 'bg-green-100' :
+                              'bg-gray-50'
+                            }`}>
+                              <Badge className="mb-2" style={{ backgroundColor: COLORS[sev], color: 'white' }}>
+                                {labels[sev]}
+                              </Badge>
+                              <div className="flex items-center justify-center gap-2">
+                                <span className="text-gray-500">{change.countA}</span>
+                                {getChangeIcon(change.diff)}
+                                <span className="font-bold">{change.countB}</span>
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Timeline Tab */}
+              <TabsContent value="timeline">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Evolución en {year}</CardTitle>
+                    <CardDescription>Tendencia de issues por trimestre</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={timelineData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="issues" fill="#6366f1" name="Total Issues" />
+                          <Bar dataKey="critical" fill={COLORS.critical} name="Críticos" />
+                          <Bar dataKey="high" fill={COLORS.high} name="Altos" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
-
-            {/* Cohort Details Table */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle>Detalle por {groupBy === 'month' ? 'Mes' : groupBy === 'quarter' ? 'Trimestre' : 'Período'}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-4 font-medium text-gray-600">Período</th>
-                        <th className="text-center py-3 px-4 font-medium text-gray-600">Total</th>
-                        <th className="text-center py-3 px-4 font-medium text-gray-600">Crítico</th>
-                        <th className="text-center py-3 px-4 font-medium text-gray-600">Alto</th>
-                        <th className="text-center py-3 px-4 font-medium text-gray-600">Medio</th>
-                        <th className="text-center py-3 px-4 font-medium text-gray-600">Bajo</th>
-                        <th className="text-center py-3 px-4 font-medium text-gray-600">P1</th>
-                        <th className="text-center py-3 px-4 font-medium text-gray-600">P2</th>
-                        <th className="text-center py-3 px-4 font-medium text-gray-600">P3</th>
-                        <th className="text-center py-3 px-4 font-medium text-gray-600">Severidad</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.cohorts?.map(cohort => (
-                        <tr key={cohort.key} className="border-b hover:bg-gray-50">
-                          <td className="py-3 px-4 font-medium">{cohort.label}</td>
-                          <td className="py-3 px-4 text-center font-bold">{cohort.stats.total}</td>
-                          <td className="py-3 px-4 text-center">
-                            <Badge className="bg-red-100 text-red-700">{cohort.stats.bySeverity.critical}</Badge>
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <Badge className="bg-orange-100 text-orange-700">{cohort.stats.bySeverity.high}</Badge>
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <Badge className="bg-yellow-100 text-yellow-700">{cohort.stats.bySeverity.medium}</Badge>
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <Badge className="bg-green-100 text-green-700">{cohort.stats.bySeverity.low}</Badge>
-                          </td>
-                          <td className="py-3 px-4 text-center">{cohort.stats.byProng.P1}</td>
-                          <td className="py-3 px-4 text-center">{cohort.stats.byProng.P2}</td>
-                          <td className="py-3 px-4 text-center">{cohort.stats.byProng.P3}</td>
-                          <td className="py-3 px-4 text-center">
-                            <Badge className={`${
-                              cohort.stats.severityScore >= 70 ? 'bg-red-100 text-red-700' :
-                              cohort.stats.severityScore >= 50 ? 'bg-orange-100 text-orange-700' :
-                              cohort.stats.severityScore >= 30 ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-green-100 text-green-700'
-                            }`}>
-                              {cohort.stats.severityScore}
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
           </>
         ) : (
           <Card>
             <CardContent className="py-16">
               <div className="text-center text-gray-500">
                 <Layers className="h-16 w-16 mx-auto mb-4 opacity-30" />
-                <p>No hay datos disponibles</p>
+                <p>Selecciona dos períodos para comparar</p>
               </div>
             </CardContent>
           </Card>
