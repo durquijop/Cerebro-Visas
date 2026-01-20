@@ -551,8 +551,308 @@ export default function TrendsClient() {
                 )}
               </CardContent>
             </Card>
-          </>
-        )}
+              </>
+            )}
+          </TabsContent>
+
+          {/* DRIFT DETECTOR TAB */}
+          <TabsContent value="drift">
+            {/* Drift Config */}
+            <div className="flex flex-wrap items-center gap-4 mb-6">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Período reciente:</span>
+                <Select value={driftConfig.recentDays} onValueChange={(v) => setDriftConfig({...driftConfig, recentDays: v})}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="30">30 días</SelectItem>
+                    <SelectItem value="60">60 días</SelectItem>
+                    <SelectItem value="90">90 días</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">vs Período base:</span>
+                <Select value={driftConfig.baselineDays} onValueChange={(v) => setDriftConfig({...driftConfig, baselineDays: v})}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="180">180 días</SelectItem>
+                    <SelectItem value="365">1 año</SelectItem>
+                    <SelectItem value="730">2 años</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button variant="outline" onClick={fetchDriftData} disabled={driftLoading}>
+                {driftLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                Analizar
+              </Button>
+            </div>
+
+            {driftLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="text-center">
+                  <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
+                  <p className="mt-4 text-gray-600">Analizando cambios en criterios...</p>
+                </div>
+              </div>
+            ) : driftData ? (
+              <>
+                {/* Drift Score Card */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  <Card className={`border-2 ${getDriftScoreBg(driftData.overallDriftScore)}`}>
+                    <CardContent className="pt-6">
+                      <div className="text-center">
+                        <Activity className={`h-10 w-10 mx-auto mb-2 ${getDriftScoreColor(driftData.overallDriftScore)}`} />
+                        <p className="text-sm text-gray-600 mb-1">Índice de Cambio</p>
+                        <p className={`text-5xl font-bold ${getDriftScoreColor(driftData.overallDriftScore)}`}>
+                          {driftData.overallDriftScore}
+                        </p>
+                        <p className="text-sm mt-2 font-medium">{driftData.summary?.statusLabel}</p>
+                        <p className="text-xs text-gray-500 mt-1">{driftData.summary?.statusDescription}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Período Reciente</span>
+                          <Badge variant="outline">{driftData.periods?.recent?.label}</Badge>
+                        </div>
+                        <p className="text-2xl font-bold">{driftData.periods?.recent?.totalIssues} issues</p>
+                        <p className="text-xs text-gray-500">{driftData.periods?.recent?.uniqueCodes} tipos únicos</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Período Base</span>
+                          <Badge variant="outline">{driftData.periods?.baseline?.label}</Badge>
+                        </div>
+                        <p className="text-2xl font-bold">{driftData.periods?.baseline?.totalIssues} issues</p>
+                        <p className="text-xs text-gray-500">{driftData.periods?.baseline?.uniqueCodes} tipos únicos</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Alerts */}
+                {driftData.alerts && driftData.alerts.length > 0 && (
+                  <Card className="mb-8 border-orange-200 bg-orange-50">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-orange-800">
+                        <Bell className="h-5 w-5" />
+                        Alertas de Cambios Detectados ({driftData.alerts.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {driftData.alerts.map((alert, idx) => (
+                          <div key={idx} className={`p-4 rounded-lg border ${
+                            alert.severity === 'high' ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'
+                          }`}>
+                            <div className="flex items-start gap-3">
+                              {alert.severity === 'high' ? (
+                                <AlertOctagon className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+                              ) : (
+                                <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+                              )}
+                              <div>
+                                <p className={`font-medium ${alert.severity === 'high' ? 'text-red-800' : 'text-yellow-800'}`}>
+                                  {alert.message}
+                                </p>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  💡 {alert.recommendation}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Prong Drifts */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-purple-600" />
+                        Cambios por Prong
+                      </CardTitle>
+                      <CardDescription>
+                        Evolución del escrutinio por área del test Dhanasar
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {driftData.prongDrifts?.map((drift) => (
+                          <div key={drift.prong} className={`p-3 rounded-lg border ${
+                            drift.isSignificant && drift.direction === 'up' ? 'bg-red-50 border-red-200' :
+                            drift.isSignificant && drift.direction === 'down' ? 'bg-green-50 border-green-200' :
+                            'bg-gray-50 border-gray-200'
+                          }`}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Badge className={COLORS[drift.prong] ? `bg-opacity-20` : ''} style={{
+                                  backgroundColor: COLORS[drift.prong] + '30',
+                                  color: COLORS[drift.prong]
+                                }}>
+                                  {drift.prong}
+                                </Badge>
+                                <span className="text-sm font-medium">{drift.label}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {getDirectionIcon(drift.direction)}
+                                <span className={`font-bold ${
+                                  drift.direction === 'up' ? 'text-red-600' : 
+                                  drift.direction === 'down' ? 'text-green-600' : 'text-gray-500'
+                                }`}>
+                                  {drift.direction === 'up' ? '+' : ''}{drift.absoluteChange}%
+                                </span>
+                              </div>
+                            </div>
+                            <div className="mt-2 flex gap-4 text-xs text-gray-500">
+                              <span>Reciente: {drift.recentPercentage}%</span>
+                              <span>Base: {drift.baselinePercentage}%</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* New Issues */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Zap className="h-5 w-5 text-yellow-600" />
+                        Nuevos Issues Detectados
+                      </CardTitle>
+                      <CardDescription>
+                        Issues que aparecen recientemente pero no en el período base
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {driftData.newIssues && driftData.newIssues.length > 0 ? (
+                        <div className="space-y-2">
+                          {driftData.newIssues.map((issue) => (
+                            <div key={issue.code} className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <code className="text-xs bg-yellow-100 px-2 py-1 rounded">{issue.code}</code>
+                                <Badge className="bg-yellow-100 text-yellow-800">
+                                  {issue.count} ocurrencias
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <Zap className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                          <p>No hay nuevos issues</p>
+                          <p className="text-sm">Los patrones se mantienen consistentes</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Top Drifts Table */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Detalle de Cambios por Issue</CardTitle>
+                    <CardDescription>
+                      Issues con cambios más significativos entre períodos
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {driftData.drifts && driftData.drifts.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-3 px-4 font-medium text-gray-600">Código</th>
+                              <th className="text-center py-3 px-4 font-medium text-gray-600">Reciente</th>
+                              <th className="text-center py-3 px-4 font-medium text-gray-600">Base</th>
+                              <th className="text-center py-3 px-4 font-medium text-gray-600">Cambio</th>
+                              <th className="text-center py-3 px-4 font-medium text-gray-600">Tendencia</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {driftData.drifts.slice(0, 12).map((drift) => (
+                              <tr key={drift.code} className={`border-b ${
+                                drift.isSignificant ? (drift.direction === 'up' ? 'bg-red-50' : 'bg-green-50') : ''
+                              }`}>
+                                <td className="py-3 px-4">
+                                  <code className="text-xs bg-gray-100 px-2 py-1 rounded">{drift.code}</code>
+                                </td>
+                                <td className="py-3 px-4 text-center">
+                                  <span className="font-medium">{drift.recentPercentage}%</span>
+                                  <span className="text-xs text-gray-400 ml-1">({drift.recentCount})</span>
+                                </td>
+                                <td className="py-3 px-4 text-center">
+                                  <span className="font-medium">{drift.baselinePercentage}%</span>
+                                  <span className="text-xs text-gray-400 ml-1">({drift.baselineCount})</span>
+                                </td>
+                                <td className="py-3 px-4 text-center">
+                                  <span className={`font-bold ${
+                                    drift.direction === 'up' ? 'text-red-600' : 
+                                    drift.direction === 'down' ? 'text-green-600' : 'text-gray-500'
+                                  }`}>
+                                    {drift.direction === 'up' ? '+' : ''}{drift.relativeChange}%
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    {getDirectionIcon(drift.direction)}
+                                    {drift.isSignificant && (
+                                      <Badge className={drift.direction === 'up' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}>
+                                        Significativo
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <Activity className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                        <p>No hay suficientes datos para detectar cambios</p>
+                        <p className="text-sm mt-1">Sube más documentos para habilitar el análisis de drift</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center py-12 text-gray-500">
+                    <Activity className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                    <h3 className="text-lg font-medium text-gray-700 mb-2">Drift Detector</h3>
+                    <p className="mb-4">Detecta cambios en los criterios de evaluación de USCIS</p>
+                    <p className="text-sm">Compara la distribución de issues entre dos períodos para identificar tendencias emergentes.</p>
+                    <Button className="mt-4" onClick={fetchDriftData}>
+                      <Activity className="h-4 w-4 mr-2" /> Iniciar Análisis
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   )
