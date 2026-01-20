@@ -161,6 +161,121 @@ export default function TrendsClient() {
     }
   }
 
+  const fetchCohortData = async () => {
+    try {
+      setCohortLoading(true)
+      const years = ['2024', '2025', '2026']
+      let allCohorts = []
+      
+      for (const y of years) {
+        const response = await fetch(`/api/trends/cohorts?groupBy=quarter&year=${y}`)
+        const result = await response.json()
+        if (result.cohorts) {
+          allCohorts = [...allCohorts, ...result.cohorts]
+        }
+      }
+      
+      allCohorts.sort((a, b) => a.key.localeCompare(b.key))
+      const relevantCohorts = allCohorts.filter(c => c.stats?.total > 0 || c.key.startsWith('2026') || c.key.startsWith('2025'))
+      
+      setCohortData({ cohorts: relevantCohorts })
+
+      // Auto-seleccionar períodos con datos
+      const withData = relevantCohorts.filter(c => c.stats?.total > 0)
+      if (withData.length >= 2) {
+        setPeriodA(withData[withData.length - 2].key)
+        setPeriodB(withData[withData.length - 1].key)
+      } else if (withData.length === 1) {
+        const idx = relevantCohorts.findIndex(c => c.key === withData[0].key)
+        if (idx > 0) {
+          setPeriodA(relevantCohorts[idx - 1].key)
+          setPeriodB(withData[0].key)
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching cohort:', err)
+    } finally {
+      setCohortLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (periodA && periodB && cohortData) {
+      calculateCohortComparison()
+    }
+  }, [periodA, periodB, cohortData])
+
+  const calculateCohortComparison = () => {
+    if (!cohortData?.cohorts) return
+
+    const cohortA = cohortData.cohorts.find(c => c.key === periodA)
+    const cohortB = cohortData.cohorts.find(c => c.key === periodB)
+
+    if (!cohortA || !cohortB) return
+
+    const issueCodesA = {}
+    const issueCodesB = {}
+
+    cohortA.issues?.forEach(i => {
+      const code = i.taxonomy_code || 'UNKNOWN'
+      issueCodesA[code] = (issueCodesA[code] || 0) + 1
+    })
+
+    cohortB.issues?.forEach(i => {
+      const code = i.taxonomy_code || 'UNKNOWN'
+      issueCodesB[code] = (issueCodesB[code] || 0) + 1
+    })
+
+    const emerging = []
+    const declining = []
+    const allCodes = new Set([...Object.keys(issueCodesA), ...Object.keys(issueCodesB)])
+
+    allCodes.forEach(code => {
+      const countA = issueCodesA[code] || 0
+      const countB = issueCodesB[code] || 0
+      const diff = countB - countA
+
+      const item = { code, countA, countB, diff }
+
+      if (countA === 0 && countB > 0) {
+        emerging.push({ ...item, isNew: true })
+      } else if (diff > 0) {
+        emerging.push(item)
+      } else if (diff < 0) {
+        declining.push(item)
+      }
+    })
+
+    emerging.sort((a, b) => b.diff - a.diff)
+    declining.sort((a, b) => a.diff - b.diff)
+
+    // Cambios por prong
+    const prongChanges = {}
+    const prongs = ['P1', 'P2', 'P3']
+    prongs.forEach(p => {
+      const countA = cohortA.stats?.byProng?.[p] || 0
+      const countB = cohortB.stats?.byProng?.[p] || 0
+      prongChanges[p] = { countA, countB, diff: countB - countA }
+    })
+
+    setCohortComparison({
+      periodA: cohortA,
+      periodB: cohortB,
+      totalA: cohortA.stats?.total || 0,
+      totalB: cohortB.stats?.total || 0,
+      totalDiff: (cohortB.stats?.total || 0) - (cohortA.stats?.total || 0),
+      emerging,
+      declining,
+      prongChanges
+    })
+  }
+
+  const formatCohortCode = (code) => {
+    if (!code) return 'N/A'
+    const parts = code.split('.')
+    return parts.length > 2 ? parts.slice(2).join('.') : code
+  }
+
   const getSeverityColor = (severity) => COLORS[severity] || '#6b7280'
   
   const formatMonth = (monthStr) => {
