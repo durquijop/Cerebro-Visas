@@ -326,29 +326,6 @@ export default function TrendsClient() {
                       </Select>
                     </div>
 
-                    {/* Service Center Filter */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">Service Center</Label>
-                      <Select 
-                        value={filters.serviceCenter} 
-                        onValueChange={(v) => setFilters({...filters, serviceCenter: v === 'all' ? '' : v})}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Todos los centros" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todos los centros</SelectItem>
-                          {filterOptions.serviceCenters.map(center => (
-                            <SelectItem key={center} value={center}>{center}</SelectItem>
-                          ))}
-                          <SelectItem value="TSC">Texas Service Center</SelectItem>
-                          <SelectItem value="NSC">Nebraska Service Center</SelectItem>
-                          <SelectItem value="CSC">California Service Center</SelectItem>
-                          <SelectItem value="VSC">Vermont Service Center</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
                     {/* Outcome Type Filter */}
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-gray-700">Tipo de Documento</Label>
