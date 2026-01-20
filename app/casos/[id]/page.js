@@ -127,6 +127,55 @@ export default function CaseDetailPage() {
     }
   }
 
+  const runAudit = async () => {
+    try {
+      setAuditing(true)
+      const response = await fetch('/api/casos/audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caseId: params.id })
+      })
+
+      if (!response.ok) {
+        const errData = await response.json()
+        throw new Error(errData.error || 'Error en la auditoría')
+      }
+
+      const report = await response.json()
+      setAuditReport(report)
+      setActiveTab('audit')
+      toast.success('Auditoría completada')
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setAuditing(false)
+    }
+  }
+
+  const getScoreColor = (score) => {
+    if (score >= 80) return 'text-green-600'
+    if (score >= 60) return 'text-yellow-600'
+    if (score >= 40) return 'text-orange-600'
+    return 'text-red-600'
+  }
+
+  const getScoreBg = (score) => {
+    if (score >= 80) return 'bg-green-100 border-green-300'
+    if (score >= 60) return 'bg-yellow-100 border-yellow-300'
+    if (score >= 40) return 'bg-orange-100 border-orange-300'
+    return 'bg-red-100 border-red-300'
+  }
+
+  const getPriorityColor = (priority) => {
+    const colors = {
+      critical: 'bg-red-100 text-red-800 border-red-300',
+      high: 'bg-orange-100 text-orange-800 border-orange-300',
+      medium: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+      low: 'bg-green-100 text-green-800 border-green-300'
+    }
+    return colors[priority] || colors.medium
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
