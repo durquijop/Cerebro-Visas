@@ -71,7 +71,7 @@ export default function Home() {
           <div className="flex items-center space-x-4">
             {user ? (
               <Button 
-                onClick={() => router.push('/dashboard')}
+                onClick={() => window.location.href = '/dashboard'}
                 className="bg-gold-primary text-navy-primary hover:bg-gold-dark"
               >
                 Ir al Dashboard
@@ -81,13 +81,13 @@ export default function Home() {
               <>
                 <Button 
                   variant="ghost" 
-                  onClick={() => router.push('/auth/login')}
+                  onClick={() => window.location.href = '/auth/login'}
                   className="text-gold-subtle hover:text-gold-primary hover:bg-navy-secondary"
                 >
                   Iniciar Sesión
                 </Button>
                 <Button 
-                  onClick={() => router.push('/auth/signup')}
+                  onClick={() => window.location.href = '/auth/signup'}
                   className="bg-gold-primary text-navy-primary hover:bg-gold-dark"
                 >
                   Registrarse
