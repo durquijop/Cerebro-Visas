@@ -97,7 +97,7 @@ async function getAllIssuesWithMetadata() {
   let allIssues = []
 
   // Obtener de document_issues
-  const { data: dbIssues } = await supabase
+  const { data: dbIssues, error: dbError } = await supabase
     .from('document_issues')
     .select(`
       id,
@@ -107,10 +107,14 @@ async function getAllIssuesWithMetadata() {
       created_at,
       documents:document_id (
         id, name, outcome_type, visa_category, document_date, 
-        service_center, beneficiary_name, industry
+        service_center, beneficiary_name
       )
     `)
     .order('created_at', { ascending: false })
+
+  if (dbError) {
+    console.error('Error fetching document_issues:', dbError)
+  }
 
   if (dbIssues) {
     dbIssues.forEach(issue => {
@@ -120,46 +124,50 @@ async function getAllIssuesWithMetadata() {
         document_name: issue.documents?.name,
         outcome_type: issue.documents?.outcome_type,
         visa_category: issue.documents?.visa_category,
-        industry: issue.documents?.industry || extractIndustryFromName(issue.documents?.beneficiary_name),
+        industry: 'General',
         document_date: issue.documents?.document_date || issue.created_at
       })
     })
   }
 
   // Obtener de case_documents.structured_data
-  const { data: caseDocs } = await supabase
+  const { data: caseDocs, error: caseError } = await supabase
     .from('case_documents')
-    .select(`
-      id, original_name, doc_type, structured_data, created_at,
-      visa_cases:case_id (
-        beneficiary_name, visa_category, industry
-      )
-    `)
+    .select('id, original_name, doc_type, structured_data, created_at, case_id')
     .not('structured_data', 'is', null)
+
+  if (caseError) {
+    console.error('Error fetching case_documents:', caseError)
+  }
 
   if (caseDocs) {
     caseDocs.forEach(doc => {
-      const sd = typeof doc.structured_data === 'string' 
-        ? JSON.parse(doc.structured_data) 
-        : doc.structured_data
+      try {
+        const sd = typeof doc.structured_data === 'string' 
+          ? JSON.parse(doc.structured_data) 
+          : doc.structured_data
 
-      if (sd.issues && Array.isArray(sd.issues)) {
-        sd.issues.forEach(issue => {
-          allIssues.push({
-            ...issue,
-            source: 'case_documents',
-            created_at: doc.created_at,
-            document_name: doc.original_name,
-            outcome_type: sd.document_info?.outcome_type || doc.doc_type,
-            visa_category: sd.document_info?.visa_category || doc.visa_cases?.visa_category,
-            industry: doc.visa_cases?.industry || extractIndustryFromName(doc.visa_cases?.beneficiary_name),
-            document_date: sd.document_info?.document_date || doc.created_at
+        if (sd && sd.issues && Array.isArray(sd.issues)) {
+          sd.issues.forEach(issue => {
+            allIssues.push({
+              ...issue,
+              source: 'case_documents',
+              created_at: doc.created_at,
+              document_name: doc.original_name,
+              outcome_type: sd.document_info?.outcome_type || doc.doc_type,
+              visa_category: sd.document_info?.visa_category,
+              industry: 'General',
+              document_date: sd.document_info?.document_date || doc.created_at
+            })
           })
-        })
+        }
+      } catch (e) {
+        console.error('Error parsing structured_data:', e)
       }
     })
   }
 
+  console.log(`📊 Cohort Analyzer: ${allIssues.length} issues encontrados`)
   return allIssues
 }
 
