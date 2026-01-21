@@ -5,11 +5,13 @@ import { NextResponse } from 'next/server'
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY
 
-// Cliente admin para búsqueda de embeddings (bypass RLS)
-const supabaseAdmin = createAdminClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
+// Función para obtener cliente admin (lazy initialization)
+function getSupabaseAdmin() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  )
+}
 
 /**
  * Clasifica la intención del mensaje para decidir si necesita buscar en documentos
