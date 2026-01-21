@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { processDocument } from '@/lib/document-processor'
 import { generateDocumentEmbeddings } from '@/lib/embeddings'
+import { v4 as uuidv4 } from 'uuid'
 
 // Cliente admin para operaciones de embeddings
 function getSupabaseAdmin() {
@@ -31,6 +32,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No se enviaron archivos' }, { status: 400 })
     }
 
+    console.log(`📦 Bulk upload: Procesando ${files.length} archivos para usuario ${user.id}...`)
+
     const results = []
     const errors = []
 
@@ -51,32 +54,38 @@ export async function POST(request) {
         }
 
         // 3. Subir archivo a storage
-        const fileName = `${Date.now()}_${file.name}`
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const fileId = uuidv4()
+        const fileExt = file.name.split('.').pop().toLowerCase()
+        const storagePath = `bulk/${user.id}/${fileId}.${fileExt}`
+
+        const { error: uploadError } = await supabaseAdmin.storage
           .from('documents')
-          .upload(`uploads/${fileName}`, buffer, {
-            contentType: file.type,
-            upsert: false
+          .upload(storagePath, buffer, {
+            contentType: file.type || 'application/octet-stream',
+            cacheControl: '3600'
           })
 
         if (uploadError) {
-          console.error('Error subiendo archivo:', uploadError)
+          console.error('Storage error:', uploadError)
+          // Continuar aunque falle el storage
         }
 
         // 4. Guardar en base de datos
-        const { data: docRecord, error: dbError } = await supabase
+        const { data: docRecord, error: dbError } = await supabaseAdmin
           .from('documents')
           .insert({
+            id: fileId,
             name: file.name,
             doc_type: docType,
-            file_path: uploadData?.path || null,
-            text_content: textContent,
-            uploaded_by: user.id
+            storage_path: storagePath,
+            text_content: textContent.substring(0, 50000),
+            created_by: user.id
           })
           .select('id, name')
           .single()
 
         if (dbError) {
+          console.error('DB Error:', dbError)
           errors.push({ file: file.name, error: dbError.message })
           continue
         }
@@ -103,6 +112,8 @@ export async function POST(request) {
           embeddingsGenerated,
           success: true
         })
+
+        console.log(`✅ ${file.name}: guardado con ${embeddingsGenerated} embeddings`)
 
       } catch (fileError) {
         console.error(`Error procesando ${file.name}:`, fileError)
