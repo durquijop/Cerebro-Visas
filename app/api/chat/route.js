@@ -158,18 +158,24 @@ async function generateRAGResponse(message, conversationHistory) {
 
   // 2. Buscar documentos similares usando admin client (bypass RLS)
   console.log('🔎 Buscando documentos similares...')
+  console.log('🔑 Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'NOT SET')
+  console.log('🔑 Service Role Key:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'NOT SET')
+  
   const { data: similarDocs, error: searchError } = await supabaseAdmin
     .rpc('search_similar_documents', {
       query_embedding: JSON.stringify(queryEmbedding),
-      match_threshold: 0.3, // Reducido para encontrar más resultados
+      match_threshold: 0.3,
       match_count: 8
     })
 
   if (searchError) {
-    console.error('❌ Error searching documents:', searchError)
+    console.error('❌ Error searching documents:', JSON.stringify(searchError))
   }
   
   console.log('📊 Documentos encontrados:', similarDocs?.length || 0)
+  if (similarDocs && similarDocs.length > 0) {
+    console.log('📄 Primer documento:', similarDocs[0]?.content_chunk?.substring(0, 100))
+  }
 
   // 3. Construir contexto
   let context = ''
