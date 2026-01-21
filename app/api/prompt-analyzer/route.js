@@ -69,7 +69,7 @@ export async function GET(request) {
 }
 
 
-async function analyzePrompt(prompt, documentType) {
+async function analyzePrompt(prompt, documentType, userId, supabase) {
   const supabaseAdmin = getSupabaseAdmin()
   
   // 1. Buscar documentos relevantes (RFEs, NOIDs, Denials)
