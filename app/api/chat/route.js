@@ -276,7 +276,7 @@ export async function POST(request) {
       case 'DOCUMENTS':
         // Búsqueda RAG completa
         console.log('📚 Ejecutando búsqueda en documentos...')
-        const ragResult = await generateRAGResponse(message, conversationHistory, supabase)
+        const ragResult = await generateRAGResponse(message, conversationHistory)
         response = {
           message: ragResult.message,
           sources: ragResult.sources,
@@ -304,7 +304,7 @@ export async function POST(request) {
       default:
         // Por defecto, hacer RAG
         console.log('📚 Intent desconocido, usando RAG...')
-        const defaultResult = await generateRAGResponse(message, conversationHistory, supabase)
+        const defaultResult = await generateRAGResponse(message, conversationHistory)
         response = {
           message: defaultResult.message,
           sources: defaultResult.sources,
