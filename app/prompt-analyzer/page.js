@@ -191,13 +191,18 @@ export default function PromptAnalyzerPage() {
                     Tipo de Documento
                   </label>
                   <Select value={documentType} onValueChange={setDocumentType}>
-                    <SelectTrigger>
-                      <SelectValue />
+                    <SelectTrigger className="h-auto py-2">
+                      <SelectValue>
+                        {DOCUMENT_TYPES.find(t => t.value === documentType)?.label}
+                      </SelectValue>
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-[300px]">
                       {DOCUMENT_TYPES.map(type => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
+                        <SelectItem key={type.value} value={type.value} className="py-2">
+                          <div>
+                            <div className="font-medium">{type.label}</div>
+                            <div className="text-xs text-gray-500">{type.desc}</div>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
