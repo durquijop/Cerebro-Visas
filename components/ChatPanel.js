@@ -287,7 +287,7 @@ export default function ChatPanel({ isExpanded = true, onToggle }) {
                 <div className="bg-navy-primary text-gold-subtle border border-navy-light rounded-lg p-3">
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
-                    <span className="text-sm">Buscando en documentos...</span>
+                    <span className="text-sm">Procesando...</span>
                   </div>
                 </div>
               </div>
