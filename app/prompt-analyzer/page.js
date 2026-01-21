@@ -132,7 +132,8 @@ export default function PromptAnalyzerPage() {
           prompt,
           documentType: DOCUMENT_TYPES.find(d => d.value === documentType)?.label,
           action: 'improve',
-          selectedIssues
+          selectedIssues,
+          historyId
         })
       })
 
@@ -142,7 +143,7 @@ export default function PromptAnalyzerPage() {
 
       setImprovedPrompt(data.result)
       setActiveTab('result')
-      toast.success('Prompt mejorado generado')
+      toast.success('Prompt mejorado generado y guardado')
     } catch (err) {
       toast.error('Error: ' + err.message)
     } finally {
