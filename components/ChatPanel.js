@@ -227,6 +227,17 @@ export default function ChatPanel({ isExpanded = true, onToggle }) {
                 >
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   
+                  {/* Intent indicator */}
+                  {msg.intent && msg.intent !== 'DOCUMENTS' && (
+                    <div className="mt-2 pt-2 border-t border-navy-light">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-navy-secondary text-gold-muted">
+                        {msg.intent === 'CONVERSATION' && '💬 Respuesta de contexto'}
+                        {msg.intent === 'GENERAL' && '📖 Conocimiento general'}
+                        {msg.intent === 'CLARIFICATION' && '❓ Clarificación'}
+                      </span>
+                    </div>
+                  )}
+                  
                   {/* Fuentes */}
                   {msg.sources && msg.sources.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-navy-light">
