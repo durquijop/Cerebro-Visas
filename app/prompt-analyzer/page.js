@@ -73,7 +73,13 @@ export default function PromptAnalyzerPage() {
       if (!res.ok) throw new Error(data.error)
 
       setAnalysis(data.analysis)
-      toast.success(`Análisis completado - ${data.documentsAnalyzed} documentos consultados`)
+      setAnalysisMetadata({
+        documentsAnalyzed: data.documentsAnalyzed,
+        documentsUsed: data.documentsUsed,
+        docTypeCount: data.docTypeCount,
+        taxonomyItemsUsed: data.taxonomyItemsUsed
+      })
+      toast.success(`Análisis completado - ${data.documentsAnalyzed} fragmentos de ${data.documentsUsed?.length || 0} documentos`)
     } catch (err) {
       toast.error('Error: ' + err.message)
     } finally {
