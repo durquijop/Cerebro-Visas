@@ -201,6 +201,8 @@ IMPORTANTE:
       success: true,
       analysis: parsed,
       documentsAnalyzed: relevantDocs?.length || 0,
+      documentsUsed: documentsUsed.slice(0, 10), // Máximo 10 documentos únicos
+      docTypeCount,
       taxonomyItemsUsed: taxonomy?.length || 0
     })
   } catch (parseError) {
@@ -208,7 +210,9 @@ IMPORTANTE:
     return NextResponse.json({
       success: true,
       analysis: { raw: analysisResult },
-      documentsAnalyzed: relevantDocs?.length || 0
+      documentsAnalyzed: relevantDocs?.length || 0,
+      documentsUsed,
+      docTypeCount
     })
   }
 }
