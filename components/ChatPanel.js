@@ -228,7 +228,21 @@ export default function ChatPanel({ isExpanded = true, onToggle }) {
                         : 'bg-navy-primary text-gold-subtle border border-navy-light'
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  {/* Renderizar contenido con markdown para el asistente */}
+                  {msg.role === 'assistant' ? (
+                    <div className="text-sm prose prose-sm prose-invert max-w-none
+                      prose-headings:text-gold-subtle prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-2
+                      prose-p:text-gold-subtle prose-p:my-1.5
+                      prose-strong:text-gold-primary prose-strong:font-semibold
+                      prose-ul:my-2 prose-ul:pl-4 prose-li:text-gold-subtle prose-li:my-0.5
+                      prose-ol:my-2 prose-ol:pl-4
+                      prose-code:text-purple-300 prose-code:bg-navy-secondary prose-code:px-1 prose-code:rounded
+                    ">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  )}
                   
                   {/* Intent indicator - siempre visible */}
                   {msg.intent && (
