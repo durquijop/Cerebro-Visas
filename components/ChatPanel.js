@@ -93,12 +93,14 @@ export default function ChatPanel({ isExpanded = true, onToggle }) {
         throw new Error(data.error || 'Error en el chat')
       }
 
-      // Agregar respuesta del asistente
+      // Agregar respuesta del asistente con intent
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: data.message,
         sources: data.sources,
-        documentsFound: data.documentsFound
+        documentsFound: data.documentsFound,
+        intent: data.intent,
+        intentReason: data.intentReason
       }])
 
     } catch (err) {
