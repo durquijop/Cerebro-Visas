@@ -227,14 +227,28 @@ export default function ChatPanel({ isExpanded = true, onToggle }) {
                 >
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   
-                  {/* Intent indicator */}
-                  {msg.intent && msg.intent !== 'DOCUMENTS' && (
-                    <div className="mt-2 pt-2 border-t border-navy-light">
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-navy-secondary text-gold-muted">
-                        {msg.intent === 'CONVERSATION' && '💬 Respuesta de contexto'}
+                  {/* Intent indicator - siempre visible */}
+                  {msg.intent && (
+                    <div className="mt-2 pt-2 border-t border-navy-light flex items-center gap-2">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${
+                        msg.intent === 'DOCUMENTS' 
+                          ? 'bg-purple-500/20 text-purple-300' 
+                          : msg.intent === 'CONVERSATION'
+                            ? 'bg-blue-500/20 text-blue-300'
+                            : msg.intent === 'GENERAL'
+                              ? 'bg-green-500/20 text-green-300'
+                              : 'bg-yellow-500/20 text-yellow-300'
+                      }`}>
+                        {msg.intent === 'DOCUMENTS' && '📚 Búsqueda en documentos'}
+                        {msg.intent === 'CONVERSATION' && '💬 Contexto de conversación'}
                         {msg.intent === 'GENERAL' && '📖 Conocimiento general'}
                         {msg.intent === 'CLARIFICATION' && '❓ Clarificación'}
                       </span>
+                      {msg.documentsFound > 0 && (
+                        <span className="text-[10px] text-gold-muted">
+                          ({msg.documentsFound} docs encontrados)
+                        </span>
+                      )}
                     </div>
                   )}
                   
