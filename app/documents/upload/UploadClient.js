@@ -8,14 +8,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   Brain, ArrowLeft, Upload, FileText, CheckCircle, 
-  AlertCircle, Loader2, FileUp, X 
+  AlertCircle, Loader2, FileUp, X, Files, Sparkles, Trash2,
+  Database
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
 export default function UploadClient({ userId, cases, userRole }) {
+  // Single file upload state
   const [file, setFile] = useState(null)
   const [docType, setDocType] = useState('RFE')
   const [caseId, setCaseId] = useState('none')
@@ -24,8 +28,19 @@ export default function UploadClient({ userId, cases, userRole }) {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [result, setResult] = useState(null)
   const [dragActive, setDragActive] = useState(false)
+  
+  // Bulk upload state
+  const [bulkFiles, setBulkFiles] = useState([])
+  const [bulkDocType, setBulkDocType] = useState('RFE')
+  const [generateEmbeddings, setGenerateEmbeddings] = useState(true)
+  const [bulkUploading, setBulkUploading] = useState(false)
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 })
+  const [bulkResults, setBulkResults] = useState(null)
+  const [bulkDragActive, setBulkDragActive] = useState(false)
+  
   const router = useRouter()
 
+  // ============ SINGLE FILE UPLOAD ============
   const handleDrag = useCallback((e) => {
     e.preventDefault()
     e.stopPropagation()
@@ -56,7 +71,7 @@ export default function UploadClient({ userId, cases, userRole }) {
       return
     }
 
-    if (selectedFile.size > 20 * 1024 * 1024) { // 20MB limit
+    if (selectedFile.size > 20 * 1024 * 1024) {
       toast.error('El archivo excede el límite de 20MB')
       return
     }
@@ -78,23 +93,27 @@ export default function UploadClient({ userId, cases, userRole }) {
     }
 
     setUploading(true)
-    setUploadProgress(10)
+    setUploadProgress(0)
 
     try {
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('doc_type', docType)
-      formData.append('user_id', userId)
-      formData.append('process_with_ai', processWithAI.toString())
+      formData.append('docType', docType)
+      formData.append('processWithAI', processWithAI.toString())
+      
       if (caseId && caseId !== 'none') {
-        formData.append('case_id', caseId)
+        formData.append('caseId', caseId)
       }
 
       setUploadProgress(30)
 
-      const response = await fetch('/api/documents/upload', {
+      const endpoint = caseId && caseId !== 'none' 
+        ? '/api/casos/documents/upload'
+        : '/api/documents/upload'
+
+      const response = await fetch(endpoint, {
         method: 'POST',
-        body: formData
+        body: formData,
       })
 
       setUploadProgress(70)
@@ -102,24 +121,133 @@ export default function UploadClient({ userId, cases, userRole }) {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Error al subir el archivo')
+        throw new Error(data.error || 'Error al subir archivo')
       }
 
       setUploadProgress(100)
-      setResult(data)
-      toast.success('Documento procesado exitosamente')
+      setResult({
+        success: true,
+        message: 'Documento subido exitosamente',
+        documentId: data.document?.id,
+        textExtracted: data.textExtracted,
+        aiProcessed: data.aiProcessed
+      })
+
+      toast.success('Documento subido exitosamente')
+      setFile(null)
 
     } catch (error) {
+      setResult({
+        success: false,
+        message: error.message
+      })
       toast.error(error.message)
     } finally {
       setUploading(false)
     }
   }
 
-  const resetForm = () => {
-    setFile(null)
-    setResult(null)
-    setUploadProgress(0)
+  // ============ BULK UPLOAD FOR RAG ============
+  const handleBulkDrag = useCallback((e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setBulkDragActive(true)
+    } else if (e.type === 'dragleave') {
+      setBulkDragActive(false)
+    }
+  }, [])
+
+  const handleBulkDrop = useCallback((e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setBulkDragActive(false)
+
+    if (e.dataTransfer.files) {
+      const newFiles = Array.from(e.dataTransfer.files).filter(validateBulkFile)
+      setBulkFiles(prev => [...prev, ...newFiles])
+    }
+  }, [])
+
+  const validateBulkFile = (file) => {
+    const validExtensions = ['.pdf', '.docx', '.txt']
+    const extension = '.' + file.name.split('.').pop().toLowerCase()
+    
+    if (!validExtensions.includes(extension)) {
+      toast.error(`${file.name}: Formato no soportado`)
+      return false
+    }
+
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error(`${file.name}: Excede 20MB`)
+      return false
+    }
+
+    return true
+  }
+
+  const handleBulkFileChange = (e) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files).filter(validateBulkFile)
+      setBulkFiles(prev => [...prev, ...newFiles])
+    }
+  }
+
+  const removeBulkFile = (index) => {
+    setBulkFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const clearBulkFiles = () => {
+    setBulkFiles([])
+    setBulkResults(null)
+  }
+
+  const handleBulkUpload = async () => {
+    if (bulkFiles.length === 0) {
+      toast.error('Agregue al menos un archivo')
+      return
+    }
+
+    setBulkUploading(true)
+    setBulkProgress({ current: 0, total: bulkFiles.length })
+    setBulkResults(null)
+
+    try {
+      const formData = new FormData()
+      bulkFiles.forEach(file => formData.append('files', file))
+      formData.append('docType', bulkDocType)
+      formData.append('generateEmbeddings', generateEmbeddings.toString())
+
+      const response = await fetch('/api/documents/bulk-upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error en carga masiva')
+      }
+
+      setBulkResults(data)
+      
+      const totalEmbeddings = data.results?.reduce((sum, r) => sum + (r.embeddingsGenerated || 0), 0) || 0
+      
+      toast.success(
+        `${data.processed} documentos procesados` + 
+        (generateEmbeddings ? `, ${totalEmbeddings} embeddings generados` : '')
+      )
+
+      if (data.processed > 0) {
+        setBulkFiles([])
+      }
+
+    } catch (error) {
+      toast.error(error.message)
+      setBulkResults({ error: error.message })
+    } finally {
+      setBulkUploading(false)
+    }
   }
 
   return (
@@ -127,389 +255,366 @@ export default function UploadClient({ userId, cases, userRole }) {
       {/* Header */}
       <header className="bg-navy-primary border-b border-navy-light">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <Link href="/" className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3">
             <Brain className="h-8 w-8 text-gold-primary" />
-            <span className="text-xl font-bold text-gold-subtle">Cerebro Visas</span>
+            <span className="text-xl font-bold text-gold-subtle">Subir Documentos</span>
+          </div>
+          <Link href="/dashboard">
+            <Button variant="ghost" className="text-gold-muted hover:text-gold-primary">
+              <ArrowLeft className="h-4 w-4 mr-2" /> Volver
+            </Button>
           </Link>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="container mx-auto px-6 py-8 max-w-4xl">
-        <div className="mb-6">
-          <Link href="/dashboard">
-            <Button variant="ghost" className="mb-4">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Volver al Dashboard
-            </Button>
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <Upload className="mr-3 h-8 w-8 text-blue-600" />
-            Subir Documento
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Carga documentos RFE, NOID o Denial para análisis automático
-          </p>
-        </div>
+        <Tabs defaultValue="single" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="single" className="flex items-center gap-2">
+              <FileUp className="h-4 w-4" />
+              Documento Individual
+            </TabsTrigger>
+            <TabsTrigger value="bulk" className="flex items-center gap-2">
+              <Files className="h-4 w-4" />
+              Carga Masiva (RAG)
+            </TabsTrigger>
+          </TabsList>
 
-        {!result ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Cargar Nuevo Documento</CardTitle>
-              <CardDescription>
-                Formatos soportados: PDF, DOCX, TXT (máximo 20MB)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Drag & Drop Zone */}
-              <div
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                  dragActive 
-                    ? 'border-blue-500 bg-blue-50' 
-                    : file 
-                      ? 'border-green-500 bg-green-50' 
-                      : 'border-gray-300 hover:border-gray-400'
-                }`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-              >
-                {file ? (
-                  <div className="flex items-center justify-center space-x-4">
-                    <FileText className="h-12 w-12 text-green-600" />
-                    <div className="text-left">
-                      <p className="font-medium text-gray-900">{file.name}</p>
-                      <p className="text-sm text-gray-500">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setFile(null)}
-                    >
-                      <X className="h-5 w-5" />
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    <FileUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 mb-2">
-                      Arrastra tu archivo aquí o
-                    </p>
-                    <label className="cursor-pointer">
-                      <span className="text-blue-600 hover:underline">
-                        selecciona un archivo
-                      </span>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept=".pdf,.docx,.txt"
-                        onChange={handleFileChange}
-                      />
-                    </label>
-                  </>
-                )}
-              </div>
-
-              {/* Options */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Tipo de Documento</Label>
-                  <Select value={docType} onValueChange={setDocType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="RFE">RFE (Request for Evidence)</SelectItem>
-                      <SelectItem value="NOID">NOID (Notice of Intent to Deny)</SelectItem>
-                      <SelectItem value="Denial">Denial (Denegación)</SelectItem>
-                      <SelectItem value="Brief">Brief / Cover Letter</SelectItem>
-                      <SelectItem value="Other">Otro</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Asociar a Caso (opcional)</Label>
-                  <Select value={caseId} onValueChange={setCaseId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sin caso asociado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sin caso asociado</SelectItem>
-                      {cases.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* AI Processing Toggle */}
-              <div className="flex items-center justify-between p-4 bg-navy-primary/5 rounded-lg">
-                <div>
-                  <Label className="text-base">Procesar con IA</Label>
-                  <p className="text-sm text-gray-500">
-                    Extraer motivos y taxonomía automáticamente
-                  </p>
-                </div>
-                <Switch
-                  checked={processWithAI}
-                  onCheckedChange={setProcessWithAI}
-                />
-              </div>
-
-              {/* Upload Progress */}
-              {uploading && (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Procesando...</span>
-                    <span>{uploadProgress}%</span>
-                  </div>
-                  <Progress value={uploadProgress} />
-                </div>
-              )}
-
-              {/* Upload Button */}
-              <Button
-                onClick={handleUpload}
-                disabled={!file || uploading}
-                className="w-full bg-blue-600 hover:bg-blue-700"
-                size="lg"
-              >
-                {uploading ? (
-                  <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Procesando...</>
-                ) : (
-                  <><Upload className="mr-2 h-5 w-5" /> Subir y Procesar</>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          /* Results View */
-          <div className="space-y-6">
-            <Card className="border-green-200 bg-green-50">
-              <CardContent className="pt-6">
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="h-8 w-8 text-green-600" />
-                  <div>
-                    <h3 className="font-semibold text-green-900">Documento Procesado</h3>
-                    <p className="text-green-700">{result.document.name}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Text Extraction Result */}
+          {/* ============ TAB: SINGLE FILE ============ */}
+          <TabsContent value="single">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Extracción de Texto</CardTitle>
+                <CardTitle>Subir Documento</CardTitle>
+                <CardDescription>
+                  Sube un documento RFE, NOID o Denial para análisis
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Caracteres extraídos:</span>
-                    <span className="font-medium">{result.extraction.textLength.toLocaleString()}</span>
-                  </div>
-                  {result.extraction.preview && (
-                    <div className="mt-4">
-                      <p className="text-sm text-gray-600 mb-2">Vista previa:</p>
-                      <pre className="text-xs bg-gray-100 p-4 rounded-lg overflow-auto max-h-40">
-                        {result.extraction.preview}
-                      </pre>
+              <CardContent className="space-y-6">
+                {/* Drop Zone */}
+                <div
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                  className={`
+                    border-2 border-dashed rounded-lg p-8 text-center transition-colors
+                    ${dragActive ? 'border-purple-500 bg-purple-50' : 'border-gray-300'}
+                    ${file ? 'bg-green-50 border-green-500' : ''}
+                  `}
+                >
+                  {file ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <FileText className="h-8 w-8 text-green-600" />
+                      <div className="text-left">
+                        <p className="font-medium text-gray-900">{file.name}</p>
+                        <p className="text-sm text-gray-500">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setFile(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
+                  ) : (
+                    <>
+                      <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-2">
+                        Arrastra un archivo o haz clic para seleccionar
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        PDF, DOCX o TXT (máx. 20MB)
+                      </p>
+                      <input
+                        type="file"
+                        accept=".pdf,.docx,.txt"
+                        onChange={handleFileChange}
+                        className="hidden"
+                        id="file-upload"
+                      />
+                      <label htmlFor="file-upload">
+                        <Button variant="outline" className="mt-4" asChild>
+                          <span>Seleccionar Archivo</span>
+                        </Button>
+                      </label>
+                    </>
                   )}
                 </div>
+
+                {/* Options */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Tipo de Documento</Label>
+                    <Select value={docType} onValueChange={setDocType}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="RFE">RFE</SelectItem>
+                        <SelectItem value="NOID">NOID</SelectItem>
+                        <SelectItem value="Denial">Denial</SelectItem>
+                        <SelectItem value="Approval">Approval</SelectItem>
+                        <SelectItem value="Other">Otro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Asociar a Caso (opcional)</Label>
+                    <Select value={caseId} onValueChange={setCaseId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sin caso" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sin caso</SelectItem>
+                        {cases?.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.title || c.beneficiary_name || c.id}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <Label className="text-base">Procesar con IA</Label>
+                    <p className="text-sm text-gray-500">Extraer issues y requests automáticamente</p>
+                  </div>
+                  <Switch checked={processWithAI} onCheckedChange={setProcessWithAI} />
+                </div>
+
+                {/* Upload Button */}
+                <Button
+                  onClick={handleUpload}
+                  disabled={!file || uploading}
+                  className="w-full bg-purple-600 hover:bg-purple-700"
+                  size="lg"
+                >
+                  {uploading ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Subiendo...</>
+                  ) : (
+                    <><Upload className="h-4 w-4 mr-2" /> Subir Documento</>
+                  )}
+                </Button>
+
+                {uploading && (
+                  <Progress value={uploadProgress} className="w-full" />
+                )}
+
+                {/* Result */}
+                {result && (
+                  <div className={`p-4 rounded-lg ${result.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                    <div className="flex items-center gap-2">
+                      {result.success ? (
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-red-600" />
+                      )}
+                      <span className={result.success ? 'text-green-800' : 'text-red-800'}>
+                        {result.message}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
+          </TabsContent>
 
-            {/* AI Analysis Result */}
-            {result.aiAnalysis && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center">
-                    <Brain className="mr-2 h-5 w-5 text-purple-600" />
-                    Análisis Estructurado
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Executive Summary */}
-                  {result.aiAnalysis.summary?.executive_summary && (
-                    <div className="p-4 bg-purple-50 rounded-lg">
-                      <h4 className="font-medium text-purple-900 mb-2">Resumen Ejecutivo</h4>
-                      <p className="text-purple-800">{result.aiAnalysis.summary.executive_summary}</p>
-                      {result.aiAnalysis.summary.overall_severity && (
-                        <span className={`inline-block mt-2 px-2 py-1 rounded text-xs font-medium ${
-                          result.aiAnalysis.summary.overall_severity === 'critical' ? 'bg-red-200 text-red-800' :
-                          result.aiAnalysis.summary.overall_severity === 'high' ? 'bg-orange-200 text-orange-800' :
-                          result.aiAnalysis.summary.overall_severity === 'medium' ? 'bg-yellow-200 text-yellow-800' :
-                          'bg-green-200 text-green-800'
-                        }`}>
-                          Severidad: {result.aiAnalysis.summary.overall_severity}
-                        </span>
-                      )}
+          {/* ============ TAB: BULK UPLOAD ============ */}
+          <TabsContent value="bulk">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="h-5 w-5 text-purple-600" />
+                  Carga Masiva para RAG
+                </CardTitle>
+                <CardDescription>
+                  Sube múltiples documentos RFE/NOID/Denial para alimentar el sistema de búsqueda inteligente
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Drop Zone */}
+                <div
+                  onDragEnter={handleBulkDrag}
+                  onDragLeave={handleBulkDrag}
+                  onDragOver={handleBulkDrag}
+                  onDrop={handleBulkDrop}
+                  className={`
+                    border-2 border-dashed rounded-lg p-8 text-center transition-colors
+                    ${bulkDragActive ? 'border-purple-500 bg-purple-50' : 'border-gray-300'}
+                  `}
+                >
+                  <Files className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">
+                    Arrastra múltiples archivos o haz clic para seleccionar
+                  </p>
+                  <p className="text-sm text-gray-400 mb-4">
+                    PDF, DOCX o TXT (máx. 20MB cada uno)
+                  </p>
+                  <input
+                    type="file"
+                    accept=".pdf,.docx,.txt"
+                    onChange={handleBulkFileChange}
+                    className="hidden"
+                    id="bulk-file-upload"
+                    multiple
+                  />
+                  <label htmlFor="bulk-file-upload">
+                    <Button variant="outline" asChild>
+                      <span>Seleccionar Archivos</span>
+                    </Button>
+                  </label>
+                </div>
+
+                {/* Files List */}
+                {bulkFiles.length > 0 && (
+                  <div className="border rounded-lg divide-y">
+                    <div className="p-3 bg-gray-50 flex items-center justify-between">
+                      <span className="font-medium text-gray-700">
+                        {bulkFiles.length} archivo(s) seleccionado(s)
+                      </span>
+                      <Button variant="ghost" size="sm" onClick={clearBulkFiles}>
+                        <Trash2 className="h-4 w-4 mr-1" /> Limpiar
+                      </Button>
                     </div>
-                  )}
+                    <div className="max-h-[200px] overflow-y-auto">
+                      {bulkFiles.map((f, idx) => (
+                        <div key={idx} className="p-3 flex items-center justify-between hover:bg-gray-50">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm text-gray-700 truncate max-w-[300px]">{f.name}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {(f.size / 1024 / 1024).toFixed(1)} MB
+                            </Badge>
+                          </div>
+                          <Button variant="ghost" size="icon" onClick={() => removeBulkFile(idx)}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                  {/* Prongs Affected */}
-                  {result.aiAnalysis.summary?.prongs_affected && (
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm text-gray-600">Prongs afectados:</span>
-                      <div className="flex gap-2">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          result.aiAnalysis.summary.prongs_affected.P1 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                        }`}>
-                          P1 {result.aiAnalysis.summary.prongs_affected.P1 ? '⚠️' : '✓'}
-                        </span>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          result.aiAnalysis.summary.prongs_affected.P2 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                        }`}>
-                          P2 {result.aiAnalysis.summary.prongs_affected.P2 ? '⚠️' : '✓'}
-                        </span>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          result.aiAnalysis.summary.prongs_affected.P3 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                        }`}>
-                          P3 {result.aiAnalysis.summary.prongs_affected.P3 ? '⚠️' : '✓'}
-                        </span>
+                {/* Options */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Tipo de Documentos</Label>
+                    <Select value={bulkDocType} onValueChange={setBulkDocType}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="RFE">RFE</SelectItem>
+                        <SelectItem value="NOID">NOID</SelectItem>
+                        <SelectItem value="Denial">Denial</SelectItem>
+                        <SelectItem value="Mixed">Mixto</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg border border-purple-200">
+                  <div>
+                    <Label className="text-base flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-purple-600" />
+                      Generar Embeddings para RAG
+                    </Label>
+                    <p className="text-sm text-purple-700">
+                      Permite buscar en estos documentos desde el Chat
+                    </p>
+                  </div>
+                  <Switch 
+                    checked={generateEmbeddings} 
+                    onCheckedChange={setGenerateEmbeddings}
+                    className="data-[state=checked]:bg-purple-600"
+                  />
+                </div>
+
+                {/* Upload Button */}
+                <Button
+                  onClick={handleBulkUpload}
+                  disabled={bulkFiles.length === 0 || bulkUploading}
+                  className="w-full bg-purple-600 hover:bg-purple-700"
+                  size="lg"
+                >
+                  {bulkUploading ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Procesando documentos...</>
+                  ) : (
+                    <><Upload className="h-4 w-4 mr-2" /> Subir {bulkFiles.length} Documento(s)</>
+                  )}
+                </Button>
+
+                {/* Results */}
+                {bulkResults && (
+                  <div className="space-y-3">
+                    {bulkResults.error ? (
+                      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-center gap-2 text-red-800">
+                          <AlertCircle className="h-5 w-5" />
+                          {bulkResults.error}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <>
+                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center gap-2 text-green-800 mb-2">
+                            <CheckCircle className="h-5 w-5" />
+                            <span className="font-medium">
+                              {bulkResults.processed} documento(s) procesado(s)
+                            </span>
+                          </div>
+                          {bulkResults.failed > 0 && (
+                            <p className="text-sm text-orange-700">
+                              {bulkResults.failed} archivo(s) con errores
+                            </p>
+                          )}
+                        </div>
 
-                  {/* Document Info */}
-                  {result.aiAnalysis.document_info && (
-                    <div className="grid grid-cols-2 gap-4 text-sm p-4 bg-gray-50 rounded-lg">
-                      {result.aiAnalysis.document_info.outcome_type && (
-                        <div>
-                          <span className="text-gray-600">Tipo:</span>
-                          <span className="ml-2 font-medium">{result.aiAnalysis.document_info.outcome_type}</span>
-                        </div>
-                      )}
-                      {result.aiAnalysis.document_info.visa_category && (
-                        <div>
-                          <span className="text-gray-600">Visa:</span>
-                          <span className="ml-2 font-medium">{result.aiAnalysis.document_info.visa_category}</span>
-                        </div>
-                      )}
-                      {result.aiAnalysis.document_info.receipt_number && (
-                        <div>
-                          <span className="text-gray-600">Receipt #:</span>
-                          <span className="ml-2 font-medium">{result.aiAnalysis.document_info.receipt_number}</span>
-                        </div>
-                      )}
-                      {result.aiAnalysis.document_info.service_center && (
-                        <div>
-                          <span className="text-gray-600">Service Center:</span>
-                          <span className="ml-2 font-medium">{result.aiAnalysis.document_info.service_center}</span>
-                        </div>
-                      )}
-                      {result.aiAnalysis.document_info.beneficiary_name && (
-                        <div className="col-span-2">
-                          <span className="text-gray-600">Beneficiario:</span>
-                          <span className="ml-2 font-medium">{result.aiAnalysis.document_info.beneficiary_name}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Issues Found */}
-                  {result.aiAnalysis.issues && result.aiAnalysis.issues.length > 0 && (
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-3">
-                        Issues Identificados ({result.aiAnalysis.issues.length})
-                      </h4>
-                      <div className="space-y-2 max-h-60 overflow-auto">
-                        {result.aiAnalysis.issues.map((issue, idx) => (
-                          <div
-                            key={idx}
-                            className={`p-3 rounded-lg border ${
-                              issue.severity === 'critical' ? 'bg-red-50 border-red-200' :
-                              issue.severity === 'high' ? 'bg-orange-50 border-orange-200' :
-                              issue.severity === 'medium' ? 'bg-yellow-50 border-yellow-200' :
-                              'bg-gray-50 border-gray-200'
-                            }`}
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <code className="text-xs bg-white px-2 py-0.5 rounded border">
-                                    {issue.taxonomy_code}
-                                  </code>
-                                  {issue.prong_affected && (
-                                    <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">
-                                      {issue.prong_affected}
-                                    </span>
+                        {bulkResults.results && bulkResults.results.length > 0 && (
+                          <div className="border rounded-lg divide-y">
+                            {bulkResults.results.map((r, idx) => (
+                              <div key={idx} className="p-3 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <CheckCircle className="h-4 w-4 text-green-600" />
+                                  <span className="text-sm">{r.file}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline">{r.textLength} chars</Badge>
+                                  {r.embeddingsGenerated > 0 && (
+                                    <Badge className="bg-purple-100 text-purple-700">
+                                      {r.embeddingsGenerated} embeddings
+                                    </Badge>
                                   )}
                                 </div>
-                                {issue.officer_reasoning && (
-                                  <p className="mt-1 text-sm text-gray-700">{issue.officer_reasoning}</p>
-                                )}
                               </div>
-                              <span className={`text-xs px-2 py-1 rounded-full ${
-                                issue.severity === 'critical' ? 'bg-red-200 text-red-800' :
-                                issue.severity === 'high' ? 'bg-orange-200 text-orange-800' :
-                                issue.severity === 'medium' ? 'bg-yellow-200 text-yellow-800' :
-                                'bg-gray-200 text-gray-800'
-                              }`}>
-                                {issue.severity}
-                              </span>
-                            </div>
-                            {issue.extracted_quote && (
-                              <blockquote className="mt-2 text-xs text-gray-600 italic border-l-2 border-gray-300 pl-2">
-                                "{issue.extracted_quote.substring(0, 200)}{issue.extracted_quote.length > 200 ? '...' : ''}"
-                              </blockquote>
-                            )}
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                        )}
 
-                  {/* Requests */}
-                  {result.aiAnalysis.requests && result.aiAnalysis.requests.length > 0 && (
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-3">
-                        Evidencia Solicitada ({result.aiAnalysis.requests.length})
-                      </h4>
-                      <ul className="space-y-2">
-                        {result.aiAnalysis.requests.map((req, idx) => (
-                          <li key={idx} className="flex items-start space-x-2 text-sm p-2 bg-blue-50 rounded">
-                            <span className={`shrink-0 px-2 py-0.5 rounded text-xs ${
-                              req.priority === 'required' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-                            }`}>
-                              {req.prong_mapping || 'General'}
-                            </span>
-                            <span className="text-gray-700">{req.request_text}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Actions */}
-            <div className="flex space-x-4">
-              <Button onClick={resetForm} variant="outline" className="flex-1">
-                Subir Otro Documento
-              </Button>
-              {result.document?.id && (
-                <Button 
-                  onClick={() => router.push(`/documents/${result.document.id}`)} 
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                >
-                  Ver Documento
-                </Button>
-              )}
-              <Button onClick={() => router.push('/documents')} variant="outline" className="flex-1">
-                Ver Todos
-              </Button>
-            </div>
-          </div>
-        )}
+                        {bulkResults.errors && bulkResults.errors.length > 0 && (
+                          <div className="border border-red-200 rounded-lg divide-y">
+                            {bulkResults.errors.map((e, idx) => (
+                              <div key={idx} className="p-3 flex items-center gap-2 text-red-700">
+                                <AlertCircle className="h-4 w-4" />
+                                <span className="text-sm">{e.file}: {e.error}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   )
