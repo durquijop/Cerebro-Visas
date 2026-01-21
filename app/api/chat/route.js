@@ -158,10 +158,9 @@ async function generateRAGResponse(message, conversationHistory) {
   const queryEmbedding = await generateEmbedding(message)
   console.log('✅ Embedding generado, dimensiones:', queryEmbedding.length)
 
-  // 2. Buscar documentos similares usando admin client (bypass RLS)
+  // 2. Crear cliente admin y buscar documentos similares
   console.log('🔎 Buscando documentos similares...')
-  console.log('🔑 Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'NOT SET')
-  console.log('🔑 Service Role Key:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'NOT SET')
+  const supabaseAdmin = getSupabaseAdmin()
   
   const { data: similarDocs, error: searchError } = await supabaseAdmin
     .rpc('search_similar_documents', {
