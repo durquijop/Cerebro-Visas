@@ -228,16 +228,48 @@ export default function PromptAnalyzerPage() {
                       key={item.id} 
                       className="p-3 bg-white rounded-lg border border-purple-200 cursor-pointer hover:border-purple-400 transition-colors"
                       onClick={() => {
+                        // Cargar prompt original
                         setPrompt(item.original_prompt)
+                        
+                        // Cargar análisis si existe
+                        if (item.analysis_issues || item.analysis_score) {
+                          setAnalysis({
+                            overallScore: item.analysis_score,
+                            summary: item.analysis_summary,
+                            issues: item.analysis_issues || [],
+                            strengths: item.analysis_strengths || []
+                          })
+                          setAnalysisMetadata({
+                            documentsUsed: item.documents_used || [],
+                            documentsAnalyzed: item.documents_used?.length || 0,
+                            docTypeCount: {},
+                            taxonomyItemsUsed: 0
+                          })
+                          setHistoryId(item.id)
+                        }
+                        
+                        // Cargar prompt mejorado si existe
                         if (item.improved_prompt) {
                           setImprovedPrompt({
                             improvedPrompt: item.improved_prompt,
                             changesExplained: item.changes_explained,
                             additionalTips: item.additional_tips
                           })
+                          setActiveTab('result')
+                        } else {
+                          setImprovedPrompt(null)
+                          setActiveTab('analyze')
                         }
+                        
+                        // Cargar issues seleccionados si existen
+                        if (item.selected_issues) {
+                          setSelectedIssues(item.selected_issues)
+                        } else {
+                          setSelectedIssues([])
+                        }
+                        
                         setShowHistory(false)
-                        toast.success('Prompt cargado desde historial')
+                        toast.success('Prompt y análisis cargados desde historial')
                       }}
                     >
                       <div className="flex items-center justify-between mb-1">
