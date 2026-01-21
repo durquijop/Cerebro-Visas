@@ -19,12 +19,20 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 
 const DOCUMENT_TYPES = [
-  { value: 'petition_letter', label: 'Carta de Petición EB-2 NIW' },
-  { value: 'rfe_response', label: 'Respuesta a RFE' },
-  { value: 'noid_response', label: 'Respuesta a NOID' },
-  { value: 'support_letter', label: 'Carta de Recomendación' },
-  { value: 'personal_statement', label: 'Declaración Personal' },
-  { value: 'evidence_summary', label: 'Resumen de Evidencia' },
+  { value: 'propuesta_eb2_niw', label: 'Propuestas EB-2 NIW', desc: 'Documentos profesionales alineados con USCIS' },
+  { value: 'patentes_uspto', label: 'Patentes USPTO', desc: 'Aplicaciones provisionales completas' },
+  { value: 'libros_completos', label: 'Libros Completos', desc: 'Libros con capítulos estructurados' },
+  { value: 'estudios_econometricos', label: 'Estudios Econométricos', desc: 'Análisis riguroso con 16 secciones' },
+  { value: 'white_paper', label: 'White Paper Técnico', desc: 'Documentos técnicos de 16 secciones profesionales' },
+  { value: 'cartas_recomendacion', label: 'Cartas de Recomendación', desc: 'Cartas profesionales para visas EB-2 NIW y O-1' },
+  { value: 'casos_estudio', label: 'Casos de Estudio Empresariales', desc: 'Análisis estilo Harvard Business School' },
+  { value: 'reporte_impacto', label: 'Reporte de Impacto Social', desc: 'Policy papers con impacto social' },
+  { value: 'cartas_expertos', label: 'Cartas de Expertos', desc: 'Cartas profesionales de expertos para visas' },
+  { value: 'cartas_autopeticion', label: 'Cartas de Autopetición', desc: 'Cover Letters EB-2 NIW I-140' },
+  { value: 'rfe_response', label: 'Respuesta a RFE', desc: 'Respuesta a Request for Evidence' },
+  { value: 'noid_response', label: 'Respuesta a NOID', desc: 'Respuesta a Notice of Intent to Deny' },
+  { value: 'personal_statement', label: 'Declaración Personal', desc: 'Statement personal del beneficiario' },
+  { value: 'evidence_summary', label: 'Resumen de Evidencia', desc: 'Summary de evidencia para petición' },
 ]
 
 export default function PromptAnalyzerPage() {
