@@ -10,7 +10,7 @@ import ChatPanel from '@/components/ChatPanel'
 import { 
   Brain, LogOut, Users, FileText, TrendingUp, Upload, 
   FolderOpen, Settings, BarChart3, Shield, ChevronRight, Loader2,
-  Tag, Briefcase, MessageSquare
+  Tag, Briefcase, MessageSquare, X, PanelRightOpen, PanelRightClose
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -21,14 +21,29 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({ casesCount: 0, documentsCount: 0 })
   const [loading, setLoading] = useState(true)
   const [loggingOut, setLoggingOut] = useState(false)
-  const [chatOpen, setChatOpen] = useState(true)
+  const [chatOpen, setChatOpen] = useState(false) // Inicia cerrado en móvil
+  const [isMobile, setIsMobile] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  // Detectar tamaño de pantalla
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024)
+      // Auto-abrir chat en desktop
+      if (window.innerWidth >= 1024) {
+        setChatOpen(true)
+      }
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Obtener usuario actual
         const { data: { user }, error: userError } = await supabase.auth.getUser()
         
         if (userError || !user) {
@@ -38,7 +53,6 @@ export default function DashboardPage() {
 
         setUser(user)
 
-        // Obtener perfil
         const { data: profileData } = await supabase
           .from('profiles')
           .select('full_name, role')
@@ -47,7 +61,6 @@ export default function DashboardPage() {
 
         setProfile(profileData || { full_name: user.email, role: 'analyst' })
 
-        // Obtener estadísticas
         const [casesResult, docsResult] = await Promise.all([
           supabase.from('cases').select('*', { count: 'exact', head: true }),
           supabase.from('documents').select('*', { count: 'exact', head: true })
@@ -91,53 +104,73 @@ export default function DashboardPage() {
   }
 
   const menuItems = [
-    // Admin only
     ...(profile?.role === 'admin' ? [
       { href: '/admin/users', icon: Users, label: 'Gestionar Usuarios', desc: 'Administrar roles y permisos' },
     ] : []),
-    // Admin & Attorney
     ...(profile?.role === 'admin' || profile?.role === 'attorney' ? [
       { href: '/trends', icon: TrendingUp, label: 'Tendencias', desc: 'Dashboard de análisis' },
       { href: '/auditor', icon: Shield, label: 'Auditor de Expediente', desc: 'Evaluar fortalezas y debilidades' },
     ] : []),
-    // Admin, Attorney & Drafter
     ...(profile?.role !== 'analyst' ? [
       { href: '/documents/upload', icon: Upload, label: 'Subir Documento', desc: 'Cargar RFE/NOID/Denial' },
     ] : []),
-    // All users
     { href: '/casos', icon: Briefcase, label: 'Casos', desc: 'Gestionar casos de visa' },
     { href: '/documents', icon: FileText, label: 'Documentos', desc: 'Ver documentos cargados' },
     { href: '/admin/taxonomy', icon: Tag, label: 'Taxonomía', desc: 'Gestionar códigos de issues' },
   ]
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
       {/* Main Content - Panel izquierdo */}
-      <div className={`transition-all duration-300 overflow-auto ${chatOpen ? 'w-1/2' : 'w-full'}`}>
-        <div className="min-h-screen bg-gray-50">
+      <div className={`
+        transition-all duration-300 overflow-auto flex-1
+        ${chatOpen && !isMobile ? 'lg:w-[60%] xl:w-[55%]' : 'w-full'}
+      `}>
+        <div className="min-h-screen">
           {/* Header */}
-          <header className="bg-navy-primary border-b border-navy-light sticky top-0 z-10">
-            <div className="px-6 py-4 flex justify-between items-center">
-              <Link href="/" className="flex items-center space-x-3">
-                <Brain className="h-8 w-8 text-gold-primary" />
-                <span className="text-xl font-bold text-gold-subtle">Cerebro Visas</span>
+          <header className="bg-navy-primary border-b border-navy-light sticky top-0 z-20">
+            <div className="px-4 md:px-6 py-3 md:py-4 flex justify-between items-center">
+              <Link href="/" className="flex items-center space-x-2 md:space-x-3">
+                <Brain className="h-7 w-7 md:h-8 md:w-8 text-gold-primary" />
+                <span className="text-lg md:text-xl font-bold text-gold-subtle hidden sm:inline">Cerebro Visas</span>
               </Link>
-              <div className="flex items-center space-x-4">
+              
+              <div className="flex items-center space-x-2 md:space-x-4">
+                {/* Chat Toggle Button */}
                 <Button
                   variant="ghost"
-                  size="icon"
+                  size="sm"
                   onClick={() => setChatOpen(!chatOpen)}
-                  className="text-gold-muted hover:text-gold-primary hover:bg-navy-secondary"
-                  title={chatOpen ? 'Cerrar chat' : 'Abrir chat'}
+                  className={`
+                    flex items-center gap-2 
+                    ${chatOpen ? 'bg-purple-600/20 text-purple-300' : 'text-gold-muted hover:text-gold-primary'}
+                    hover:bg-navy-secondary
+                  `}
                 >
-                  <MessageSquare className="h-5 w-5" />
+                  {chatOpen ? (
+                    <>
+                      <PanelRightClose className="h-4 w-4" />
+                      <span className="hidden md:inline text-sm">Cerrar Chat</span>
+                    </>
+                  ) : (
+                    <>
+                      <MessageSquare className="h-4 w-4" />
+                      <span className="hidden md:inline text-sm">Abrir Chat</span>
+                    </>
+                  )}
                 </Button>
-                <div className="text-right">
-                  <p className="text-gold-subtle font-medium">{profile?.full_name || user?.email}</p>
+
+                {/* User Info */}
+                <div className="text-right hidden sm:block">
+                  <p className="text-gold-subtle font-medium text-sm md:text-base truncate max-w-[150px]">
+                    {profile?.full_name || user?.email}
+                  </p>
                   <span className={`text-xs px-2 py-0.5 rounded-full border ${getRoleBadgeColor(profile?.role)}`}>
                     {profile?.role?.toUpperCase() || 'USUARIO'}
                   </span>
                 </div>
+
+                {/* Logout */}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -152,84 +185,90 @@ export default function DashboardPage() {
           </header>
 
           {/* Main Content */}
-          <main className="px-6 py-8">
+          <main className="p-4 md:p-6 lg:p-8">
             {/* Welcome Section */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900">
+            <div className="mb-6 md:mb-8">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
                 ¡Bienvenido, {profile?.full_name?.split(' ')[0] || 'Usuario'}!
               </h1>
-              <p className="text-gray-600 mt-1">
-                Panel de control de Cerebro Visas - Sistema de Análisis EB-2 NIW
+              <p className="text-gray-600 mt-1 text-sm md:text-base">
+                Panel de control - Sistema de análisis inteligente para casos EB-2 NIW
               </p>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-6 md:mb-8">
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Total Casos</CardTitle>
-                  <FolderOpen className="h-5 w-5 text-blue-600" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
+                  <CardTitle className="text-xs md:text-sm font-medium text-gray-600">Total Casos</CardTitle>
+                  <FolderOpen className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-gray-900">{stats.casesCount}</div>
-                  <p className="text-xs text-gray-500">Casos registrados</p>
+                <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+                  <div className="text-2xl md:text-3xl font-bold text-gray-900">{stats.casesCount}</div>
+                  <p className="text-[10px] md:text-xs text-gray-500">Casos registrados</p>
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Documentos</CardTitle>
-                  <FileText className="h-5 w-5 text-green-600" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
+                  <CardTitle className="text-xs md:text-sm font-medium text-gray-600">Documentos</CardTitle>
+                  <FileText className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-gray-900">{stats.documentsCount}</div>
-                  <p className="text-xs text-gray-500">Archivos procesados</p>
+                <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+                  <div className="text-2xl md:text-3xl font-bold text-gray-900">{stats.documentsCount}</div>
+                  <p className="text-[10px] md:text-xs text-gray-500">RFEs/NOIDs</p>
                 </CardContent>
               </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Tu Rol</CardTitle>
-                  <Shield className="h-5 w-5 text-purple-600" />
+              <Card className="col-span-2 lg:col-span-1">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
+                  <CardTitle className="text-xs md:text-sm font-medium text-gray-600">Tu Rol</CardTitle>
+                  <Shield className="h-4 w-4 md:h-5 md:w-5 text-purple-600" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-gray-900 capitalize">{profile?.role || 'Analyst'}</div>
-                  <p className="text-xs text-gray-500">Nivel de acceso</p>
+                <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+                  <div className="text-xl md:text-2xl font-bold text-gray-900 capitalize">{profile?.role || 'Analyst'}</div>
+                  <p className="text-[10px] md:text-xs text-gray-500">Nivel de acceso</p>
                 </CardContent>
               </Card>
             </div>
 
             {/* Quick Actions */}
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Acciones Rápidas</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-3 md:mb-4">Acciones Rápidas</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
               {menuItems.map((item, index) => (
                 <Link key={index} href={item.href}>
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-                    <CardContent className="flex items-center p-6">
-                      <div className="p-3 rounded-lg bg-navy-primary mr-4">
-                        <item.icon className="h-6 w-6 text-gold-primary" />
+                  <Card className="hover:shadow-lg transition-all cursor-pointer h-full hover:border-purple-300">
+                    <CardContent className="flex items-center p-4 md:p-5">
+                      <div className="p-2 md:p-3 rounded-lg bg-navy-primary mr-3 md:mr-4 flex-shrink-0">
+                        <item.icon className="h-5 w-5 md:h-6 md:w-6 text-gold-primary" />
                       </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">{item.label}</h3>
-                        <p className="text-sm text-gray-500">{item.desc}</p>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 text-sm md:text-base">{item.label}</h3>
+                        <p className="text-xs md:text-sm text-gray-500 truncate">{item.desc}</p>
                       </div>
-                      <ChevronRight className="h-5 w-5 text-gray-400" />
+                      <ChevronRight className="h-4 w-4 md:h-5 md:w-5 text-gray-400 flex-shrink-0" />
                     </CardContent>
                   </Card>
                 </Link>
               ))}
             </div>
 
-            {/* Chat Tip */}
+            {/* Chat Tip - solo cuando chat está cerrado */}
             {!chatOpen && (
-              <Card className="mt-8 bg-purple-50 border-purple-200">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <MessageSquare className="h-10 w-10 text-purple-600" />
+              <Card className="mt-6 md:mt-8 bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200">
+                <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="p-3 bg-purple-100 rounded-full">
+                    <MessageSquare className="h-8 w-8 text-purple-600" />
+                  </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-purple-900">Chat RAG Disponible</h3>
                     <p className="text-sm text-purple-700">
-                      Haz clic en el ícono de chat en el header para abrir el asistente inteligente.
+                      Pregunta sobre tus casos y documentos usando inteligencia artificial.
                     </p>
                   </div>
-                  <Button onClick={() => setChatOpen(true)} className="bg-purple-600 hover:bg-purple-700">
+                  <Button 
+                    onClick={() => setChatOpen(true)} 
+                    className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
                     Abrir Chat
                   </Button>
                 </CardContent>
@@ -239,11 +278,41 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Chat Panel - Panel derecho 50% */}
+      {/* Chat Panel - Desktop: panel lateral / Mobile: overlay */}
       {chatOpen && (
-        <div className="w-1/2 h-full">
-          <ChatPanel isExpanded={true} onToggle={() => setChatOpen(false)} />
-        </div>
+        <>
+          {/* Overlay para móvil */}
+          {isMobile && (
+            <div 
+              className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+              onClick={() => setChatOpen(false)}
+            />
+          )}
+          
+          {/* Panel del Chat */}
+          <div className={`
+            ${isMobile 
+              ? 'fixed right-0 top-0 bottom-0 w-full max-w-md z-40' 
+              : 'lg:w-[40%] xl:w-[45%] h-full'
+            }
+            transition-all duration-300
+          `}>
+            <ChatPanel 
+              isExpanded={true} 
+              onToggle={() => setChatOpen(false)} 
+            />
+          </div>
+        </>
+      )}
+
+      {/* Botón flotante para móvil cuando el chat está cerrado */}
+      {!chatOpen && isMobile && (
+        <Button
+          onClick={() => setChatOpen(true)}
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-purple-600 hover:bg-purple-700 shadow-lg z-30"
+        >
+          <MessageSquare className="h-6 w-6" />
+        </Button>
       )}
     </div>
   )
