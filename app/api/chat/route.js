@@ -150,15 +150,15 @@ Responde en español.`
 /**
  * Busca en documentos y genera respuesta con RAG
  */
-async function generateRAGResponse(message, conversationHistory, supabase) {
+async function generateRAGResponse(message, conversationHistory) {
   // 1. Generar embedding de la pregunta
   console.log('🔍 RAG: Generando embedding para búsqueda...')
   const queryEmbedding = await generateEmbedding(message)
   console.log('✅ Embedding generado, dimensiones:', queryEmbedding.length)
 
-  // 2. Buscar documentos similares
+  // 2. Buscar documentos similares usando admin client (bypass RLS)
   console.log('🔎 Buscando documentos similares...')
-  const { data: similarDocs, error: searchError } = await supabase
+  const { data: similarDocs, error: searchError } = await supabaseAdmin
     .rpc('search_similar_documents', {
       query_embedding: JSON.stringify(queryEmbedding),
       match_threshold: 0.3, // Reducido para encontrar más resultados
