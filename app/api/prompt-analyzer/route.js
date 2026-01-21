@@ -25,12 +25,13 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const { prompt, documentType, action } = await request.json()
+    // Leer el body UNA sola vez
+    const body = await request.json()
+    const { prompt, documentType, action, selectedIssues } = body
 
     if (action === 'analyze') {
       return await analyzePrompt(prompt, documentType)
     } else if (action === 'improve') {
-      const { selectedIssues } = await request.json()
       return await improvePrompt(prompt, documentType, selectedIssues)
     }
 
