@@ -182,15 +182,95 @@ export default function PromptAnalyzerPage() {
             <Brain className="h-8 w-8 text-gold-primary" />
             <span className="text-xl font-bold text-gold-subtle">Analizador de Prompts</span>
           </div>
-          <Link href="/dashboard">
-            <Button variant="ghost" className="text-gold-muted hover:text-gold-primary">
-              <ArrowLeft className="h-4 w-4 mr-2" /> Volver
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              className="text-gold-muted hover:text-gold-primary"
+              onClick={() => { setShowHistory(!showHistory); if (!showHistory) loadHistory(); }}
+            >
+              <Clock className="h-4 w-4 mr-2" /> Historial
             </Button>
-          </Link>
+            <Link href="/dashboard">
+              <Button variant="ghost" className="text-gold-muted hover:text-gold-primary">
+                <ArrowLeft className="h-4 w-4 mr-2" /> Volver
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 
       <main className="container mx-auto px-6 py-8 max-w-6xl">
+        {/* Historial Panel */}
+        {showHistory && (
+          <Card className="mb-6 border-purple-200 bg-purple-50">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-purple-900 flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Historial de Optimizaciones
+                </CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setShowHistory(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingHistory ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+                </div>
+              ) : history.length === 0 ? (
+                <p className="text-sm text-purple-700 text-center py-4">No hay historial aún</p>
+              ) : (
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {history.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className="p-3 bg-white rounded-lg border border-purple-200 cursor-pointer hover:border-purple-400 transition-colors"
+                      onClick={() => {
+                        setPrompt(item.original_prompt)
+                        if (item.improved_prompt) {
+                          setImprovedPrompt({
+                            improvedPrompt: item.improved_prompt,
+                            changesExplained: item.changes_explained,
+                            additionalTips: item.additional_tips
+                          })
+                        }
+                        setShowHistory(false)
+                        toast.success('Prompt cargado desde historial')
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-gray-900">
+                          {item.document_type || 'Sin tipo'}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {item.analysis_score && (
+                            <Badge className="bg-purple-100 text-purple-700">
+                              {item.analysis_score}/10
+                            </Badge>
+                          )}
+                          {item.improved_prompt && (
+                            <Badge className="bg-green-100 text-green-700">
+                              Mejorado
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 truncate">
+                        {item.original_prompt?.substring(0, 100)}...
+                      </p>
+                      <p className="text-[10px] text-gray-400 mt-1">
+                        {new Date(item.created_at).toLocaleString('es-ES')}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Intro */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Optimizador de Prompts</h1>
