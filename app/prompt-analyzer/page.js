@@ -40,6 +40,7 @@ export default function PromptAnalyzerPage() {
   const [documentType, setDocumentType] = useState('propuesta_eb2_niw')
   const [analyzing, setAnalyzing] = useState(false)
   const [analysis, setAnalysis] = useState(null)
+  const [analysisMetadata, setAnalysisMetadata] = useState(null)
   const [selectedIssues, setSelectedIssues] = useState([])
   const [improving, setImproving] = useState(false)
   const [improvedPrompt, setImprovedPrompt] = useState(null)
