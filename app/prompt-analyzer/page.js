@@ -41,10 +41,27 @@ export default function PromptAnalyzerPage() {
   const [analyzing, setAnalyzing] = useState(false)
   const [analysis, setAnalysis] = useState(null)
   const [analysisMetadata, setAnalysisMetadata] = useState(null)
+  const [historyId, setHistoryId] = useState(null)
   const [selectedIssues, setSelectedIssues] = useState([])
   const [improving, setImproving] = useState(false)
   const [improvedPrompt, setImprovedPrompt] = useState(null)
   const [activeTab, setActiveTab] = useState('analyze')
+  const [history, setHistory] = useState([])
+  const [showHistory, setShowHistory] = useState(false)
+  const [loadingHistory, setLoadingHistory] = useState(false)
+
+  const loadHistory = async () => {
+    setLoadingHistory(true)
+    try {
+      const res = await fetch('/api/prompt-analyzer')
+      const data = await res.json()
+      if (data.history) setHistory(data.history)
+    } catch (err) {
+      console.error('Error loading history:', err)
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
 
   const analyzePrompt = async () => {
     if (!prompt.trim()) {
@@ -56,6 +73,7 @@ export default function PromptAnalyzerPage() {
     setAnalysis(null)
     setSelectedIssues([])
     setImprovedPrompt(null)
+    setHistoryId(null)
 
     try {
       const res = await fetch('/api/prompt-analyzer', {
@@ -73,6 +91,7 @@ export default function PromptAnalyzerPage() {
       if (!res.ok) throw new Error(data.error)
 
       setAnalysis(data.analysis)
+      setHistoryId(data.historyId)
       setAnalysisMetadata({
         documentsAnalyzed: data.documentsAnalyzed,
         documentsUsed: data.documentsUsed,
