@@ -109,7 +109,7 @@ export default function DashboardPage() {
     ] : []),
     ...(profile?.role === 'admin' || profile?.role === 'attorney' ? [
       { href: '/trends', icon: TrendingUp, label: 'Tendencias', desc: 'Dashboard de análisis' },
-      { href: '/auditor', icon: Shield, label: 'Auditor de Expediente', desc: 'Evaluar fortalezas y debilidades' },
+      { href: '/prompt-analyzer', icon: Sparkles, label: 'Analizador de Prompts', desc: 'Optimiza tus prompts con IA' },
     ] : []),
     ...(profile?.role !== 'analyst' ? [
       { href: '/documents/upload', icon: Upload, label: 'Subir Documento', desc: 'Cargar RFE/NOID/Denial' },
