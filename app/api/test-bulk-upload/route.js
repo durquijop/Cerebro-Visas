@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { processDocument } from '@/lib/document-processor'
 import { generateDocumentEmbeddings } from '@/lib/embeddings'
+import { v4 as uuidv4 } from 'uuid'
 
 // Este es un endpoint de PRUEBA - eliminar en producción
 // Usa service role para bypass auth
@@ -51,13 +52,32 @@ export async function POST(request) {
 
         console.log(`✅ Texto extraído: ${textContent.length} caracteres`)
 
-        // 3. Guardar en base de datos (sin storage para test)
+        // 3. Subir al storage
+        const fileId = uuidv4()
+        const fileExt = file.name.split('.').pop().toLowerCase()
+        const storagePath = `bulk/${fileId}.${fileExt}`
+        
+        const { error: storageError } = await supabaseAdmin.storage
+          .from('documents')
+          .upload(storagePath, buffer, {
+            contentType: file.type || 'application/octet-stream',
+            cacheControl: '3600'
+          })
+        
+        if (storageError) {
+          console.error('Storage error:', storageError)
+          // Continuar sin storage - algunos entornos pueden no tener storage configurado
+        }
+
+        // 4. Guardar en base de datos
         const { data: docRecord, error: dbError } = await supabaseAdmin
           .from('documents')
           .insert({
+            id: fileId,
             name: file.name,
             doc_type: docType,
-            text_content: textContent
+            storage_path: storagePath,
+            text_content: textContent.substring(0, 50000)
           })
           .select('id, name')
           .single()
@@ -72,7 +92,7 @@ export async function POST(request) {
 
         let embeddingsGenerated = 0
 
-        // 4. Generar embeddings si se solicitó
+        // 5. Generar embeddings si se solicitó
         if (generateEmbeddings && docRecord) {
           console.log(`🧠 Generando embeddings para: ${file.name}`)
           const embResult = await generateDocumentEmbeddings(
