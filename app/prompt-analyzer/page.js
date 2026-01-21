@@ -290,6 +290,75 @@ export default function PromptAnalyzerPage() {
                 </TabsList>
 
                 <TabsContent value="analyze" className="space-y-4 mt-4">
+                  {/* Documents Used Info */}
+                  {analysisMetadata && (
+                    <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                      <CardContent className="pt-4 pb-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <FileText className="h-5 w-5 text-blue-600" />
+                          <span className="font-medium text-blue-900">
+                            Análisis basado en {analysisMetadata.documentsAnalyzed} fragmentos de {analysisMetadata.documentsUsed?.length || 0} documentos
+                          </span>
+                        </div>
+                        
+                        {/* Conteo por tipo */}
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {analysisMetadata.docTypeCount?.RFE > 0 && (
+                            <Badge className="bg-red-100 text-red-700 border-red-200">
+                              {analysisMetadata.docTypeCount.RFE} RFE
+                            </Badge>
+                          )}
+                          {analysisMetadata.docTypeCount?.NOID > 0 && (
+                            <Badge className="bg-orange-100 text-orange-700 border-orange-200">
+                              {analysisMetadata.docTypeCount.NOID} NOID
+                            </Badge>
+                          )}
+                          {analysisMetadata.docTypeCount?.Denial > 0 && (
+                            <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+                              {analysisMetadata.docTypeCount.Denial} Denial
+                            </Badge>
+                          )}
+                          {analysisMetadata.docTypeCount?.Otro > 0 && (
+                            <Badge className="bg-gray-100 text-gray-700 border-gray-200">
+                              {analysisMetadata.docTypeCount.Otro} Otros
+                            </Badge>
+                          )}
+                          {analysisMetadata.taxonomyItemsUsed > 0 && (
+                            <Badge className="bg-green-100 text-green-700 border-green-200">
+                              {analysisMetadata.taxonomyItemsUsed} códigos de taxonomía
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Lista de documentos */}
+                        {analysisMetadata.documentsUsed && analysisMetadata.documentsUsed.length > 0 && (
+                          <details className="text-sm">
+                            <summary className="cursor-pointer text-blue-700 hover:text-blue-800 font-medium">
+                              Ver documentos consultados
+                            </summary>
+                            <div className="mt-2 space-y-1 pl-2 border-l-2 border-blue-200">
+                              {analysisMetadata.documentsUsed.map((doc, idx) => (
+                                <div key={idx} className="flex items-center justify-between text-xs py-1">
+                                  <span className="text-gray-700 truncate flex-1 mr-2">
+                                    {doc.name}
+                                  </span>
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    <Badge variant="outline" className="text-[10px]">
+                                      {doc.type}
+                                    </Badge>
+                                    <span className="text-blue-600 font-medium">
+                                      {doc.similarity}%
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
                   {/* Score */}
                   <Card>
                     <CardContent className="pt-6">
