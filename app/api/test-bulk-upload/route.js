@@ -57,9 +57,7 @@ export async function POST(request) {
           .insert({
             name: file.name,
             doc_type: docType,
-            file_path: null,
-            text_content: textContent,
-            uploaded_by: null // Test - sin usuario
+            text_content: textContent
           })
           .select('id, name')
           .single()
