@@ -10,7 +10,7 @@ import ChatPanel from '@/components/ChatPanel'
 import { 
   Brain, LogOut, Users, FileText, TrendingUp, Upload, 
   FolderOpen, Settings, BarChart3, Shield, ChevronRight, Loader2,
-  Tag, Briefcase, MessageSquare, X, PanelRightOpen, PanelRightClose
+  Tag, Briefcase, MessageSquare, X, PanelRightOpen, PanelRightClose, Sparkles
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
