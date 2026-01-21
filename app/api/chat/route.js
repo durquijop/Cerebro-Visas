@@ -147,18 +147,22 @@ async function generateRAGResponse(message, conversationHistory, supabase) {
   // 1. Generar embedding de la pregunta
   console.log('🔍 RAG: Generando embedding para búsqueda...')
   const queryEmbedding = await generateEmbedding(message)
+  console.log('✅ Embedding generado, dimensiones:', queryEmbedding.length)
 
   // 2. Buscar documentos similares
+  console.log('🔎 Buscando documentos similares...')
   const { data: similarDocs, error: searchError } = await supabase
     .rpc('search_similar_documents', {
       query_embedding: JSON.stringify(queryEmbedding),
-      match_threshold: 0.5,
-      match_count: 6
+      match_threshold: 0.3, // Reducido para encontrar más resultados
+      match_count: 8
     })
 
   if (searchError) {
-    console.error('Error searching documents:', searchError)
+    console.error('❌ Error searching documents:', searchError)
   }
+  
+  console.log('📊 Documentos encontrados:', similarDocs?.length || 0)
 
   // 3. Construir contexto
   let context = ''
