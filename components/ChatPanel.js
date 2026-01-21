@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
+import ReactMarkdown from 'react-markdown'
 import { 
   Brain, Send, Loader2, FileText, MessageSquare, 
   Sparkles, X, Minimize2, Maximize2, RefreshCw,
