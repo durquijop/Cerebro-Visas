@@ -13,7 +13,7 @@ import ReactMarkdown from 'react-markdown'
 import { 
   Brain, ArrowLeft, Sparkles, AlertTriangle, CheckCircle, 
   XCircle, Loader2, Copy, RefreshCw, Lightbulb, Target,
-  FileText, ChevronRight, Zap, Shield, TrendingUp
+  FileText, ChevronRight, Zap, Shield, TrendingUp, Clock, X
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
