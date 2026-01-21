@@ -37,7 +37,7 @@ const DOCUMENT_TYPES = [
 
 export default function PromptAnalyzerPage() {
   const [prompt, setPrompt] = useState('')
-  const [documentType, setDocumentType] = useState('petition_letter')
+  const [documentType, setDocumentType] = useState('propuesta_eb2_niw')
   const [analyzing, setAnalyzing] = useState(false)
   const [analysis, setAnalysis] = useState(null)
   const [selectedIssues, setSelectedIssues] = useState([])
