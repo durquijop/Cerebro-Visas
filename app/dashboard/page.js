@@ -6,10 +6,11 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DashboardSkeleton } from '@/components/ui/skeleton-loaders'
+import ChatPanel from '@/components/ChatPanel'
 import { 
   Brain, LogOut, Users, FileText, TrendingUp, Upload, 
   FolderOpen, Settings, BarChart3, Shield, ChevronRight, Loader2,
-  Tag, Briefcase
+  Tag, Briefcase, MessageSquare
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -20,6 +21,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({ casesCount: 0, documentsCount: 0 })
   const [loading, setLoading] = useState(true)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [chatOpen, setChatOpen] = useState(true)
   const router = useRouter()
   const supabase = createClient()
 
