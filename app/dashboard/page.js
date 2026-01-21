@@ -111,101 +111,140 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-navy-primary border-b border-navy-light">
-        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <Link href="/" className="flex items-center space-x-3">
-            <Brain className="h-8 w-8 text-gold-primary" />
-            <span className="text-xl font-bold text-gold-subtle">Cerebro Visas</span>
-          </Link>
-          <div className="flex items-center space-x-4">
-            <div className="text-right">
-              <p className="text-gold-subtle font-medium">{profile?.full_name || user?.email}</p>
-              <span className={`text-xs px-2 py-0.5 rounded-full border ${getRoleBadgeColor(profile?.role)}`}>
-                {profile?.role?.toUpperCase() || 'USUARIO'}
-              </span>
+    <div className="flex h-screen overflow-hidden">
+      {/* Main Content - Panel izquierdo */}
+      <div className={`transition-all duration-300 overflow-auto ${chatOpen ? 'w-1/2' : 'w-full'}`}>
+        <div className="min-h-screen bg-gray-50">
+          {/* Header */}
+          <header className="bg-navy-primary border-b border-navy-light sticky top-0 z-10">
+            <div className="px-6 py-4 flex justify-between items-center">
+              <Link href="/" className="flex items-center space-x-3">
+                <Brain className="h-8 w-8 text-gold-primary" />
+                <span className="text-xl font-bold text-gold-subtle">Cerebro Visas</span>
+              </Link>
+              <div className="flex items-center space-x-4">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setChatOpen(!chatOpen)}
+                  className="text-gold-muted hover:text-gold-primary hover:bg-navy-secondary"
+                  title={chatOpen ? 'Cerrar chat' : 'Abrir chat'}
+                >
+                  <MessageSquare className="h-5 w-5" />
+                </Button>
+                <div className="text-right">
+                  <p className="text-gold-subtle font-medium">{profile?.full_name || user?.email}</p>
+                  <span className={`text-xs px-2 py-0.5 rounded-full border ${getRoleBadgeColor(profile?.role)}`}>
+                    {profile?.role?.toUpperCase() || 'USUARIO'}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="text-gold-muted hover:text-gold-primary hover:bg-navy-secondary"
+                >
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleLogout}
-              disabled={loggingOut}
-              className="text-gold-muted hover:text-gold-primary hover:bg-navy-secondary"
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-      </header>
+          </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-6 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            ¡Bienvenido, {profile?.full_name?.split(' ')[0] || 'Usuario'}!
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Panel de control de Cerebro Visas - Sistema de Análisis EB-2 NIW
-          </p>
-        </div>
+          {/* Main Content */}
+          <main className="px-6 py-8">
+            {/* Welcome Section */}
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-900">
+                ¡Bienvenido, {profile?.full_name?.split(' ')[0] || 'Usuario'}!
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Panel de control de Cerebro Visas - Sistema de Análisis EB-2 NIW
+              </p>
+            </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Casos</CardTitle>
-              <FolderOpen className="h-5 w-5 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900">{stats.casesCount}</div>
-              <p className="text-xs text-gray-500">Casos registrados</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Documentos</CardTitle>
-              <FileText className="h-5 w-5 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900">{stats.documentsCount}</div>
-              <p className="text-xs text-gray-500">Archivos procesados</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Tu Rol</CardTitle>
-              <Shield className="h-5 w-5 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900 capitalize">{profile?.role || 'Analyst'}</div>
-              <p className="text-xs text-gray-500">Nivel de acceso</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Acciones Rápidas</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {menuItems.map((item, index) => (
-            <Link key={index} href={item.href}>
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-                <CardContent className="flex items-center p-6">
-                  <div className="p-3 rounded-lg bg-navy-primary mr-4">
-                    <item.icon className="h-6 w-6 text-gold-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{item.label}</h3>
-                    <p className="text-sm text-gray-500">{item.desc}</p>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-gray-400" />
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600">Total Casos</CardTitle>
+                  <FolderOpen className="h-5 w-5 text-blue-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-gray-900">{stats.casesCount}</div>
+                  <p className="text-xs text-gray-500">Casos registrados</p>
                 </CardContent>
               </Card>
-            </Link>
-          ))}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600">Documentos</CardTitle>
+                  <FileText className="h-5 w-5 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-gray-900">{stats.documentsCount}</div>
+                  <p className="text-xs text-gray-500">Archivos procesados</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600">Tu Rol</CardTitle>
+                  <Shield className="h-5 w-5 text-purple-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-gray-900 capitalize">{profile?.role || 'Analyst'}</div>
+                  <p className="text-xs text-gray-500">Nivel de acceso</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Quick Actions */}
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Acciones Rápidas</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {menuItems.map((item, index) => (
+                <Link key={index} href={item.href}>
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+                    <CardContent className="flex items-center p-6">
+                      <div className="p-3 rounded-lg bg-navy-primary mr-4">
+                        <item.icon className="h-6 w-6 text-gold-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900">{item.label}</h3>
+                        <p className="text-sm text-gray-500">{item.desc}</p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-gray-400" />
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+
+            {/* Chat Tip */}
+            {!chatOpen && (
+              <Card className="mt-8 bg-purple-50 border-purple-200">
+                <CardContent className="p-4 flex items-center gap-4">
+                  <MessageSquare className="h-10 w-10 text-purple-600" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-purple-900">Chat RAG Disponible</h3>
+                    <p className="text-sm text-purple-700">
+                      Haz clic en el ícono de chat en el header para abrir el asistente inteligente.
+                    </p>
+                  </div>
+                  <Button onClick={() => setChatOpen(true)} className="bg-purple-600 hover:bg-purple-700">
+                    Abrir Chat
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </main>
         </div>
-      </main>
+      </div>
+
+      {/* Chat Panel - Panel derecho 50% */}
+      {chatOpen && (
+        <div className="w-1/2 h-full">
+          <ChatPanel isExpanded={true} onToggle={() => setChatOpen(false)} />
+        </div>
+      )}
     </div>
   )
 }
