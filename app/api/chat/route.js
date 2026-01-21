@@ -162,11 +162,20 @@ async function generateRAGResponse(message, conversationHistory) {
   console.log('🔎 Buscando documentos similares...')
   const supabaseAdmin = getSupabaseAdmin()
   
+  // Debug: verificar que el cliente funciona
+  const { count: embCount } = await supabaseAdmin
+    .from('document_embeddings')
+    .select('*', { count: 'exact', head: true })
+  console.log('📊 Total embeddings en BD:', embCount)
+  
+  const embeddingStr = JSON.stringify(queryEmbedding)
+  console.log('📏 Embedding string length:', embeddingStr.length)
+  
   const { data: similarDocs, error: searchError } = await supabaseAdmin
     .rpc('search_similar_documents', {
-      query_embedding: JSON.stringify(queryEmbedding),
-      match_threshold: 0.3,
-      match_count: 8
+      query_embedding: embeddingStr,
+      match_threshold: 0.2,
+      match_count: 10
     })
 
   if (searchError) {
@@ -175,7 +184,7 @@ async function generateRAGResponse(message, conversationHistory) {
   
   console.log('📊 Documentos encontrados:', similarDocs?.length || 0)
   if (similarDocs && similarDocs.length > 0) {
-    console.log('📄 Primer documento:', similarDocs[0]?.content_chunk?.substring(0, 100))
+    console.log('📄 Primer documento similarity:', similarDocs[0]?.similarity)
   }
 
   // 3. Construir contexto
