@@ -224,11 +224,33 @@ IMPORTANTE:
   
   try {
     const parsed = JSON.parse(analysisResult)
+    
+    // Guardar en historial
+    const { data: historyRecord, error: historyError } = await supabase
+      .from('prompt_optimization_history')
+      .insert({
+        user_id: userId,
+        original_prompt: prompt,
+        document_type: documentType,
+        analysis_score: parsed.overallScore,
+        analysis_summary: parsed.summary,
+        analysis_issues: parsed.issues,
+        analysis_strengths: parsed.strengths,
+        documents_used: documentsUsed.slice(0, 10)
+      })
+      .select('id')
+      .single()
+
+    if (historyError) {
+      console.error('Error guardando historial:', historyError)
+    }
+
     return NextResponse.json({
       success: true,
+      historyId: historyRecord?.id,
       analysis: parsed,
       documentsAnalyzed: relevantDocs?.length || 0,
-      documentsUsed: documentsUsed.slice(0, 10), // Máximo 10 documentos únicos
+      documentsUsed: documentsUsed.slice(0, 10),
       docTypeCount,
       taxonomyItemsUsed: taxonomy?.length || 0
     })
@@ -244,7 +266,7 @@ IMPORTANTE:
   }
 }
 
-async function improvePrompt(prompt, documentType, selectedIssues) {
+async function improvePrompt(prompt, documentType, selectedIssues, historyId, userId, supabase) {
   if (!selectedIssues || selectedIssues.length === 0) {
     return NextResponse.json({ error: 'No se seleccionaron issues para mejorar' }, { status: 400 })
   }
