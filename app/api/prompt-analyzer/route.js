@@ -27,12 +27,12 @@ export async function POST(request) {
 
     // Leer el body UNA sola vez
     const body = await request.json()
-    const { prompt, documentType, action, selectedIssues } = body
+    const { prompt, documentType, action, selectedIssues, historyId } = body
 
     if (action === 'analyze') {
-      return await analyzePrompt(prompt, documentType)
+      return await analyzePrompt(prompt, documentType, user.id, supabase)
     } else if (action === 'improve') {
-      return await improvePrompt(prompt, documentType, selectedIssues)
+      return await improvePrompt(prompt, documentType, selectedIssues, historyId, user.id, supabase)
     }
 
     return NextResponse.json({ error: 'Acción no válida' }, { status: 400 })
@@ -42,6 +42,32 @@ export async function POST(request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+// GET para obtener historial
+export async function GET(request) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    const { data: history, error } = await supabase
+      .from('prompt_optimization_history')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    if (error) throw error
+
+    return NextResponse.json({ history })
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
+
 
 async function analyzePrompt(prompt, documentType) {
   const supabaseAdmin = getSupabaseAdmin()
