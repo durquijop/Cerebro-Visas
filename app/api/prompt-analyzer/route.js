@@ -337,6 +337,25 @@ Responde SOLO con el JSON, sin texto adicional.`
 
   try {
     const parsed = JSON.parse(result)
+    
+    // Actualizar historial con el prompt mejorado
+    if (historyId) {
+      const { error: updateError } = await supabase
+        .from('prompt_optimization_history')
+        .update({
+          selected_issues: selectedIssues,
+          improved_prompt: parsed.improvedPrompt,
+          changes_explained: parsed.changesExplained,
+          additional_tips: parsed.additionalTips,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', historyId)
+
+      if (updateError) {
+        console.error('Error actualizando historial:', updateError)
+      }
+    }
+
     return NextResponse.json({
       success: true,
       result: parsed
