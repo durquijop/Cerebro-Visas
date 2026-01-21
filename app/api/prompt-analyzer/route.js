@@ -249,16 +249,18 @@ Genera un NUEVO PROMPT MEJORADO que:
 3. Sea claro y estructurado
 4. Incluya placeholders [VARIABLE] donde se necesite información específica del caso
 
+IMPORTANTE: TODO debe estar en ESPAÑOL (incluyendo el prompt mejorado, las explicaciones y los tips).
+
 Devuelve un JSON con esta estructura:
 {
-  "improvedPrompt": "El nuevo prompt mejorado completo",
+  "improvedPrompt": "El nuevo prompt mejorado completo EN ESPAÑOL",
   "changesExplained": [
     {
       "issueAddressed": "Título del issue",
       "changeDescription": "Qué se cambió o agregó para abordarlo"
     }
   ],
-  "additionalTips": ["Tips adicionales para usar el prompt"]
+  "additionalTips": ["Tips adicionales EN ESPAÑOL para usar el prompt"]
 }
 
 Responde SOLO con el JSON, sin texto adicional.`
