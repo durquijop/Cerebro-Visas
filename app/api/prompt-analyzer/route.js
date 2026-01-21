@@ -62,6 +62,40 @@ async function analyzePrompt(prompt, documentType) {
     console.error('Error buscando documentos:', searchError)
   }
 
+  // Procesar documentos para obtener información detallada
+  const documentsUsed = []
+  const docTypeCount = { RFE: 0, NOID: 0, Denial: 0, Otro: 0 }
+  const uniqueDocs = new Set()
+
+  if (relevantDocs && relevantDocs.length > 0) {
+    for (const doc of relevantDocs) {
+      const meta = doc.metadata || {}
+      const docName = meta.original_name || 'Documento sin nombre'
+      const docType = meta.doc_type || 'Otro'
+      
+      // Contar por tipo
+      if (docType.toLowerCase().includes('rfe')) {
+        docTypeCount.RFE++
+      } else if (docType.toLowerCase().includes('noid')) {
+        docTypeCount.NOID++
+      } else if (docType.toLowerCase().includes('denial')) {
+        docTypeCount.Denial++
+      } else {
+        docTypeCount.Otro++
+      }
+
+      // Agregar documento único
+      if (!uniqueDocs.has(docName)) {
+        uniqueDocs.add(docName)
+        documentsUsed.push({
+          name: docName,
+          type: docType,
+          similarity: Math.round(doc.similarity * 100)
+        })
+      }
+    }
+  }
+
   // 2. Obtener issues de la taxonomía
   const { data: taxonomy } = await supabaseAdmin
     .from('taxonomy')
