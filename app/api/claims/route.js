@@ -173,6 +173,86 @@ export async function POST(request) {
       return NextResponse.json({ success: true, evidence: data })
     }
 
+    // Analizar y vincular evidencia automáticamente
+    if (action === 'analyze_evidence') {
+      const { claim_ids } = body
+      
+      // Obtener documentos del caso
+      const { data: caseData } = await supabase
+        .from('visa_cases')
+        .select('*, case_documents(*)')
+        .eq('id', case_id)
+        .single()
+
+      if (!caseData || !caseData.case_documents?.length) {
+        return NextResponse.json({ error: 'No hay documentos en el caso' }, { status: 400 })
+      }
+
+      // Obtener claims a analizar
+      const claimsToAnalyze = claim_ids 
+        ? await supabase.from('claims').select('*').in('id', claim_ids)
+        : await supabase.from('claims').select('*').eq('case_id', case_id)
+      
+      const claims = claimsToAnalyze.data || []
+      
+      if (claims.length === 0) {
+        return NextResponse.json({ error: 'No hay claims para analizar' }, { status: 400 })
+      }
+
+      // Preparar texto de documentos
+      const docsText = caseData.case_documents
+        .filter(d => d.text_content)
+        .map(d => `[${d.doc_type}] ${d.original_name}:\n${d.text_content?.substring(0, 5000)}`)
+        .join('\n\n---\n\n')
+
+      // Preparar claims
+      const claimsText = claims.map((c, i) => 
+        `Claim ${i+1} (${c.prong_mapping}): ${c.claim_text}`
+      ).join('\n')
+
+      // Usar LLM para vincular evidencia
+      const analysisResult = await analyzeEvidenceWithLLM(claimsText, docsText, claims)
+      
+      if (!analysisResult.success) {
+        return NextResponse.json({ error: analysisResult.error }, { status: 500 })
+      }
+
+      // Guardar vínculos de evidencia
+      let savedCount = 0
+      for (const mapping of analysisResult.mappings) {
+        const claim = claims.find(c => c.claim_text.includes(mapping.claim_excerpt))
+        if (!claim) continue
+
+        const doc = caseData.case_documents.find(d => 
+          d.original_name?.toLowerCase().includes(mapping.document_name?.toLowerCase()) ||
+          d.doc_type?.toLowerCase().includes(mapping.document_type?.toLowerCase())
+        )
+
+        const { error } = await supabase
+          .from('claim_evidence')
+          .insert({
+            claim_id: claim.id,
+            case_document_id: doc?.id || null,
+            exhibit_ref: mapping.exhibit_ref || doc?.original_name,
+            evidence_type: mapping.evidence_type,
+            strength_score: mapping.strength_score,
+            rationale: mapping.rationale,
+            gaps_identified: mapping.gaps || []
+          })
+
+        if (!error) {
+          savedCount++
+          await recalculateClaimStrength(supabase, claim.id)
+        }
+      }
+
+      return NextResponse.json({ 
+        success: true, 
+        message: `${savedCount} vínculos de evidencia creados`,
+        mappings_found: analysisResult.mappings.length
+      })
+    }
+
     return NextResponse.json({ error: 'Acción no válida' }, { status: 400 })
 
   } catch (error) {
