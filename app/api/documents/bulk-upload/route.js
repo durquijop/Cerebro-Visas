@@ -101,9 +101,20 @@ export async function POST(request) {
 
         let embeddingsGenerated = 0
 
-        // 5. Generar embeddings si se solicitó - AHORA CON PÁGINAS
-        if (generateEmbeddings && docRecord) {
-          console.log(`🧠 Generando embeddings para: ${file.name}`)
+        // 5. Generar embeddings SOLO para documentos RFE/NOID/Denial
+        // Estos son los documentos que alimentan el RAG para aprender patrones de USCIS
+        const RAG_DOCUMENT_TYPES = ['RFE', 'NOID', 'Denial', 'rfe', 'noid', 'denial', 
+                                     'RFE_Document', 'NOID_Document', 'Denial_Notice',
+                                     'rfe_document', 'noid_document', 'denial_notice']
+        
+        const shouldGenerateEmbeddings = generateEmbeddings && 
+                                          docRecord && 
+                                          RAG_DOCUMENT_TYPES.some(t => 
+                                            docType.toLowerCase().includes(t.toLowerCase())
+                                          )
+
+        if (shouldGenerateEmbeddings) {
+          console.log(`🧠 Generando embeddings para: ${file.name} (tipo: ${docType})`)
           const embResult = await generateDocumentEmbeddings(
             supabaseAdmin,
             { 
@@ -118,6 +129,8 @@ export async function POST(request) {
           if (embResult.success) {
             embeddingsGenerated = embResult.chunks || 0
           }
+        } else if (generateEmbeddings && docRecord) {
+          console.log(`⏭️ Saltando embeddings para: ${file.name} (tipo: ${docType} - no es RFE/NOID/Denial)`)
         }
 
         results.push({
