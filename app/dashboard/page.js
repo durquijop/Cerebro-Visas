@@ -237,13 +237,29 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
               {menuItems.map((item, index) => (
                 <Link key={index} href={item.href}>
-                  <Card className="hover:shadow-lg transition-all cursor-pointer h-full hover:border-purple-300">
+                  <Card className={`
+                    hover:shadow-lg transition-all cursor-pointer h-full 
+                    ${item.highlight 
+                      ? 'hover:border-orange-400 border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50' 
+                      : 'hover:border-purple-300'
+                    }
+                  `}>
                     <CardContent className="flex items-center p-4 md:p-5">
-                      <div className="p-2 md:p-3 rounded-lg bg-navy-primary mr-3 md:mr-4 flex-shrink-0">
-                        <item.icon className="h-5 w-5 md:h-6 md:w-6 text-gold-primary" />
+                      <div className={`
+                        p-2 md:p-3 rounded-lg mr-3 md:mr-4 flex-shrink-0
+                        ${item.highlight ? 'bg-orange-500' : 'bg-navy-primary'}
+                      `}>
+                        <item.icon className={`h-5 w-5 md:h-6 md:w-6 ${item.highlight ? 'text-white' : 'text-gold-primary'}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 text-sm md:text-base">{item.label}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-gray-900 text-sm md:text-base">{item.label}</h3>
+                          {item.highlight && (
+                            <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full font-medium">
+                              NUEVO
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs md:text-sm text-gray-500 truncate">{item.desc}</p>
                       </div>
                       <ChevronRight className="h-4 w-4 md:h-5 md:w-5 text-gray-400 flex-shrink-0" />
