@@ -113,7 +113,7 @@ export async function POST(request) {
           .insert({
             id: fileId,
             name: file.name,
-            doc_type: docType,
+            doc_type: detectedDocType,  // Usar tipo detectado
             storage_path: storagePath,
             text_content: textContent.substring(0, 50000),
             created_by: user.id
