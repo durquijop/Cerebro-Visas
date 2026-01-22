@@ -89,6 +89,33 @@ export default function ClaimGraphPage() {
     }
   }
 
+  const analyzeEvidence = async () => {
+    try {
+      setAnalyzing(true)
+      toast.info('Analizando y vinculando evidencia...')
+      
+      const res = await fetch('/api/claims', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ case_id: caseId, action: 'analyze_evidence' })
+      })
+      
+      const data = await res.json()
+      
+      if (data.success) {
+        toast.success(data.message || 'Evidencia analizada')
+        loadClaims()
+      } else {
+        toast.error(data.error || 'Error analizando evidencia')
+      }
+    } catch (error) {
+      console.error('Error analyzing evidence:', error)
+      toast.error('Error analizando evidencia')
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
   const getRobustnessColor = (score) => {
     if (score >= 80) return 'text-green-600'
     if (score >= 60) return 'text-yellow-600'
