@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { processDocument } from '@/lib/document-processor'
+import { extractText, normalizeText } from '@/lib/document-processor'
 import { generateDocumentEmbeddings } from '@/lib/embeddings'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -45,12 +45,21 @@ export async function POST(request) {
         const bytes = await file.arrayBuffer()
         const buffer = Buffer.from(bytes)
 
-        // 2. Extraer texto
-        const textContent = await processDocument(buffer, file.name)
+        // 2. Extraer texto CON información de páginas
+        const extractResult = await extractText(buffer, file.name)
         
-        if (!textContent || textContent.length < 50) {
-          errors.push({ file: file.name, error: 'No se pudo extraer texto suficiente' })
+        if (!extractResult.success || !extractResult.text || extractResult.text.length < 50) {
+          errors.push({ file: file.name, error: extractResult.error || 'No se pudo extraer texto suficiente' })
           continue
+        }
+
+        const textContent = normalizeText(extractResult.text)
+        const pageTexts = extractResult.pageTexts || null // Textos por página si están disponibles
+        const numPages = extractResult.numPages || 0
+
+        console.log(`   📖 Extraídos ${textContent.length} caracteres, ${numPages} páginas`)
+        if (pageTexts) {
+          console.log(`   📑 ${pageTexts.length} páginas con texto detectadas`)
         }
 
         // 3. Subir archivo a storage
@@ -92,12 +101,18 @@ export async function POST(request) {
 
         let embeddingsGenerated = 0
 
-        // 5. Generar embeddings si se solicitó
+        // 5. Generar embeddings si se solicitó - AHORA CON PÁGINAS
         if (generateEmbeddings && docRecord) {
           console.log(`🧠 Generando embeddings para: ${file.name}`)
           const embResult = await generateDocumentEmbeddings(
             supabaseAdmin,
-            { id: docRecord.id, text_content: textContent, name: file.name, doc_type: docType },
+            { 
+              id: docRecord.id, 
+              text_content: textContent, 
+              page_texts: pageTexts, // Pasar textos de página
+              name: file.name, 
+              doc_type: docType 
+            },
             false // No es de caso
           )
           if (embResult.success) {
@@ -109,11 +124,13 @@ export async function POST(request) {
           file: file.name,
           id: docRecord.id,
           textLength: textContent.length,
+          numPages: numPages,
+          hasPageRefs: !!pageTexts,
           embeddingsGenerated,
           success: true
         })
 
-        console.log(`✅ ${file.name}: guardado con ${embeddingsGenerated} embeddings`)
+        console.log(`✅ ${file.name}: guardado con ${embeddingsGenerated} embeddings ${pageTexts ? '(con refs de página)' : ''}`)
 
       } catch (fileError) {
         console.error(`Error procesando ${file.name}:`, fileError)
