@@ -202,7 +202,7 @@ export default function ClaimGraphPage() {
           <div className="flex items-center gap-3">
             <Button 
               onClick={extractClaims} 
-              disabled={extracting}
+              disabled={extracting || analyzing}
               className="bg-purple-600 hover:bg-purple-700"
             >
               {extracting ? (
@@ -212,6 +212,21 @@ export default function ClaimGraphPage() {
               )}
               {extracting ? 'Extrayendo...' : 'Extraer Claims'}
             </Button>
+            {claimsData?.claims?.length > 0 && (
+              <Button 
+                onClick={analyzeEvidence} 
+                disabled={analyzing || extracting}
+                variant="outline"
+                className="border-green-500 text-green-700 hover:bg-green-50"
+              >
+                {analyzing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Link2 className="h-4 w-4 mr-2" />
+                )}
+                {analyzing ? 'Analizando...' : 'Vincular Evidencia'}
+              </Button>
+            )}
             <Link href={`/casos/${caseId}`}>
               <Button variant="ghost" className="text-gold-muted hover:text-gold-primary">
                 <ArrowLeft className="h-4 w-4 mr-2" /> Volver al Caso
