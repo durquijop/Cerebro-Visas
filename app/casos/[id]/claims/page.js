@@ -23,6 +23,7 @@ export default function ClaimGraphPage() {
   
   const [loading, setLoading] = useState(true)
   const [extracting, setExtracting] = useState(false)
+  const [analyzing, setAnalyzing] = useState(false)
   const [caseData, setCaseData] = useState(null)
   const [claimsData, setClaimsData] = useState(null)
 
