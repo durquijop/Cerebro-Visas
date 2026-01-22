@@ -198,8 +198,19 @@ async function generateRAGResponse(message, conversationHistory) {
       const metadata = doc.metadata || {}
       const docName = metadata.original_name || 'Documento'
       const docType = metadata.doc_type || 'N/A'
+      const pageRef = doc.page_ref || null
       
-      context += `--- DOCUMENTO: ${docName} (${docType}) ---\n`
+      // Construir referencia de ubicación
+      let locationRef = ''
+      if (pageRef) {
+        locationRef = ` - ${pageRef}`
+      } else if (doc.page_start) {
+        locationRef = doc.page_start === doc.page_end 
+          ? ` - Pág. ${doc.page_start}`
+          : ` - Págs. ${doc.page_start}-${doc.page_end}`
+      }
+      
+      context += `--- DOCUMENTO: ${docName} (${docType})${locationRef} ---\n`
       context += `Relevancia: ${(doc.similarity * 100).toFixed(1)}%\n`
       context += `Contenido:\n${doc.content_chunk}\n\n`
       
@@ -208,7 +219,16 @@ async function generateRAGResponse(message, conversationHistory) {
         name: docName,
         type: docType,
         similarity: doc.similarity,
-        isFromCase: !!doc.case_document_id
+        isFromCase: !!doc.case_document_id,
+        pageRef: pageRef,
+        pageStart: doc.page_start,
+        pageEnd: doc.page_end,
+        // Formato de cita legible
+        citation: pageRef 
+          ? `${docName} (${pageRef})`
+          : doc.page_start 
+            ? `${docName} (Pág. ${doc.page_start}${doc.page_end !== doc.page_start ? `-${doc.page_end}` : ''})`
+            : docName
       })
     }
   } else {
