@@ -110,10 +110,11 @@ export default function DashboardPage() {
     ] : []),
     ...(profile?.role === 'admin' || profile?.role === 'attorney' ? [
       { href: '/trends', icon: TrendingUp, label: 'Tendencias', desc: 'Dashboard de análisis' },
+      { href: '/drift-detector', icon: AlertTriangle, label: 'Drift Detector', desc: 'Detectar cambios de criterio', highlight: true },
       { href: '/prompt-analyzer', icon: Sparkles, label: 'Analizador de Prompts', desc: 'Optimiza tus prompts con IA' },
     ] : []),
     ...(profile?.role !== 'analyst' ? [
-      { href: '/documents/upload', icon: Upload, label: 'Subir Documento', desc: 'Cargar RFE/NOID/Denial' },
+      { href: '/documents/upload', icon: Upload, label: 'Subir Documento', desc: 'Individual o carga masiva' },
     ] : []),
     { href: '/casos', icon: Briefcase, label: 'Casos', desc: 'Gestionar casos de visa' },
     { href: '/documents', icon: FileText, label: 'Documentos', desc: 'Ver documentos cargados' },
