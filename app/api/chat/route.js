@@ -245,7 +245,13 @@ IMPORTANTE:
 - Si no encuentras información relevante, indícalo claramente
 - Responde en español
 - Sé conciso pero completo
-- Cita los documentos fuente cuando uses información específica
+- **SIEMPRE cita las fuentes con número de página cuando esté disponible**
+- Usa el formato: "Según [Nombre del documento] (Pág. X)..." o "[Documento, Pág. X]"
+- Si un documento no tiene página, solo menciona el nombre del documento
+
+Ejemplo de cita correcta:
+- "El oficial señala que las cartas son genéricas [RFE_caso_123.pdf, Pág. 3]"
+- "Según el Business Plan (Págs. 5-7), las proyecciones..."
 
 ${context}`
 
