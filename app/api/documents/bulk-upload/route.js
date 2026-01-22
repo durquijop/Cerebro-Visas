@@ -140,6 +140,8 @@ export async function POST(request) {
           numPages: numPages,
           hasPageRefs: !!pageTexts,
           embeddingsGenerated,
+          embeddingsSkipped: generateEmbeddings && !shouldGenerateEmbeddings,
+          docType: docType,
           success: true
         })
 
