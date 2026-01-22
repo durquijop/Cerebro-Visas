@@ -131,18 +131,14 @@ export async function POST(request) {
 
         // 5. Generar embeddings SOLO para documentos RFE/NOID/Denial
         // Estos son los documentos que alimentan el RAG para aprender patrones de USCIS
-        const RAG_DOCUMENT_TYPES = ['RFE', 'NOID', 'Denial', 'rfe', 'noid', 'denial', 
-                                     'RFE_Document', 'NOID_Document', 'Denial_Notice',
-                                     'rfe_document', 'noid_document', 'denial_notice']
+        const RAG_DOCUMENT_TYPES = ['RFE', 'NOID', 'Denial']
         
         const shouldGenerateEmbeddings = generateEmbeddings && 
                                           docRecord && 
-                                          RAG_DOCUMENT_TYPES.some(t => 
-                                            docType.toLowerCase().includes(t.toLowerCase())
-                                          )
+                                          RAG_DOCUMENT_TYPES.includes(detectedDocType)
 
         if (shouldGenerateEmbeddings) {
-          console.log(`🧠 Generando embeddings para: ${file.name} (tipo: ${docType})`)
+          console.log(`🧠 Generando embeddings para: ${file.name} (tipo: ${detectedDocType})`)
           const embResult = await generateDocumentEmbeddings(
             supabaseAdmin,
             { 
@@ -150,7 +146,7 @@ export async function POST(request) {
               text_content: textContent, 
               page_texts: pageTexts, // Pasar textos de página
               name: file.name, 
-              doc_type: docType 
+              doc_type: detectedDocType 
             },
             false // No es de caso
           )
@@ -158,7 +154,7 @@ export async function POST(request) {
             embeddingsGenerated = embResult.chunks || 0
           }
         } else if (generateEmbeddings && docRecord) {
-          console.log(`⏭️ Saltando embeddings para: ${file.name} (tipo: ${docType} - no es RFE/NOID/Denial)`)
+          console.log(`⏭️ Saltando embeddings para: ${file.name} (tipo: ${detectedDocType} - no es RFE/NOID/Denial)`)
         }
 
         results.push({
