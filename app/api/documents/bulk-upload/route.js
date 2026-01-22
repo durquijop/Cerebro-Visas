@@ -37,9 +37,37 @@ export async function POST(request) {
     const results = []
     const errors = []
 
+    // Función para detectar tipo de documento por nombre de archivo
+    const detectDocType = (filename, defaultType) => {
+      const lowerName = filename.toLowerCase()
+      
+      // Detectar RFE
+      if (lowerName.includes('rfe') || lowerName.includes('request for evidence')) {
+        return 'RFE'
+      }
+      // Detectar NOID
+      if (lowerName.includes('noid') || lowerName.includes('notice of intent to deny')) {
+        return 'NOID'
+      }
+      // Detectar Denial
+      if (lowerName.includes('denial') || lowerName.includes('denied') || lowerName.includes('denegacion')) {
+        return 'Denial'
+      }
+      // Detectar Approval
+      if (lowerName.includes('approval') || lowerName.includes('approved') || lowerName.includes('aprobado')) {
+        return 'Approval'
+      }
+      
+      // Usar el tipo por defecto del formulario
+      return defaultType
+    }
+
     for (const file of files) {
       try {
-        console.log(`📄 Procesando: ${file.name}`)
+        // Detectar tipo automáticamente o usar el seleccionado
+        const detectedDocType = detectDocType(file.name, docType)
+        
+        console.log(`📄 Procesando: ${file.name} (tipo detectado: ${detectedDocType})`)
         
         // 1. Leer el archivo
         const bytes = await file.arrayBuffer()
