@@ -350,6 +350,15 @@ export default function CaseDetailPage() {
                     <><ClipboardCheck className="h-4 w-4 mr-1" /> Auditar</>
                   )}
                 </Button>
+                <Link href={`/casos/${params.id}/claims`}>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100"
+                  >
+                    <Shield className="h-4 w-4 mr-1" /> Claim Graph
+                  </Button>
+                </Link>
                 <Link href="/documents/upload">
                   <Button variant="outline" size="sm">
                     <Upload className="h-4 w-4 mr-1" /> Subir Doc
