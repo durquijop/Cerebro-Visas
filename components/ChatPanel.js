@@ -269,7 +269,7 @@ export default function ChatPanel({ isExpanded = true, onToggle }) {
                     </div>
                   )}
                   
-                  {/* Fuentes */}
+                  {/* Fuentes con referencias de página */}
                   {msg.sources && msg.sources.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-navy-light">
                       <p className="text-xs text-gold-muted mb-2 flex items-center gap-1">
@@ -282,9 +282,17 @@ export default function ChatPanel({ isExpanded = true, onToggle }) {
                             key={sIdx}
                             className="text-xs flex items-center gap-2 p-1.5 rounded bg-navy-secondary"
                           >
-                            <FileText className="h-3 w-3 text-gold-muted" />
-                            <span className="truncate flex-1">{source.name}</span>
-                            <Badge className="text-[10px] bg-purple-500/20 text-purple-300">
+                            <FileText className="h-3 w-3 text-gold-muted flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <span className="truncate block">{source.name}</span>
+                              {/* Mostrar referencia de página si existe */}
+                              {(source.pageRef || source.pageStart) && (
+                                <span className="text-[10px] text-purple-300 font-medium">
+                                  📄 {source.pageRef || `Pág. ${source.pageStart}${source.pageEnd !== source.pageStart ? `-${source.pageEnd}` : ''}`}
+                                </span>
+                              )}
+                            </div>
+                            <Badge className="text-[10px] bg-purple-500/20 text-purple-300 flex-shrink-0">
                               {(source.similarity * 100).toFixed(0)}%
                             </Badge>
                           </div>
