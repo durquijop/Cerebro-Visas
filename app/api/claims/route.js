@@ -367,3 +367,84 @@ async function recalculateClaimStrength(supabase, claimId) {
     })
     .eq('id', claimId)
 }
+
+/**
+ * Analiza evidencia y la vincula a claims usando LLM
+ */
+async function analyzeEvidenceWithLLM(claimsText, docsText, claims) {
+  if (!OPENROUTER_API_KEY) {
+    return { success: false, error: 'OPENROUTER_API_KEY no configurada' }
+  }
+
+  const prompt = `Analiza los siguientes CLAIMS de un expediente NIW y los DOCUMENTOS disponibles.
+Tu tarea es identificar qué documentos soportan cada claim y evaluar la fuerza de la evidencia.
+
+CLAIMS A ANALIZAR:
+${claimsText}
+
+DOCUMENTOS DISPONIBLES:
+${docsText.substring(0, 25000)}
+
+Para cada claim, identifica la evidencia que lo soporta. Responde en JSON:
+{
+  "mappings": [
+    {
+      "claim_excerpt": "primeras 50 palabras del claim...",
+      "document_name": "nombre del documento que lo soporta",
+      "document_type": "tipo (letter, publication, patent, business_plan, etc)",
+      "exhibit_ref": "referencia si se menciona (Exhibit A, Tab 3, etc)",
+      "strength_score": 0.0-1.0,
+      "rationale": "Por qué esta evidencia soporta el claim (2-3 oraciones)",
+      "gaps": ["brecha 1", "brecha 2"] 
+    }
+  ]
+}
+
+CRITERIOS DE EVALUACIÓN:
+- 0.8-1.0: Evidencia directa, específica, verificable
+- 0.6-0.8: Evidencia relevante pero general
+- 0.4-0.6: Evidencia indirecta o parcial
+- 0.0-0.4: Evidencia débil o no relacionada
+
+IMPORTANTE:
+- Un claim puede tener múltiples evidencias
+- Identifica GAPS (brechas) donde falta evidencia
+- Sé específico en el rationale`
+
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
+        'X-Title': 'Cerebro Visas - Evidence Analyzer'
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.0-flash-001',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 4000,
+        temperature: 0.1
+      })
+    })
+
+    if (!response.ok) {
+      return { success: false, error: `LLM error: ${response.status}` }
+    }
+
+    const data = await response.json()
+    const content = data.choices?.[0]?.message?.content || ''
+
+    const jsonMatch = content.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      return { success: false, error: 'No se pudo parsear respuesta del LLM' }
+    }
+
+    const parsed = JSON.parse(jsonMatch[0])
+    return { success: true, mappings: parsed.mappings || [] }
+
+  } catch (error) {
+    console.error('Evidence analysis error:', error)
+    return { success: false, error: error.message }
+  }
+}
