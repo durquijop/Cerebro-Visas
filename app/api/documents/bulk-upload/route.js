@@ -165,11 +165,12 @@ export async function POST(request) {
           hasPageRefs: !!pageTexts,
           embeddingsGenerated,
           embeddingsSkipped: generateEmbeddings && !shouldGenerateEmbeddings,
-          docType: docType,
+          docType: detectedDocType,  // Mostrar tipo detectado
+          docTypeDetected: detectedDocType !== docType, // Indicar si fue auto-detectado
           success: true
         })
 
-        console.log(`✅ ${file.name}: guardado con ${embeddingsGenerated} embeddings ${pageTexts ? '(con refs de página)' : ''}`)
+        console.log(`✅ ${file.name}: guardado como ${detectedDocType} con ${embeddingsGenerated} embeddings ${pageTexts ? '(con refs de página)' : ''}`)
 
       } catch (fileError) {
         console.error(`Error procesando ${file.name}:`, fileError)
