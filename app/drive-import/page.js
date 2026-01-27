@@ -475,8 +475,15 @@ export default function ImportPage() {
               <CardContent>
                 {/* Zona de drop/selección */}
                 <div 
-                  className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer mb-4"
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-all cursor-pointer mb-4 ${
+                    isDragging 
+                      ? 'border-blue-500 bg-blue-50 scale-[1.02]' 
+                      : 'border-gray-300 hover:border-blue-400'
+                  }`}
                   onClick={() => fileInputRef.current?.click()}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
                 >
                   <input
                     ref={fileInputRef}
@@ -487,9 +494,9 @@ export default function ImportPage() {
                     className="hidden"
                     disabled={importing}
                   />
-                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-lg font-medium text-gray-700">
-                    Haz clic para seleccionar archivos
+                  <Upload className={`h-12 w-12 mx-auto mb-4 transition-colors ${isDragging ? 'text-blue-500' : 'text-gray-400'}`} />
+                  <p className={`text-lg font-medium ${isDragging ? 'text-blue-700' : 'text-gray-700'}`}>
+                    {isDragging ? '¡Suelta los archivos aquí!' : 'Haz clic para seleccionar archivos'}
                   </p>
                   <p className="text-sm text-gray-500 mt-1">
                     o arrastra y suelta aquí
