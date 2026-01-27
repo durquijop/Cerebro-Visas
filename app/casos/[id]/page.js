@@ -200,6 +200,30 @@ export default function CaseDetailPage() {
     }
   }
 
+  const handleSaveCase = async () => {
+    try {
+      setSaving(true)
+      const response = await fetch(`/api/casos/${params.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm)
+      })
+
+      if (!response.ok) {
+        const errData = await response.json()
+        throw new Error(errData.error || 'Error al guardar')
+      }
+
+      toast.success('Caso actualizado correctamente')
+      setEditModalOpen(false)
+      fetchCase() // Recargar datos
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const getScoreColor = (score) => {
     if (score >= 80) return 'text-green-600'
     if (score >= 60) return 'text-yellow-600'
