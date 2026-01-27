@@ -26,8 +26,8 @@ export async function POST() {
       // Crear el bucket
       const { data, error: createError } = await supabase.storage.createBucket('imports', {
         public: false,
-        fileSizeLimit: 5368709120, // 5GB
-        allowedMimeTypes: ['application/zip', 'application/x-zip-compressed']
+        fileSizeLimit: 2147483648, // 2GB (máximo permitido por Supabase)
+        allowedMimeTypes: ['application/zip', 'application/x-zip-compressed', 'application/octet-stream']
       })
 
       if (createError) {
