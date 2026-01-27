@@ -161,6 +161,7 @@ export async function POST(request) {
         const docId = uuidv4()
 
         // Guardar en case_documents
+        const wordCount = textContent.split(/\s+/).filter(w => w.length > 0).length
         const { error: docError } = await supabase
           .from('case_documents')
           .insert({
@@ -168,10 +169,9 @@ export async function POST(request) {
             case_id: caseId,
             original_name: fileName,
             doc_type: docType,
-            file_size: entry.header.size,
+            file_type: fileName.split('.').pop()?.toLowerCase() || 'pdf',
             text_content: textContent.substring(0, 100000),
-            source: 'zip_upload',
-            source_path: entry.entryName
+            word_count: wordCount
           })
 
         if (docError) {
