@@ -156,6 +156,7 @@ export default function ImportPage() {
   // Cargar jobs al montar y hacer polling
   useEffect(() => {
     loadBackgroundJobs()
+    loadExistingCases()
     
     // Polling cada 5 segundos para actualizar el estado
     const interval = setInterval(() => {
