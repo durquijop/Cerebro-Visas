@@ -66,6 +66,7 @@ function detectDocType(filename) {
 export default function ImportPage() {
   const router = useRouter()
   const fileInputRef = useRef(null)
+  const folderInputRef = useRef(null)
   const zipInputRef = useRef(null)
   
   // Estado común
