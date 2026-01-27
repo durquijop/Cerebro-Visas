@@ -555,6 +555,147 @@ export default function ImportPage() {
             </Card>
           </TabsContent>
 
+          {/* Tab: Archivo ZIP */}
+          <TabsContent value="zip">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileArchive className="h-5 w-5 text-purple-600" />
+                  Importar desde Archivo ZIP
+                </CardTitle>
+                <CardDescription>
+                  Sube un archivo .zip con todos los documentos del expediente
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Zona de selección de ZIP */}
+                {!zipFile ? (
+                  <div 
+                    className="border-2 border-dashed border-purple-300 rounded-lg p-8 text-center hover:border-purple-400 transition-colors cursor-pointer bg-purple-50/50"
+                    onClick={() => zipInputRef.current?.click()}
+                  >
+                    <input
+                      ref={zipInputRef}
+                      type="file"
+                      accept=".zip"
+                      onChange={handleZipSelect}
+                      className="hidden"
+                      disabled={importing || loadingZipPreview}
+                    />
+                    <Archive className="h-12 w-12 text-purple-400 mx-auto mb-4" />
+                    <p className="text-lg font-medium text-purple-700">
+                      Haz clic para seleccionar un archivo ZIP
+                    </p>
+                    <p className="text-sm text-purple-600 mt-1">
+                      El ZIP puede contener carpetas con documentos organizados
+                    </p>
+                    <p className="text-xs text-purple-400 mt-2">
+                      Formatos soportados dentro del ZIP: PDF, Word, TXT
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Info del ZIP seleccionado */}
+                    <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg border border-purple-200">
+                      <div className="flex items-center gap-3">
+                        <FileArchive className="h-8 w-8 text-purple-600" />
+                        <div>
+                          <p className="font-medium text-purple-900">{zipFile.name}</p>
+                          <p className="text-sm text-purple-600">{formatSize(zipFile.size)}</p>
+                        </div>
+                      </div>
+                      {!importing && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setZipFile(null)
+                            setZipPreview(null)
+                          }}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" /> Cambiar
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Preview del contenido */}
+                    {loadingZipPreview ? (
+                      <div className="flex items-center justify-center p-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-purple-600 mr-2" />
+                        <span className="text-purple-700">Analizando contenido del ZIP...</span>
+                      </div>
+                    ) : zipPreview && (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium text-gray-700">
+                            {zipPreview.files?.length || 0} archivos encontrados
+                          </h4>
+                          <Badge variant="outline" className="bg-green-50 text-green-700">
+                            Listo para importar
+                          </Badge>
+                        </div>
+
+                        <ScrollArea className="h-[250px] border rounded-lg p-2">
+                          <div className="space-y-1">
+                            {zipPreview.files?.map((file, idx) => (
+                              <div 
+                                key={idx}
+                                className="flex items-center gap-2 p-2 rounded hover:bg-gray-50"
+                              >
+                                <FileText className="h-4 w-4 text-gray-400" />
+                                <span className="text-sm truncate flex-1">{file.name}</span>
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-xs ${DOC_TYPE_COLORS[file.detectedType] || DOC_TYPE_COLORS['Otro']}`}
+                                >
+                                  {file.detectedType}
+                                </Badge>
+                                <span className="text-xs text-gray-400">{formatSize(file.size)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+
+                        {/* Progreso de importación */}
+                        {importing && (
+                          <div className="space-y-2 p-4 bg-purple-50 rounded-lg">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="font-medium text-purple-700">
+                                {importProgress.currentFile}
+                              </span>
+                            </div>
+                            <Progress value={50} className="h-2" />
+                            <p className="text-xs text-purple-600">Procesando archivos...</p>
+                          </div>
+                        )}
+
+                        {/* Botón de importar */}
+                        <Button 
+                          className="w-full bg-purple-600 hover:bg-purple-700" 
+                          size="lg"
+                          onClick={importFromZip}
+                          disabled={importing || !clientName.trim()}
+                        >
+                          {importing ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Importando desde ZIP...
+                            </>
+                          ) : (
+                            <>
+                              <Archive className="h-4 w-4 mr-2" />
+                              Crear Caso e Importar {zipPreview.files?.length || 0} Archivos
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Tab: Google Drive */}
           <TabsContent value="drive">
             <Card>
