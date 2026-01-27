@@ -89,6 +89,96 @@ export default function ImportPage() {
     toast.success(`${files.length} archivo(s) agregado(s)`)
   }
 
+  // Manejar selección de archivo ZIP
+  const handleZipSelect = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+      toast.error('Por favor selecciona un archivo .zip')
+      return
+    }
+
+    setZipFile(file)
+    setLoadingZipPreview(true)
+    setZipPreview(null)
+
+    try {
+      // Obtener preview del contenido del ZIP
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('action', 'preview')
+
+      const res = await fetch('/api/zip-import', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!res.ok) {
+        throw new Error('Error al leer el ZIP')
+      }
+
+      const data = await res.json()
+      setZipPreview(data)
+      toast.success(`ZIP contiene ${data.files?.length || 0} archivos procesables`)
+    } catch (err) {
+      console.error('Error previewing ZIP:', err)
+      toast.error(err.message)
+      setZipFile(null)
+    } finally {
+      setLoadingZipPreview(false)
+    }
+  }
+
+  // Importar desde ZIP
+  const importFromZip = async () => {
+    if (!clientName.trim()) {
+      toast.error('Ingresa el nombre del cliente')
+      return
+    }
+    
+    if (!zipFile) {
+      toast.error('Selecciona un archivo ZIP')
+      return
+    }
+
+    setImporting(true)
+    setImportProgress({ current: 0, total: zipPreview?.files?.length || 0, currentFile: 'Procesando ZIP...' })
+
+    try {
+      const formData = new FormData()
+      formData.append('file', zipFile)
+      formData.append('client_name', clientName)
+      formData.append('action', 'import')
+      formData.append('generate_embeddings', 'false')
+
+      const res = await fetch('/api/zip-import', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Error importando ZIP')
+      }
+
+      const data = await res.json()
+      
+      setImportResults({
+        success: data.results?.filter(r => r.success).map(r => r.name) || [],
+        failed: data.results?.filter(r => !r.success).map(r => ({ name: r.name, error: r.error })) || [],
+        caseId: data.case_id
+      })
+
+      toast.success(`${data.processed || 0} archivos importados correctamente`)
+    } catch (err) {
+      console.error('Error importing ZIP:', err)
+      toast.error(err.message)
+    } finally {
+      setImporting(false)
+    }
+  }
+
   // Remover archivo de la lista
   const removeFile = (fileId) => {
     setLocalFiles(prev => prev.filter(f => f.id !== fileId))
