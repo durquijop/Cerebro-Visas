@@ -125,7 +125,7 @@ export async function POST(request) {
       caseId,
       caseName: caseData.title || caseData.beneficiary_name || 'Caso sin nombre',
       beneficiary: caseData.beneficiary_name,
-      visaType: caseData.visa_type || 'EB2-NIW',
+      visaType: caseData.visa_category || 'EB2-NIW',
       auditDate: new Date().toISOString(),
       
       summary: {
