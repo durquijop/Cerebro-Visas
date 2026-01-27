@@ -173,25 +173,78 @@ export default function ImportPage() {
     setIsDragging(false)
   }
 
-  const handleDrop = (e) => {
+  // Función recursiva para leer archivos de una carpeta
+  const readDirectory = async (directoryEntry) => {
+    const files = []
+    const reader = directoryEntry.createReader()
+    
+    const readEntries = () => {
+      return new Promise((resolve, reject) => {
+        reader.readEntries(async (entries) => {
+          if (entries.length === 0) {
+            resolve(files)
+          } else {
+            for (const entry of entries) {
+              if (entry.isFile) {
+                const file = await new Promise((res) => entry.file(res))
+                files.push(file)
+              } else if (entry.isDirectory) {
+                const subFiles = await readDirectory(entry)
+                files.push(...subFiles)
+              }
+            }
+            // Continuar leyendo (Chrome limita a 100 entries por llamada)
+            const moreFiles = await readEntries()
+            files.push(...moreFiles)
+            resolve([])
+          }
+        }, reject)
+      })
+    }
+    
+    await readEntries()
+    return files
+  }
+
+  const handleDrop = async (e) => {
     e.preventDefault()
     e.stopPropagation()
     setIsDragging(false)
     
-    const files = Array.from(e.dataTransfer.files)
-    if (files.length > 0) {
-      const validFiles = files.filter(file => {
-        const ext = file.name.toLowerCase()
-        return ext.endsWith('.pdf') || ext.endsWith('.doc') || ext.endsWith('.docx') || 
-               ext.endsWith('.txt') || ext.endsWith('.png') || ext.endsWith('.jpg') || 
-               ext.endsWith('.jpeg') || ext.endsWith('.xlsx') || ext.endsWith('.xls')
-      })
-      
-      if (validFiles.length > 0) {
-        addFiles(validFiles)
-      } else {
-        toast.error('No se encontraron archivos válidos (PDF, Word, Excel, Imágenes)')
+    const items = e.dataTransfer.items
+    const allFiles = []
+    
+    toast.info('Procesando archivos...')
+
+    // Usar webkitGetAsEntry para soportar carpetas
+    if (items && items.length > 0) {
+      const entries = []
+      for (let i = 0; i < items.length; i++) {
+        const entry = items[i].webkitGetAsEntry?.()
+        if (entry) {
+          entries.push(entry)
+        }
       }
+
+      for (const entry of entries) {
+        if (entry.isFile) {
+          const file = await new Promise((resolve) => entry.file(resolve))
+          allFiles.push(file)
+        } else if (entry.isDirectory) {
+          toast.info(`Leyendo carpeta: ${entry.name}...`)
+          const dirFiles = await readDirectory(entry)
+          allFiles.push(...dirFiles)
+        }
+      }
+    } else {
+      // Fallback a files normales
+      allFiles.push(...Array.from(e.dataTransfer.files))
+    }
+
+    if (allFiles.length > 0) {
+      addFiles(allFiles)
+    } else {
+      toast.error('No se encontraron archivos')
     }
   }
 
