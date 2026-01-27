@@ -1022,7 +1022,11 @@ export default function CaseDetailPage() {
                   <div className="text-center text-gray-500">
                     <ClipboardCheck className="h-16 w-16 mx-auto mb-4 opacity-30" />
                     <h3 className="text-lg font-medium text-gray-700 mb-2">Auditoría del Expediente</h3>
-                    <p className="mb-4">Analiza el caso completo contra los 3 prongs del test Dhanasar</p>
+                    <p className="mb-4">
+                      {caseData.visa_category?.toUpperCase().includes('EB1') 
+                        ? 'Analiza el caso contra los 10 criterios de EB-1A'
+                        : 'Analiza el caso completo contra los 3 prongs del test Dhanasar'}
+                    </p>
                     <Button onClick={runAudit} disabled={auditing} className="bg-purple-600 hover:bg-purple-700">
                       {auditing ? (
                         <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analizando...</>
