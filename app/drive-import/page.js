@@ -443,8 +443,8 @@ export default function ImportPage() {
 
   // Importar archivos locales
   const importLocalFiles = async () => {
-    if (!clientName.trim()) {
-      toast.error('Ingresa el nombre del cliente')
+    if (!clientName.trim() && !selectedCaseId) {
+      toast.error('Ingresa el nombre del cliente o selecciona un caso existente')
       return
     }
     
@@ -457,33 +457,37 @@ export default function ImportPage() {
     setImportProgress({ current: 0, total: localFiles.length, currentFile: '' })
     
     const results = { success: [], failed: [] }
-    let caseId = null
+    let caseId = selectedCaseId
 
     try {
-      // Crear el caso primero
-      const caseRes = await fetch('/api/casos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: clientName,
-          beneficiary_name: clientName,
-          visa_category: 'EB2-NIW',
-          outcome: 'pending'
-        })
-      })
-
-      if (!caseRes.ok) {
-        throw new Error('Error creando el caso')
-      }
-
-      const caseData = await caseRes.json()
-      caseId = caseData.case?.id
-
+      // Crear el caso solo si no hay uno seleccionado
       if (!caseId) {
-        throw new Error('No se pudo obtener el ID del caso')
-      }
+        const caseRes = await fetch('/api/casos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: clientName,
+            beneficiary_name: clientName,
+            visa_category: 'EB2-NIW',
+            outcome: 'pending'
+          })
+        })
 
-      toast.success(`Caso "${clientName}" creado`)
+        if (!caseRes.ok) {
+          throw new Error('Error creando el caso')
+        }
+
+        const caseData = await caseRes.json()
+        caseId = caseData.case?.id
+
+        if (!caseId) {
+          throw new Error('No se pudo obtener el ID del caso')
+        }
+
+        toast.success(`Caso "${clientName}" creado`)
+      } else {
+        toast.info(`Agregando archivos al caso existente...`)
+      }
 
       // Subir cada archivo
       for (let i = 0; i < localFiles.length; i++) {
