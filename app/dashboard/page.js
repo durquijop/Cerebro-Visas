@@ -114,6 +114,7 @@ export default function DashboardPage() {
       { href: '/prompt-analyzer', icon: Sparkles, label: 'Analizador de Prompts', desc: 'Optimiza tus prompts con IA' },
     ] : []),
     ...(profile?.role !== 'analyst' ? [
+      { href: '/drive-import', icon: FolderOpen, label: 'Importar desde Drive', desc: 'Cargar expediente completo', highlight: true },
       { href: '/documents/upload', icon: Upload, label: 'Subir Documento', desc: 'Individual o carga masiva' },
     ] : []),
     { href: '/casos', icon: Briefcase, label: 'Casos', desc: 'Gestionar casos de visa' },
