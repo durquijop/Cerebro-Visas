@@ -62,6 +62,7 @@ export default function ImportPage() {
   
   // Estado para archivos locales
   const [localFiles, setLocalFiles] = useState([])
+  const [isDragging, setIsDragging] = useState(false)
   
   // Estado para ZIP
   const [zipFile, setZipFile] = useState(null)
@@ -77,8 +78,13 @@ export default function ImportPage() {
   // Manejar selección de archivos locales
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files)
+    addFiles(files)
+  }
+
+  // Función para agregar archivos (usada por click y drag&drop)
+  const addFiles = (files) => {
     const newFiles = files.map(file => ({
-      id: `${file.name}-${file.size}-${Date.now()}`,
+      id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
       file: file,
       name: file.name,
       size: file.size,
@@ -87,6 +93,42 @@ export default function ImportPage() {
     }))
     setLocalFiles(prev => [...prev, ...newFiles])
     toast.success(`${files.length} archivo(s) agregado(s)`)
+  }
+
+  // Manejar drag and drop
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    
+    const files = Array.from(e.dataTransfer.files)
+    if (files.length > 0) {
+      // Filtrar solo archivos válidos
+      const validFiles = files.filter(file => {
+        const ext = file.name.toLowerCase()
+        return ext.endsWith('.pdf') || ext.endsWith('.doc') || ext.endsWith('.docx') || 
+               ext.endsWith('.txt') || ext.endsWith('.png') || ext.endsWith('.jpg') || 
+               ext.endsWith('.jpeg') || ext.endsWith('.xlsx') || ext.endsWith('.xls')
+      })
+      
+      if (validFiles.length > 0) {
+        addFiles(validFiles)
+      } else {
+        toast.error('No se encontraron archivos válidos (PDF, Word, Excel, Imágenes)')
+      }
+    }
   }
 
   // Manejar selección de archivo ZIP
