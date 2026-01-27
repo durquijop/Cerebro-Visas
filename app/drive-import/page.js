@@ -186,26 +186,36 @@ export default function ImportPage() {
       return
     }
 
-    // Detectar duplicados (comparar por nombre y tamaño)
+    // Detectar duplicados (comparar por nombre y tamaño en lista local)
     const existingKeys = new Set(localFiles.map(f => `${f.name}-${f.size}`))
     const newFiles = []
-    let skippedCount = 0
+    let skippedLocal = 0
+    let skippedDb = 0
 
     for (const file of validFiles) {
       const key = `${file.name}-${file.size}`
+      
+      // Verificar si ya está en la lista local
       if (existingKeys.has(key)) {
-        skippedCount++
-      } else {
-        existingKeys.add(key)
-        newFiles.push({
-          id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
-          file: file,
-          name: file.name,
-          size: file.size,
-          type: detectDocType(file.name),
-          status: 'pending'
-        })
+        skippedLocal++
+        continue
       }
+      
+      // Verificar si ya existe en el caso (base de datos)
+      if (selectedCaseId && existingDocNames.has(file.name)) {
+        skippedDb++
+        continue
+      }
+
+      existingKeys.add(key)
+      newFiles.push({
+        id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
+        file: file,
+        name: file.name,
+        size: file.size,
+        type: detectDocType(file.name),
+        status: 'pending'
+      })
     }
 
     if (newFiles.length > 0) {
@@ -213,12 +223,16 @@ export default function ImportPage() {
     }
 
     // Mostrar mensaje apropiado
-    if (newFiles.length > 0 && skippedCount > 0) {
-      toast.success(`${newFiles.length} nuevos archivos agregados (${skippedCount} duplicados omitidos)`)
+    const totalSkipped = skippedLocal + skippedDb
+    if (newFiles.length > 0 && totalSkipped > 0) {
+      let msg = `${newFiles.length} nuevos archivos agregados`
+      if (skippedDb > 0) msg += ` (${skippedDb} ya subidos al caso)`
+      if (skippedLocal > 0) msg += ` (${skippedLocal} ya en la lista)`
+      toast.success(msg)
     } else if (newFiles.length > 0) {
       toast.success(`${newFiles.length} archivo(s) agregado(s)`)
-    } else if (skippedCount > 0) {
-      toast.info(`${skippedCount} archivos ya estaban en la lista`)
+    } else if (totalSkipped > 0) {
+      toast.info(`Todos los archivos ya están en el caso o en la lista`)
     }
   }
 
