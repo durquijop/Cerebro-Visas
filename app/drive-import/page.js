@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   FolderOpen, FileText, Upload, Loader2, CheckCircle, 
   XCircle, AlertTriangle, ArrowLeft, Sparkles, Folder,
-  HardDrive, Cloud, Trash2, FileUp
+  HardDrive, Cloud, Trash2, FileUp, Archive, FileArchive
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
