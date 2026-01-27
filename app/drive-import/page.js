@@ -372,31 +372,47 @@ export default function DriveImportPage() {
                 {/* Lista de archivos */}
                 <ScrollArea className="h-[400px] border rounded-lg p-4">
                   <div className="space-y-2">
-                    {previewData.files.map((file) => (
-                      <div 
-                        key={file.id}
-                        className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
-                          selectedFiles.has(file.id) 
-                            ? 'bg-purple-50 border-purple-300' 
-                            : 'bg-white hover:bg-gray-50'
-                        }`}
-                        onClick={() => toggleFileSelection(file.id)}
-                      >
-                        <Checkbox 
-                          checked={selectedFiles.has(file.id)}
-                          onCheckedChange={() => toggleFileSelection(file.id)}
-                        />
-                        <File className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{file.name}</p>
-                          <p className="text-xs text-gray-500">{file.path}</p>
+                    {previewData.files.map((file) => {
+                      const isInExcludedFolder = [...excludedFolders].some(folder => 
+                        file.path?.startsWith(folder + '/') || file.parentFolderName === folder
+                      )
+                      
+                      return (
+                        <div 
+                          key={file.id}
+                          className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
+                            isInExcludedFolder
+                              ? 'bg-red-50 border-red-200 opacity-50'
+                              : selectedFiles.has(file.id) 
+                                ? 'bg-purple-50 border-purple-300' 
+                                : 'bg-white hover:bg-gray-50'
+                          }`}
+                          onClick={() => !isInExcludedFolder && toggleFileSelection(file.id)}
+                        >
+                          <Checkbox 
+                            checked={selectedFiles.has(file.id) && !isInExcludedFolder}
+                            disabled={isInExcludedFolder}
+                            onCheckedChange={() => !isInExcludedFolder && toggleFileSelection(file.id)}
+                          />
+                          <File className={`h-5 w-5 flex-shrink-0 ${isInExcludedFolder ? 'text-red-400' : 'text-gray-400'}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className={`font-medium truncate ${isInExcludedFolder ? 'line-through text-red-600' : ''}`}>
+                              {file.name}
+                            </p>
+                            <p className="text-xs text-gray-500">{file.path}</p>
+                          </div>
+                          <Badge className={DOC_TYPE_COLORS[file.detectedType] || 'bg-gray-100'}>
+                            {file.detectedType}
+                          </Badge>
+                          <span className="text-xs text-gray-400">{file.sizeFormatted}</span>
+                          {isInExcludedFolder && (
+                            <Badge variant="outline" className="text-xs text-red-600 border-red-300">
+                              Excluido
+                            </Badge>
+                          )}
                         </div>
-                        <Badge className={DOC_TYPE_COLORS[file.detectedType] || 'bg-gray-100'}>
-                          {file.detectedType}
-                        </Badge>
-                        <span className="text-xs text-gray-400">{file.sizeFormatted}</span>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </ScrollArea>
 
