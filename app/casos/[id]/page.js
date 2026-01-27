@@ -95,6 +95,21 @@ export default function CaseDetailPage() {
     }
   }, [params.id])
 
+  // Sincronizar editForm con caseData cuando se carga
+  useEffect(() => {
+    if (caseData) {
+      setEditForm({
+        title: caseData.title || '',
+        beneficiary_name: caseData.beneficiary_name || '',
+        visa_category: caseData.visa_category || 'EB2-NIW',
+        outcome: caseData.outcome || 'pending',
+        service_center: caseData.service_center || '',
+        filed_date: caseData.filed_date ? caseData.filed_date.split('T')[0] : '',
+        description: caseData.description || ''
+      })
+    }
+  }, [caseData])
+
   const fetchCase = async () => {
     try {
       setLoading(true)
