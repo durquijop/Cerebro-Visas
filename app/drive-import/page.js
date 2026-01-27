@@ -99,6 +99,21 @@ export default function ImportPage() {
       return
     }
 
+    // Validar tamaño en el cliente (300MB máximo)
+    const MAX_SIZE = 300 * 1024 * 1024
+    if (file.size > MAX_SIZE) {
+      toast.error(`El archivo es demasiado grande (${formatSize(file.size)}). Máximo 300MB.`)
+      setZipFile(null)
+      setZipPreview({
+        error: true,
+        message: `El archivo ZIP es de ${formatSize(file.size)}, pero el máximo permitido es 300MB.`,
+        suggestion: 'Divide el ZIP en partes más pequeñas o usa la opción "Archivos" para subir los documentos directamente.',
+        fileName: file.name,
+        fileSize: file.size
+      })
+      return
+    }
+
     setZipFile(file)
     setLoadingZipPreview(true)
     setZipPreview(null)
