@@ -388,12 +388,15 @@ export default function ImportPage() {
 
         {/* Tabs para métodos de importación */}
         <Tabs defaultValue="local" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="local" className="flex items-center gap-2">
-              <HardDrive className="h-4 w-4" /> Subir Archivos
+              <HardDrive className="h-4 w-4" /> Archivos
+            </TabsTrigger>
+            <TabsTrigger value="zip" className="flex items-center gap-2">
+              <FileArchive className="h-4 w-4" /> Archivo ZIP
             </TabsTrigger>
             <TabsTrigger value="drive" className="flex items-center gap-2">
-              <Cloud className="h-4 w-4" /> Google Drive
+              <Cloud className="h-4 w-4" /> Drive
               <Badge variant="outline" className="text-xs">Beta</Badge>
             </TabsTrigger>
           </TabsList>
