@@ -52,6 +52,7 @@ function detectDocType(filename) {
 export default function ImportPage() {
   const router = useRouter()
   const fileInputRef = useRef(null)
+  const zipInputRef = useRef(null)
   
   // Estado común
   const [clientName, setClientName] = useState('')
@@ -61,6 +62,11 @@ export default function ImportPage() {
   
   // Estado para archivos locales
   const [localFiles, setLocalFiles] = useState([])
+  
+  // Estado para ZIP
+  const [zipFile, setZipFile] = useState(null)
+  const [zipPreview, setZipPreview] = useState(null)
+  const [loadingZipPreview, setLoadingZipPreview] = useState(false)
   
   // Estado para Google Drive (mantenemos pero simplificamos)
   const [driveUrl, setDriveUrl] = useState('')
