@@ -292,20 +292,54 @@ export default function DriveImportPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Carpetas encontradas */}
+                {/* Carpetas encontradas - CLICKEABLES PARA EXCLUIR */}
                 {previewData.folders && previewData.folders.length > 0 && (
-                  <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                  <div className="mb-4 p-4 bg-gray-50 rounded-lg border">
                     <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                       <Folder className="h-4 w-4" />
-                      Carpetas escaneadas:
+                      Carpetas escaneadas (click para excluir):
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {previewData.folders.map((folder, idx) => (
-                        <Badge key={idx} variant="outline" className="text-xs">
-                          {folder}
-                        </Badge>
-                      ))}
+                      {previewData.folders.map((folder, idx) => {
+                        const isExcluded = excludedFolders.has(folder)
+                        const fileCount = previewData.files?.filter(f => 
+                          f.path?.startsWith(folder + '/') || f.parentFolderName === folder
+                        ).length || 0
+                        
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => toggleFolderExclusion(folder)}
+                            className={`
+                              inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm
+                              transition-all cursor-pointer border
+                              ${isExcluded 
+                                ? 'bg-red-100 text-red-700 border-red-300 line-through opacity-60' 
+                                : 'bg-white text-gray-700 border-gray-300 hover:border-purple-400 hover:bg-purple-50'
+                              }
+                            `}
+                          >
+                            {isExcluded ? (
+                              <XCircle className="h-3.5 w-3.5" />
+                            ) : (
+                              <Folder className="h-3.5 w-3.5" />
+                            )}
+                            {folder}
+                            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                              isExcluded ? 'bg-red-200' : 'bg-gray-200'
+                            }`}>
+                              {fileCount}
+                            </span>
+                          </button>
+                        )
+                      })}
                     </div>
+                    {excludedFolders.size > 0 && (
+                      <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        {excludedFolders.size} carpeta(s) excluida(s) - sus archivos no se importarán
+                      </p>
+                    )}
                   </div>
                 )}
 
