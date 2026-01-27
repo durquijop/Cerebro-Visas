@@ -141,6 +141,7 @@ export async function POST(request) {
           // Guardar en case_documents si hay caso
           if (targetCaseId) {
             const docId = uuidv4()
+            const wordCount = textContent.split(/\s+/).filter(w => w.length > 0).length
             
             const { error: docError } = await supabase
               .from('case_documents')
@@ -149,10 +150,9 @@ export async function POST(request) {
                 case_id: targetCaseId,
                 original_name: fileInfo.name,
                 doc_type: docType,
-                file_size: fileInfo.size,
+                file_type: fileInfo.name.split('.').pop()?.toLowerCase() || 'pdf',
                 text_content: textContent.substring(0, 100000),
-                source: 'google_drive',
-                source_path: fileInfo.path
+                word_count: wordCount
               })
 
             if (docError) {
