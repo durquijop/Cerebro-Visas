@@ -566,6 +566,9 @@ export default function ImportPage() {
     setZipFile(null)
     setImportResults(null)
     setClientName('')
+    setSelectedCaseId(null)
+    setExistingDocNames(new Set())
+    loadExistingCases() // Recargar casos
   }
 
   return (
