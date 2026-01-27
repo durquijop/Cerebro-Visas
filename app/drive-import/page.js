@@ -1,17 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
-  FolderOpen, FileText, Upload, Search, Loader2, CheckCircle, 
-  XCircle, AlertTriangle, Brain, ArrowLeft, FolderTree,
-  File, ChevronRight, RefreshCw, Sparkles, Folder
+  FolderOpen, FileText, Upload, Loader2, CheckCircle, 
+  XCircle, AlertTriangle, ArrowLeft, Sparkles, Folder,
+  HardDrive, Cloud, Trash2, FileUp
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -25,499 +25,523 @@ const DOC_TYPE_COLORS = {
   'Business Plan': 'bg-purple-100 text-purple-800 border-purple-300',
   'CV/Resume': 'bg-green-100 text-green-800 border-green-300',
   'Petition Letter': 'bg-indigo-100 text-indigo-800 border-indigo-300',
-  'Evidencia Profesional': 'bg-amber-100 text-amber-800 border-amber-300',
+  'Evidencia': 'bg-amber-100 text-amber-800 border-amber-300',
   'Documento Personal': 'bg-gray-100 text-gray-800 border-gray-300',
   'Traducción': 'bg-cyan-100 text-cyan-800 border-cyan-300',
+  'Otro': 'bg-slate-100 text-slate-800 border-slate-300',
 }
 
-export default function DriveImportPage() {
+// Detectar tipo de documento por nombre
+function detectDocType(filename) {
+  const lower = filename.toLowerCase()
+  
+  if (lower.includes('rfe') || lower.includes('request for evidence')) return 'RFE'
+  if (lower.includes('noid') || lower.includes('notice of intent')) return 'NOID'
+  if (lower.includes('denial') || lower.includes('denegación')) return 'Denial'
+  if (lower.includes('carta') || lower.includes('recomendación') || lower.includes('recommendation') || lower.includes('letter')) return 'Carta de Recomendación'
+  if (lower.includes('business') || lower.includes('plan') || lower.includes('negocio')) return 'Business Plan'
+  if (lower.includes('cv') || lower.includes('resume') || lower.includes('curriculum') || lower.includes('hoja de vida')) return 'CV/Resume'
+  if (lower.includes('petition') || lower.includes('petición') || lower.includes('i-140')) return 'Petition Letter'
+  if (lower.includes('traducción') || lower.includes('translation') || lower.includes('translated')) return 'Traducción'
+  if (lower.includes('diploma') || lower.includes('certificado') || lower.includes('título') || lower.includes('grado')) return 'Documento Personal'
+  if (lower.includes('evidencia') || lower.includes('evidence') || lower.includes('exhibit') || lower.includes('premio') || lower.includes('award')) return 'Evidencia'
+  
+  return 'Otro'
+}
+
+export default function ImportPage() {
   const router = useRouter()
-  const [driveUrl, setDriveUrl] = useState('')
+  const fileInputRef = useRef(null)
+  
+  // Estado común
   const [clientName, setClientName] = useState('')
-  const [loading, setLoading] = useState(false)
   const [importing, setImporting] = useState(false)
-  const [previewData, setPreviewData] = useState(null)
-  const [selectedFiles, setSelectedFiles] = useState(new Set())
-  const [excludedFolders, setExcludedFolders] = useState(new Set())
-  const [generateEmbeddings, setGenerateEmbeddings] = useState(true)
-  const [importProgress, setImportProgress] = useState(0)
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0, currentFile: '' })
   const [importResults, setImportResults] = useState(null)
-  const [scanProgress, setScanProgress] = useState(null)
+  
+  // Estado para archivos locales
+  const [localFiles, setLocalFiles] = useState([])
+  
+  // Estado para Google Drive (mantenemos pero simplificamos)
+  const [driveUrl, setDriveUrl] = useState('')
+  const [driveLoading, setDriveLoading] = useState(false)
+  const [driveFiles, setDriveFiles] = useState([])
+  const [driveError, setDriveError] = useState(null)
 
-  const previewFolder = async () => {
-    if (!driveUrl.trim()) {
-      toast.error('Ingresa una URL de Google Drive')
-      return
-    }
-
-    try {
-      setLoading(true)
-      setPreviewData(null)
-      setScanProgress({ status: 'starting', message: 'Conectando con Google Drive...' })
-      
-      const res = await fetch('/api/drive-import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          drive_url: driveUrl,
-          action: 'preview'
-        })
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Error al acceder a la carpeta')
-      }
-
-      setPreviewData(data)
-      // Seleccionar todos por defecto
-      setSelectedFiles(new Set(data.files.map(f => f.id)))
-      setScanProgress({ status: 'complete', message: 'Escaneo completado' })
-      toast.success(`${data.processable_files} archivos encontrados en ${data.folders_scanned || 0} carpetas`)
-
-    } catch (error) {
-      console.error('Preview error:', error)
-      setScanProgress({ status: 'error', message: error.message })
-      toast.error(error.message)
-    } finally {
-      setLoading(false)
-    }
+  // Manejar selección de archivos locales
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files)
+    const newFiles = files.map(file => ({
+      id: `${file.name}-${file.size}-${Date.now()}`,
+      file: file,
+      name: file.name,
+      size: file.size,
+      type: detectDocType(file.name),
+      status: 'pending'
+    }))
+    setLocalFiles(prev => [...prev, ...newFiles])
+    toast.success(`${files.length} archivo(s) agregado(s)`)
   }
 
-  const toggleFileSelection = (fileId) => {
-    const newSelected = new Set(selectedFiles)
-    if (newSelected.has(fileId)) {
-      newSelected.delete(fileId)
-    } else {
-      newSelected.add(fileId)
-    }
-    setSelectedFiles(newSelected)
+  // Remover archivo de la lista
+  const removeFile = (fileId) => {
+    setLocalFiles(prev => prev.filter(f => f.id !== fileId))
   }
 
-  const toggleFolderExclusion = (folderName) => {
-    const newExcluded = new Set(excludedFolders)
-    
-    if (newExcluded.has(folderName)) {
-      // Re-incluir carpeta
-      newExcluded.delete(folderName)
-      // Re-seleccionar archivos de esta carpeta
-      const folderFiles = previewData?.files?.filter(f => 
-        f.path?.startsWith(folderName + '/') || f.parentFolderName === folderName
-      ) || []
-      const newSelected = new Set(selectedFiles)
-      folderFiles.forEach(f => newSelected.add(f.id))
-      setSelectedFiles(newSelected)
-    } else {
-      // Excluir carpeta
-      newExcluded.add(folderName)
-      // Deseleccionar archivos de esta carpeta
-      const folderFiles = previewData?.files?.filter(f => 
-        f.path?.startsWith(folderName + '/') || f.parentFolderName === folderName
-      ) || []
-      const newSelected = new Set(selectedFiles)
-      folderFiles.forEach(f => newSelected.delete(f.id))
-      setSelectedFiles(newSelected)
-    }
-    
-    setExcludedFolders(newExcluded)
+  // Cambiar tipo de documento
+  const changeFileType = (fileId, newType) => {
+    setLocalFiles(prev => prev.map(f => 
+      f.id === fileId ? { ...f, type: newType } : f
+    ))
   }
 
-  const selectAllByType = (type) => {
-    const filesOfType = previewData?.files?.filter(f => f.detectedType === type) || []
-    const newSelected = new Set(selectedFiles)
-    filesOfType.forEach(f => newSelected.add(f.id))
-    setSelectedFiles(newSelected)
-  }
-
-  const deselectAllByType = (type) => {
-    const filesOfType = previewData?.files?.filter(f => f.detectedType === type) || []
-    const newSelected = new Set(selectedFiles)
-    filesOfType.forEach(f => newSelected.delete(f.id))
-    setSelectedFiles(newSelected)
-  }
-
-  const importFiles = async () => {
-    if (selectedFiles.size === 0) {
-      toast.error('Selecciona al menos un archivo')
-      return
-    }
-
+  // Importar archivos locales
+  const importLocalFiles = async () => {
     if (!clientName.trim()) {
       toast.error('Ingresa el nombre del cliente')
       return
     }
+    
+    if (localFiles.length === 0) {
+      toast.error('Selecciona al menos un archivo')
+      return
+    }
+
+    setImporting(true)
+    setImportProgress({ current: 0, total: localFiles.length, currentFile: '' })
+    
+    const results = { success: [], failed: [] }
+    let caseId = null
 
     try {
-      setImporting(true)
-      setImportProgress(0)
-
-      const filesToImport = previewData.files.filter(f => selectedFiles.has(f.id))
-
-      const res = await fetch('/api/drive-import', {
+      // Crear el caso primero
+      const caseRes = await fetch('/api/casos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'import',
-          folder_id: previewData.folder_id,
-          client_name: clientName,
-          files_to_import: filesToImport,
-          generate_embeddings: generateEmbeddings
+          title: clientName,
+          beneficiary_name: clientName,
+          visa_category: 'EB2-NIW',
+          outcome: 'pending'
         })
       })
 
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Error al importar')
+      if (!caseRes.ok) {
+        throw new Error('Error creando el caso')
       }
 
-      setImportResults(data)
-      setImportProgress(100)
-      toast.success(`${data.processed} archivos importados`)
+      const caseData = await caseRes.json()
+      caseId = caseData.case?.id
 
-      // Redirigir al caso después de 2 segundos
-      if (data.case_id) {
-        setTimeout(() => {
-          router.push(`/casos/${data.case_id}`)
-        }, 2000)
+      if (!caseId) {
+        throw new Error('No se pudo obtener el ID del caso')
       }
 
-    } catch (error) {
-      console.error('Import error:', error)
-      toast.error(error.message)
+      toast.success(`Caso "${clientName}" creado`)
+
+      // Subir cada archivo
+      for (let i = 0; i < localFiles.length; i++) {
+        const fileData = localFiles[i]
+        setImportProgress({
+          current: i + 1,
+          total: localFiles.length,
+          currentFile: fileData.name
+        })
+
+        // Actualizar estado del archivo a "uploading"
+        setLocalFiles(prev => prev.map(f => 
+          f.id === fileData.id ? { ...f, status: 'uploading' } : f
+        ))
+
+        try {
+          const formData = new FormData()
+          formData.append('file', fileData.file)
+          formData.append('case_id', caseId)
+          formData.append('doc_type', fileData.type)
+          formData.append('skip_analysis', 'true') // Análisis masivo después
+
+          const uploadRes = await fetch('/api/casos/documents/upload', {
+            method: 'POST',
+            body: formData
+          })
+
+          if (uploadRes.ok) {
+            results.success.push(fileData.name)
+            setLocalFiles(prev => prev.map(f => 
+              f.id === fileData.id ? { ...f, status: 'success' } : f
+            ))
+          } else {
+            const error = await uploadRes.json()
+            throw new Error(error.error || 'Error subiendo archivo')
+          }
+        } catch (err) {
+          console.error(`Error subiendo ${fileData.name}:`, err)
+          results.failed.push({ name: fileData.name, error: err.message })
+          setLocalFiles(prev => prev.map(f => 
+            f.id === fileData.id ? { ...f, status: 'error', error: err.message } : f
+          ))
+        }
+
+        // Pequeña pausa entre archivos
+        await new Promise(r => setTimeout(r, 300))
+      }
+
+      setImportResults({ ...results, caseId })
+      
+      if (results.success.length > 0) {
+        toast.success(`${results.success.length} archivo(s) importado(s) correctamente`)
+      }
+      if (results.failed.length > 0) {
+        toast.error(`${results.failed.length} archivo(s) fallaron`)
+      }
+
+    } catch (err) {
+      console.error('Error en importación:', err)
+      toast.error(err.message)
     } finally {
       setImporting(false)
     }
   }
 
+  // Formatear tamaño de archivo
+  const formatSize = (bytes) => {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+  }
+
+  // Limpiar todo
+  const clearAll = () => {
+    setLocalFiles([])
+    setImportResults(null)
+    setClientName('')
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-navy-primary border-b border-navy-light">
-        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <FolderOpen className="h-8 w-8 text-gold-primary" />
+      <header className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Link href="/dashboard">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" /> Dashboard
+              </Button>
+            </Link>
             <div>
-              <span className="text-xl font-bold text-gold-subtle">Importar desde Google Drive</span>
-              <p className="text-sm text-gold-muted">Carga expedientes completos automáticamente</p>
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <Upload className="h-6 w-6 text-blue-600" />
+                Importar Expediente
+              </h1>
+              <p className="text-sm text-gray-500">Sube múltiples archivos para crear un nuevo caso</p>
             </div>
           </div>
-          <Link href="/dashboard">
-            <Button variant="ghost" className="text-gold-muted hover:text-gold-primary">
-              <ArrowLeft className="h-4 w-4 mr-2" /> Volver
-            </Button>
-          </Link>
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-8 max-w-5xl">
-        {/* Paso 1: URL y Preview */}
+      <main className="max-w-5xl mx-auto p-6">
+        {/* Resultado de importación */}
+        {importResults && (
+          <Card className="mb-6 border-green-200 bg-green-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                  <div>
+                    <h3 className="font-semibold text-green-900">Importación Completada</h3>
+                    <p className="text-sm text-green-700">
+                      {importResults.success.length} archivos importados
+                      {importResults.failed.length > 0 && `, ${importResults.failed.length} fallaron`}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={clearAll}>
+                    Nueva Importación
+                  </Button>
+                  <Button onClick={() => router.push(`/casos/${importResults.caseId}`)}>
+                    Ver Caso <Sparkles className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Nombre del cliente */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5 text-blue-500" />
-              Paso 1: Conectar Carpeta de Drive
-            </CardTitle>
-            <CardDescription>
-              Pega el link de la carpeta compartida de Google Drive con los documentos del cliente
-            </CardDescription>
+            <CardTitle className="text-lg">Información del Cliente</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-3">
-              <Input
-                placeholder="https://drive.google.com/drive/folders/..."
-                value={driveUrl}
-                onChange={(e) => setDriveUrl(e.target.value)}
-                className="flex-1"
-                disabled={loading}
-              />
-              <Button onClick={previewFolder} disabled={loading}>
-                {loading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <FolderTree className="h-4 w-4 mr-2" />
-                )}
-                {loading ? 'Escaneando...' : 'Explorar Carpeta'}
-              </Button>
-            </div>
-
-            {/* Barra de progreso del escaneo */}
-            {loading && (
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center gap-3 mb-2">
-                  <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                  <span className="font-medium text-blue-800">
-                    {scanProgress?.message || 'Escaneando carpetas...'}
-                  </span>
-                </div>
-                <Progress value={undefined} className="h-2" />
-                <p className="text-xs text-blue-600 mt-2">
-                  Explorando subcarpetas y detectando tipos de documentos...
-                </p>
+          <CardContent>
+            <div className="flex gap-4 items-end">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre del Cliente / Caso
+                </label>
+                <Input
+                  placeholder="Ej: Juan Pérez"
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  disabled={importing}
+                />
               </div>
-            )}
-
-            {scanProgress?.status === 'error' && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <XCircle className="h-5 w-5 text-red-600" />
-                  <span className="font-medium text-red-800">Error: {scanProgress.message}</span>
-                </div>
-                <p className="text-sm text-red-600 mt-2">
-                  Verifica que la carpeta esté compartida como "Cualquier persona con el link" y que la Google Drive API esté habilitada.
-                </p>
-              </div>
-            )}
-
-            <div className="text-sm text-gray-500">
-              <p>💡 Asegúrate de que la carpeta esté compartida con "Cualquier persona con el link"</p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Preview de archivos */}
-        {previewData && (
-          <>
-            {/* Resumen */}
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-green-500" />
-                  Paso 2: Revisar Archivos Detectados
-                </CardTitle>
-                <CardDescription>
-                  Se encontraron {previewData.total_files} archivos en {previewData.folders_scanned || previewData.folders?.length || 0} carpetas.
-                  {previewData.processable_files} son procesables.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {/* Carpetas encontradas - CLICKEABLES PARA EXCLUIR */}
-                {previewData.folders && previewData.folders.length > 0 && (
-                  <div className="mb-4 p-4 bg-gray-50 rounded-lg border">
-                    <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <Folder className="h-4 w-4" />
-                      Carpetas escaneadas (click para excluir):
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {previewData.folders.map((folder, idx) => {
-                        const isExcluded = excludedFolders.has(folder)
-                        const fileCount = previewData.files?.filter(f => 
-                          f.path?.startsWith(folder + '/') || f.parentFolderName === folder
-                        ).length || 0
-                        
-                        return (
-                          <button
-                            key={idx}
-                            onClick={() => toggleFolderExclusion(folder)}
-                            className={`
-                              inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm
-                              transition-all cursor-pointer border
-                              ${isExcluded 
-                                ? 'bg-red-100 text-red-700 border-red-300 line-through opacity-60' 
-                                : 'bg-white text-gray-700 border-gray-300 hover:border-purple-400 hover:bg-purple-50'
-                              }
-                            `}
-                          >
-                            {isExcluded ? (
-                              <XCircle className="h-3.5 w-3.5" />
-                            ) : (
-                              <Folder className="h-3.5 w-3.5" />
-                            )}
-                            {folder}
-                            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                              isExcluded ? 'bg-red-200' : 'bg-gray-200'
-                            }`}>
-                              {fileCount}
-                            </span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                    {excludedFolders.size > 0 && (
-                      <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
-                        <AlertTriangle className="h-3 w-3" />
-                        {excludedFolders.size} carpeta(s) excluida(s) - sus archivos no se importarán
-                      </p>
-                    )}
-                  </div>
-                )}
+        {/* Tabs para métodos de importación */}
+        <Tabs defaultValue="local" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="local" className="flex items-center gap-2">
+              <HardDrive className="h-4 w-4" /> Subir Archivos
+            </TabsTrigger>
+            <TabsTrigger value="drive" className="flex items-center gap-2">
+              <Cloud className="h-4 w-4" /> Google Drive
+              <Badge variant="outline" className="text-xs">Beta</Badge>
+            </TabsTrigger>
+          </TabsList>
 
-                {/* Agrupados por tipo */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                  {Object.entries(previewData.files_by_type || {}).map(([type, files]) => (
-                    <div 
-                      key={type} 
-                      className="p-3 border rounded-lg bg-white cursor-pointer hover:border-purple-300 transition-colors"
-                      onClick={() => {
-                        const allSelected = files.every(f => selectedFiles.has(f.id))
-                        if (allSelected) {
-                          deselectAllByType(type)
-                        } else {
-                          selectAllByType(type)
-                        }
-                      }}
-                    >
-                      <Badge className={DOC_TYPE_COLORS[type] || 'bg-gray-100 text-gray-800'}>
-                        {type}
-                      </Badge>
-                      <p className="text-2xl font-bold mt-2">{files.length}</p>
-                      <p className="text-xs text-gray-500">
-                        {files.filter(f => selectedFiles.has(f.id)).length} seleccionados
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Lista de archivos */}
-                <ScrollArea className="h-[400px] border rounded-lg p-4">
-                  <div className="space-y-2">
-                    {previewData.files.map((file) => {
-                      const isInExcludedFolder = [...excludedFolders].some(folder => 
-                        file.path?.startsWith(folder + '/') || file.parentFolderName === folder
-                      )
-                      
-                      return (
-                        <div 
-                          key={file.id}
-                          className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
-                            isInExcludedFolder
-                              ? 'bg-red-50 border-red-200 opacity-50'
-                              : selectedFiles.has(file.id) 
-                                ? 'bg-purple-50 border-purple-300' 
-                                : 'bg-white hover:bg-gray-50'
-                          }`}
-                          onClick={() => !isInExcludedFolder && toggleFileSelection(file.id)}
-                        >
-                          <Checkbox 
-                            checked={selectedFiles.has(file.id) && !isInExcludedFolder}
-                            disabled={isInExcludedFolder}
-                            onCheckedChange={() => !isInExcludedFolder && toggleFileSelection(file.id)}
-                          />
-                          <File className={`h-5 w-5 flex-shrink-0 ${isInExcludedFolder ? 'text-red-400' : 'text-gray-400'}`} />
-                          <div className="flex-1 min-w-0">
-                            <p className={`font-medium truncate ${isInExcludedFolder ? 'line-through text-red-600' : ''}`}>
-                              {file.name}
-                            </p>
-                            <p className="text-xs text-gray-500">{file.path}</p>
-                          </div>
-                          <Badge className={DOC_TYPE_COLORS[file.detectedType] || 'bg-gray-100'}>
-                            {file.detectedType}
-                          </Badge>
-                          <span className="text-xs text-gray-400">{file.sizeFormatted}</span>
-                          {isInExcludedFolder && (
-                            <Badge variant="outline" className="text-xs text-red-600 border-red-300">
-                              Excluido
-                            </Badge>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </ScrollArea>
-
-                <div className="flex justify-between items-center mt-4">
-                  <p className="text-sm text-gray-600">
-                    {selectedFiles.size} de {previewData.processable_files} archivos seleccionados
-                  </p>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setSelectedFiles(new Set(previewData.files.map(f => f.id)))}
-                    >
-                      Seleccionar todos
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setSelectedFiles(new Set())}
-                    >
-                      Deseleccionar todos
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Paso 3: Importar */}
+          {/* Tab: Archivos Locales */}
+          <TabsContent value="local">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Upload className="h-5 w-5 text-purple-500" />
-                  Paso 3: Crear Cliente e Importar
+                  <FileUp className="h-5 w-5 text-blue-600" />
+                  Subir Archivos desde tu Computadora
                 </CardTitle>
                 <CardDescription>
-                  Ingresa el nombre del cliente y comienza la importación
+                  Selecciona múltiples PDFs, documentos Word, imágenes, etc.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Nombre del Cliente</label>
-                  <Input
-                    placeholder="Ej: Juan Pérez - NIW Tech"
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="embeddings"
-                    checked={generateEmbeddings}
-                    onCheckedChange={setGenerateEmbeddings}
-                  />
-                  <label htmlFor="embeddings" className="text-sm">
-                    Generar embeddings para RAG (solo RFE/NOID/Denial)
-                  </label>
-                </div>
-
-                {importing && (
-                  <div className="space-y-2">
-                    <Progress value={importProgress} />
-                    <p className="text-sm text-gray-500 text-center">
-                      Importando archivos... {importProgress}%
-                    </p>
-                  </div>
-                )}
-
-                {importResults && (
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                      <span className="font-medium text-green-800">
-                        ¡Importación completada!
-                      </span>
-                    </div>
-                    <p className="text-sm text-green-700">
-                      {importResults.processed} archivos importados, {importResults.failed} fallidos.
-                    </p>
-                    <p className="text-sm text-green-700">
-                      Redirigiendo al caso...
-                    </p>
-                  </div>
-                )}
-
-                <Button 
-                  onClick={importFiles} 
-                  disabled={importing || selectedFiles.size === 0 || !clientName.trim()}
-                  className="w-full bg-purple-600 hover:bg-purple-700"
-                  size="lg"
+              <CardContent>
+                {/* Zona de drop/selección */}
+                <div 
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer mb-4"
+                  onClick={() => fileInputRef.current?.click()}
                 >
-                  {importing ? (
-                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-5 w-5 mr-2" />
-                  )}
-                  {importing 
-                    ? 'Importando...' 
-                    : `Crear Cliente e Importar ${selectedFiles.size} Archivos`
-                  }
-                </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.xlsx,.xls"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    disabled={importing}
+                  />
+                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-gray-700">
+                    Haz clic para seleccionar archivos
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    o arrastra y suelta aquí
+                  </p>
+                  <p className="text-xs text-gray-400 mt-2">
+                    PDF, Word, Excel, Imágenes (máx. 50MB por archivo)
+                  </p>
+                </div>
+
+                {/* Lista de archivos seleccionados */}
+                {localFiles.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-gray-700">
+                        {localFiles.length} archivo(s) seleccionado(s)
+                      </h4>
+                      {!importing && (
+                        <Button variant="ghost" size="sm" onClick={() => setLocalFiles([])}>
+                          <Trash2 className="h-4 w-4 mr-1" /> Limpiar
+                        </Button>
+                      )}
+                    </div>
+
+                    <ScrollArea className="h-[300px] border rounded-lg p-2">
+                      <div className="space-y-2">
+                        {localFiles.map((file) => (
+                          <div 
+                            key={file.id}
+                            className={`flex items-center justify-between p-3 rounded-lg border ${
+                              file.status === 'success' ? 'bg-green-50 border-green-200' :
+                              file.status === 'error' ? 'bg-red-50 border-red-200' :
+                              file.status === 'uploading' ? 'bg-blue-50 border-blue-200' :
+                              'bg-white'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              {file.status === 'success' ? (
+                                <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+                              ) : file.status === 'error' ? (
+                                <XCircle className="h-5 w-5 text-red-600 shrink-0" />
+                              ) : file.status === 'uploading' ? (
+                                <Loader2 className="h-5 w-5 text-blue-600 animate-spin shrink-0" />
+                              ) : (
+                                <FileText className="h-5 w-5 text-gray-400 shrink-0" />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-sm truncate">{file.name}</p>
+                                <p className="text-xs text-gray-500">{formatSize(file.size)}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 shrink-0">
+                              <select
+                                value={file.type}
+                                onChange={(e) => changeFileType(file.id, e.target.value)}
+                                disabled={importing}
+                                className={`text-xs px-2 py-1 rounded border ${DOC_TYPE_COLORS[file.type] || DOC_TYPE_COLORS['Otro']}`}
+                              >
+                                {Object.keys(DOC_TYPE_COLORS).map(type => (
+                                  <option key={type} value={type}>{type}</option>
+                                ))}
+                              </select>
+                              
+                              {!importing && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeFile(file.id)}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <XCircle className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+
+                    {/* Progreso de importación */}
+                    {importing && (
+                      <div className="space-y-2 p-4 bg-blue-50 rounded-lg">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium text-blue-700">
+                            Importando: {importProgress.currentFile}
+                          </span>
+                          <span className="text-blue-600">
+                            {importProgress.current} / {importProgress.total}
+                          </span>
+                        </div>
+                        <Progress 
+                          value={(importProgress.current / importProgress.total) * 100} 
+                          className="h-2"
+                        />
+                      </div>
+                    )}
+
+                    {/* Botón de importar */}
+                    <Button 
+                      className="w-full" 
+                      size="lg"
+                      onClick={importLocalFiles}
+                      disabled={importing || !clientName.trim() || localFiles.length === 0}
+                    >
+                      {importing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Importando {importProgress.current} de {importProgress.total}...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Crear Caso e Importar {localFiles.length} Archivo(s)
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          </>
-        )}
+          </TabsContent>
+
+          {/* Tab: Google Drive */}
+          <TabsContent value="drive">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Cloud className="h-5 w-5 text-blue-600" />
+                  Importar desde Google Drive
+                </CardTitle>
+                <CardDescription>
+                  Conecta una carpeta de Google Drive para importar archivos
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Advertencia */}
+                  <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-amber-800">Función en desarrollo</p>
+                      <p className="text-sm text-amber-700 mt-1">
+                        La integración con Google Drive puede tener limitaciones debido a restricciones de la API.
+                        Te recomendamos usar la opción de "Subir Archivos" para una experiencia más confiable.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Input de URL */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      URL de la carpeta de Google Drive
+                    </label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="https://drive.google.com/drive/folders/..."
+                        value={driveUrl}
+                        onChange={(e) => setDriveUrl(e.target.value)}
+                        disabled={driveLoading}
+                      />
+                      <Button disabled={driveLoading || !driveUrl.trim()}>
+                        {driveLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          'Escanear'
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Asegúrate de que la carpeta tenga permisos de "Cualquier persona con el enlace"
+                    </p>
+                  </div>
+
+                  {/* Alternativa recomendada */}
+                  <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
+                    <Cloud className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-600 mb-4">
+                      ¿Tienes problemas con Google Drive?
+                    </p>
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        const tabTrigger = document.querySelector('[data-state="inactive"][value="local"]')
+                        if (tabTrigger) tabTrigger.click()
+                      }}
+                    >
+                      <HardDrive className="h-4 w-4 mr-2" />
+                      Usar Subida de Archivos
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Tips */}
+        <Card className="mt-6 bg-blue-50 border-blue-200">
+          <CardContent className="pt-6">
+            <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+              <Sparkles className="h-4 w-4" /> Tips para mejores resultados
+            </h4>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• Nombra tus archivos descriptivamente (ej: "RFE_2024.pdf", "CV_Juan_Perez.pdf")</li>
+              <li>• El sistema detecta automáticamente el tipo de documento por el nombre</li>
+              <li>• Puedes cambiar el tipo de documento manualmente antes de importar</li>
+              <li>• Los documentos se procesan para extraer texto y permitir búsquedas</li>
+            </ul>
+          </CardContent>
+        </Card>
       </main>
     </div>
   )
