@@ -408,6 +408,141 @@ export default function CaseDetailPage() {
                 </div>
               </div>
               <div className="flex gap-2">
+                {/* Botón Editar */}
+                <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100">
+                      <Pencil className="h-4 w-4 mr-1" /> Editar
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[550px]">
+                    <DialogHeader>
+                      <DialogTitle>Editar Caso</DialogTitle>
+                      <DialogDescription>
+                        Modifica los datos del cliente y la visa
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="title">Nombre del Caso</Label>
+                          <Input
+                            id="title"
+                            value={editForm.title}
+                            onChange={(e) => setEditForm({...editForm, title: e.target.value})}
+                            placeholder="Ej: Juan Pérez - NIW"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="beneficiary_name">Nombre del Beneficiario</Label>
+                          <Input
+                            id="beneficiary_name"
+                            value={editForm.beneficiary_name}
+                            onChange={(e) => setEditForm({...editForm, beneficiary_name: e.target.value})}
+                            placeholder="Nombre completo"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="visa_category">Categoría de Visa</Label>
+                          <Select 
+                            value={editForm.visa_category} 
+                            onValueChange={(value) => setEditForm({...editForm, visa_category: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar visa" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="EB2-NIW">EB2-NIW</SelectItem>
+                              <SelectItem value="EB1A">EB1A - Habilidad Extraordinaria</SelectItem>
+                              <SelectItem value="EB1B">EB1B - Investigador/Profesor</SelectItem>
+                              <SelectItem value="EB1C">EB1C - Ejecutivo Multinacional</SelectItem>
+                              <SelectItem value="O-1A">O-1A - Habilidad Extraordinaria</SelectItem>
+                              <SelectItem value="O-1B">O-1B - Artes/Entretenimiento</SelectItem>
+                              <SelectItem value="H-1B">H-1B - Trabajo Especializado</SelectItem>
+                              <SelectItem value="L-1A">L-1A - Transferencia Ejecutivo</SelectItem>
+                              <SelectItem value="L-1B">L-1B - Transferencia Conocimiento</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="outcome">Estado</Label>
+                          <Select 
+                            value={editForm.outcome} 
+                            onValueChange={(value) => setEditForm({...editForm, outcome: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar estado" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">Pendiente</SelectItem>
+                              <SelectItem value="rfe">RFE Recibido</SelectItem>
+                              <SelectItem value="noid">NOID Recibido</SelectItem>
+                              <SelectItem value="approved">Aprobado</SelectItem>
+                              <SelectItem value="denied">Denegado</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="service_center">Centro de Servicio</Label>
+                          <Select 
+                            value={editForm.service_center || ''} 
+                            onValueChange={(value) => setEditForm({...editForm, service_center: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar centro" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="TSC">Texas Service Center (TSC)</SelectItem>
+                              <SelectItem value="NSC">Nebraska Service Center (NSC)</SelectItem>
+                              <SelectItem value="CSC">California Service Center (CSC)</SelectItem>
+                              <SelectItem value="VSC">Vermont Service Center (VSC)</SelectItem>
+                              <SelectItem value="NBC">National Benefits Center (NBC)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="filed_date">Fecha de Presentación</Label>
+                          <Input
+                            id="filed_date"
+                            type="date"
+                            value={editForm.filed_date}
+                            onChange={(e) => setEditForm({...editForm, filed_date: e.target.value})}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="description">Descripción / Notas</Label>
+                        <Textarea
+                          id="description"
+                          value={editForm.description}
+                          onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                          placeholder="Notas sobre el caso..."
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setEditModalOpen(false)}>
+                        Cancelar
+                      </Button>
+                      <Button onClick={handleSaveCase} disabled={saving}>
+                        {saving ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Guardando...</>
+                        ) : (
+                          <><Save className="h-4 w-4 mr-2" /> Guardar Cambios</>
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
                 <Button 
                   variant="outline" 
                   size="sm"
