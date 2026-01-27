@@ -23,8 +23,7 @@ async function callLLM(messages) {
       model: 'anthropic/claude-sonnet-4',
       messages,
       temperature: 0.2,
-      max_tokens: 4000,
-      response_format: { type: 'json_object' }
+      max_tokens: 4000
     })
   })
 
@@ -34,7 +33,17 @@ async function callLLM(messages) {
   }
 
   const data = await response.json()
-  return data.choices[0].message.content
+  const content = data.choices[0].message.content
+  
+  // Limpiar markdown si el LLM lo agrega
+  let cleanContent = content
+  if (content.includes('```json')) {
+    cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '')
+  } else if (content.includes('```')) {
+    cleanContent = content.replace(/```\n?/g, '')
+  }
+  
+  return cleanContent.trim()
 }
 
 export async function POST(request, { params }) {
