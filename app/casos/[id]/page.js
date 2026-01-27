@@ -75,6 +75,19 @@ export default function CaseDetailPage() {
   const [auditReport, setAuditReport] = useState(null)
   const [auditing, setAuditing] = useState(false)
   const [activeTab, setActiveTab] = useState('documents')
+  
+  // Edit modal state
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [editForm, setEditForm] = useState({
+    title: '',
+    beneficiary_name: '',
+    visa_category: '',
+    outcome: '',
+    service_center: '',
+    filed_date: '',
+    description: ''
+  })
 
   useEffect(() => {
     if (params.id) {
