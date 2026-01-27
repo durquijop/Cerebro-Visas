@@ -639,6 +639,44 @@ export default function ImportPage() {
                         <Loader2 className="h-6 w-6 animate-spin text-purple-600 mr-2" />
                         <span className="text-purple-700">Analizando contenido del ZIP...</span>
                       </div>
+                    ) : zipPreview?.error ? (
+                      /* Mostrar error si el ZIP es muy grande */
+                      <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="h-6 w-6 text-red-600 shrink-0 mt-0.5" />
+                          <div>
+                            <h4 className="font-semibold text-red-800">Archivo demasiado grande</h4>
+                            <p className="text-sm text-red-700 mt-1">{zipPreview.message}</p>
+                            <p className="text-sm text-red-600 mt-2 font-medium">{zipPreview.suggestion}</p>
+                            <div className="mt-4 flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setZipFile(null)
+                                  setZipPreview(null)
+                                }}
+                              >
+                                Seleccionar otro ZIP
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="bg-blue-50 border-blue-200 text-blue-700"
+                                onClick={() => {
+                                  setZipFile(null)
+                                  setZipPreview(null)
+                                  // Cambiar a tab de archivos
+                                  const filesTab = document.querySelector('[value="local"]')
+                                  if (filesTab) filesTab.click()
+                                }}
+                              >
+                                <HardDrive className="h-4 w-4 mr-1" /> Usar Subir Archivos
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     ) : zipPreview && (
                       <>
                         <div className="flex items-center justify-between">
