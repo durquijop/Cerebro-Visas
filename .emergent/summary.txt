@@ -1,203 +1,231 @@
 <analysis>
-
 **original_problem_statement:**
-The user wants to build a full-stack application named Cerebro Visas en Urpe INTEGRAL SERVICES to manage and analyze US immigration visa cases (specifically EB-2 NIW).
+The user wants to build a full-stack application, Cerebro Visas, to manage and analyze US immigration visa cases. The core goal is to upload case documents, use LLMs for data extraction and analysis, and provide AI-powered tools to improve case preparation and approval rates.
 
-The core of the application revolves around uploading documents (like RFEs, NOIDs, CVs), using LLMs to perform structured data extraction on them, and providing analytics on the extracted data.
+During the session, the user's requests expanded to include:
+- A Drift Detector to identify new trends in USCIS requests (RFE/NOID).
+- A Claim Graph to visually map case arguments to supporting evidence and score their strength.
+- A Robustness Score to provide a top-level KPI for case readiness.
+- A feature to import an entire client case by providing a Google Drive folder link.
+- An alternative feature to import a case by uploading a .zip file.
+- The ability to exclude specific folders/files during the import process.
 
-Based on a specification document provided by the user (Cerebro de visas.pdf), the key modules to be built are:
-- **Capa A - Ingesta y normalización:** Document upload, text extraction (including OCR for scanned documents).
-- **Capa B - Extracción estructurada:** An LLM-based Case Miner to extract structured data (issues, requests, metadata) from documents based on a predefined taxonomy.
-- **Capa C - Memoria dual:** Storing extracted data in a SQL database (Supabase) and preparing for future vector-based (RAG) search.
-- **Capa D - Inteligencia de tendencias:** Dashboards to show trends, issue frequency, and a Drift Detector for changing criteria.
-- **Capa E - Chat + Auditor:** A RAG-based chat for querying the case base and a tool to audit entire case files.
+PRODUCT REQUIREMENTS:
+- **Capa A - Ingesta y normalización:** Document upload (individual, bulk, Drive, ZIP) and text/OCR extraction.
+- **Capa B - Extracción estructurada:** An LLM Case Miner for structured data extraction, including a detailed  of issues.
+- **Capa C - Memoria dual:** Storing data in a SQL database (Supabase) and a vector database () for semantic search, now with page-level citations.
+- **Capa D - Inteligencia de tendencias:** Dashboards for trends, a Drift Detector, and Issue Frequency Engine.
+- **Capa E - Chat + Auditor:** A RAG-based chat that can cite sources by page number, a case audit tool (the Claim Graph), and a Prompt Analyzer.
 
-**User's preferred language**: Spanish (español). The next agent MUST respond in Spanish.
+**User's preferred language**: Spanish (español).
 
 **what currently exists?**
-A Next.js 14 application with Supabase as the backend. The application features a comprehensive document processing pipeline. Users can upload documents, which are processed to extract text (using  with a fallback to OCR via Gemini on OpenRouter for scanned PDFs). A Case Miner module then uses an LLM (Claude/Gemini via OpenRouter) to perform structured data extraction, identifying document type, metadata, issues based on a detailed taxonomy, and specific evidence requests.
+A feature-rich Next.js 14 application with Supabase. The backend for bulk document uploads is now fixed and tested. Several major new features have been added:
 
-The application has the following key views:
--   **Dashboard ():** A central hub with navigation to other modules.
--   **Document View ():** A list of all standalone documents, with options to view details, delete, or manually trigger AI processing.
--   **Case View ():** A list of visa cases. Selecting a case opens a detail panel. A Ver Detalle Completo button leads to a full-page detail view.
--   **Case Detail View ():** A detailed view of a single case, showing associated documents and tabs for aggregated Issues and Requests extracted from those documents.
--   **Trends Dashboard ():** Displays analytics and charts on the extracted data, such as Top Issues, Distribution by Prong, and issue counts.
--   **Taxonomy Editor ():** A full CRUD interface for managing the ~36 issue codes used by the Case Miner.
+- **Drift Detector & Issue Frequency Engine:** A new page () and corresponding APIs (, ) have been created. They analyze document issues over time to detect new patterns and rank the most common problems. The UI successfully displays these alerts and frequency charts.
+- **Page-Level Citations:** The entire document processing and RAG pipeline has been upgraded. Text is extracted per-page, embeddings store page references, and the chat API now provides context with page numbers, which are displayed in the UI as sources.
+- **Intelligent Bulk Upload:** The bulk upload backend () has been significantly improved. It now automatically detects the document type (RFE, NOID, etc.) from the filename and selectively generates embeddings only for relevant analysis documents.
+- **Claim Graph (Foundation):** The foundational backend is in place. SQL tables (, ) and a powerful API () have been created to extract claims, link evidence, and calculate strength scores using an LLM. A UI page () has been created with buttons to trigger this analysis.
+- **Google Drive / ZIP Import (In Progress):** A new UI () and backend APIs (, ) have been created to allow importing a full case from a Google Drive folder or a ZIP file. This feature includes logic for progress bars (using Server-Sent Events) and excluding specific folders from the import.
 
 **Last working item**:
--   **Last item agent was working:** The agent was working on fixing a bug in the Procesamiento desde Casos feature. The user wants to ensure that when a document is uploaded as part of a Caso (and thus saved in the  table), the AI analysis (issues, requests) is correctly performed and saved. The agent had just finished building the Taxonomy Editor and the user explicitly asked to continue with Procesamiento desde Casos.
+-   **Last item agent was working:** Implementing the UI for the Drive/ZIP import feature. Specifically, the agent was adding functionality to the  component to allow the user to click on folders to exclude them and their contents from the import process.
 -   **Status:** IN PROGRESS
 -   **Agent Testing Done:** N
--   **Which testing method agent to use?** The agent should first verify the database schema for . Then, upload a document to a case and check if the structured data is saved correctly in the  table and displayed on the  page. This can be verified with  on the API and by checking the database directly, followed by a  on the frontend.
 -   **User Testing Done:** N
+-   **Which testing method agent to use?** Frontend testing agent. The agent should navigate to the  page and test both the ZIP upload and Google Drive URL flows. The test should verify that:
+    1.  After providing a ZIP file or Drive URL, a file/folder tree is displayed.
+    2.  Clicking a folder marks it (and its files) as excluded visually.
+    3.  The final import process respects these exclusions.
+    4.  The progress bar updates correctly during the import.
 
 **All Pending/In progress Issue list**:
--   **Issue 1: AI Processing fails for documents within Casos (P0 - HIGHEST)**
--   **Issue 2: Authentication is broken, causing a login redirect loop (P1)**
+-   Issue 1: The Drive/ZIP import feature is in a partially implemented state and may contain bugs. (P0 - HIGHEST)
+-   Issue 2: Newly created SQL schemas have not been applied to the database. (P0 - CRITICAL BLOCKER)
+-   Issue 3: The Claim Graph feature is untested end-to-end. (P1)
+-   Issue 4: User authentication is broken for new signups. (P1)
+-   Issue 5: The bulk document upload UI has never been tested. (P2)
 
 **Issues Detail:**
--   **Issue 1: AI Processing fails for documents within Casos**
-    -   **Description**: When a document is associated with a Caso, it's stored in the  table. The AI processing runs, but the structured results (, ) fail to save correctly. The root cause is twofold: 1) The  table was missing the  (JSONB) column to store the analysis. 2) The  and  tables have foreign key constraints that point exclusively to the  table, preventing records linked to a  ID from being inserted.
-    -   **Attempted fixes**: The agent correctly diagnosed the problem. It updated the  endpoint to save the analysis JSON into a  column in the  table. It then asked the user to manually run SQL to add this column (). It also suggested dropping the restrictive foreign key constraints.
+-   **Issue 1: Drive/ZIP Import feature is unstable.**
+    -   **Description**: The user reported a 403 error (API not enabled) and a 500 error (likely from recursive calls) with the Google Drive import. The agent pivoted to add retries, SSE for progress, and then started adding a ZIP import alternative and folder exclusion logic. The feature is complex and was left mid-development.
+    -   **Attempted fixes**: Added retries and delays to the Google Drive API calls. Started implementing Server-Sent Events for progress.
     -   **Next debug checklist**:
-        1.  Confirm with the user if they ran the required SQL commands: 
-        2.  If not, guide them to do so.
-        3.  The best long-term fix is to remove the foreign key constraints and handle the relationships in the application logic, or redesign the schema to better support this polymorphism. The agent should modify the schema by removing the foreign keys:
-            
-        4.  After the schema is fixed, re-test the Procesar con IA button on a document within a case ( -> ).
-        5.  Verify that the  column in the  table is populated and that the UI on  correctly shows the aggregated issues.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a core functionality blocker. Fixing it will complete the Vista de Casos module, allowing for a complete analysis of all documents associated with a visa case.
+        1.  First, ensure Issue #2 is resolved by running the SQL migrations.
+        2.  Test the ZIP import flow, as it's simpler and has no external dependencies.
+        3.  Test the Drive import flow. Confirm with the user that the Google Drive API has been enabled in their Google Cloud project.
+        4.  Verify that the progress bar works and that the folder exclusion logic correctly prevents files from being processed.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a major feature requested by the user to streamline client onboarding. Fixing it will provide a massive improvement to the application's workflow.
     -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: both
-    -   **Blocked on other issue**: None.
+    -   **Blocked on other issue**: Issue 2
 
--   **Issue 2: Authentication is broken, causing a login redirect loop**
-    -   **Description**: A critical issue from the beginning of the session. Authenticated users are often caught in an infinite redirect loop, preventing access to protected routes. The agent has repeatedly bypassed this by adding routes to the public list in  as a temporary workaround.
-    -   **Attempted fixes**: The issue was identified early on but de-prioritized. The workarounds in  are the only fixes applied.
+-   **Issue 2: SQL migrations have not been run.**
+    -   **Description**: The agent created  and  but never executed them. These files create critical tables for the Drift Detector, Claim Graph, and Page-Level Citations. All features built in this session will fail without these DB changes.
+    -   **Attempted fixes**: N/A.
     -   **Next debug checklist**:
-        1.  Remove the temporary additions from the  array in .
-        2.  Review the logic in  for handling Supabase sessions and cookies.
-        3.  Test the login flow and navigation to a protected route like  to reproduce the loop.
-        4.  Debug the  function and the interaction with the Supabase client.
-    -   **Why fix this issue and what will be achieved with the fix?**: The application is not secure or usable for different roles until this is fixed. It is a fundamental architectural flaw.
-    -   **Status**: NOT STARTED (in this session)
-    -   **Is recurring issue?**: Y
+        1.  Open the Supabase SQL Editor.
+        2.  Execute the entire content of .
+        3.  Execute the entire content of .
+    -   **Why fix this issue and what will be achieved with the fix?**: This will fix the database schema, unblocking almost all other new features and allowing them to be tested. **This is a prerequisite for all other tasks.**
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Blocked on other issue**: None
+
+-   **Issue 3: The Claim Graph feature is untested.**
+    -   **Description**: The agent built the UI page, backend API, and LLM prompts for extracting claims and analyzing evidence. However, the full end-to-end flow (navigating to the page, clicking Extract Claims, seeing results) has not been tested.
+    -   **Status**: NOT STARTED
     -   **Should Test frontend/backend/both after fix?**: both
-    -   **Blocked on other issue**: None.
+    -   **Blocked on other issue**: Issue 2
+
+-   **Issue 4: User authentication is broken for new signups.**
+    -   **Description**: The agent discovered that new users who sign up are required to verify their email. In the test environment, this is not possible, blocking them from logging in. The agent bypassed this by using an existing user or making pages public, but the root cause for new user onboarding remains.
+    -   **Status**: NOT STARTED
+    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Blocked on other issue**: None
 
 **In progress Task List**:
-There are no other in-progress tasks. The focus is on fixing the P0 issue.
+-   **Task 1: Complete and Stabilize Drive/ZIP Import Feature (P0)**
+    -   **Where to resume**: Review  and . The immediate goal is to finalize the UI logic for excluding folders and ensure the backend processing respects the user's selections.
+    -   **What will be achieved with this?**: A robust, user-friendly way to ingest entire client cases at once.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on something**: Issue 2: SQL migrations must be run first.
 
 **Upcoming and Future Tasks**
-These tasks are derived from the user-provided Cerebro de Visas.pdf specification.
-
-**Upcoming Tasks (P1):**
--   **(P1) Implement Drift Detector:** Create a module and UI to compare issue distribution over different time periods (e.g., last 60 vs. 180 days) to detect changes in USCIS criteria. This would involve a new API endpoint and a new view.
-
-**Future Tasks (P2 and beyond):**
--   **(P2) Implement Chat RAG:** Set up  in Supabase, create embeddings for documents upon upload, and build a chat interface that allows users to ask questions about the case base (e.g., ¿Qué causa más RFEs en NIW Q3 2025?).
--   **(P2) Implement Auditor de Expediente:** Create a feature where a user can upload a full case package, and the system provides a comprehensive checklist of strengths and weaknesses against the P1/P2/P3 prongs.
--   **(P2) Implement Cohort Analyzer:** Build UI to filter and compare trends by various cohorts like industry, visa type, or service center.
--   **(P3) Implement Claim Graph:** A more advanced feature to create a visual graph mapping claims to supporting evidence with a calculated strength score.
--   **(P3) Implement PII Redaction:** Add a step in the processing pipeline to automatically find and redact Personally Identifiable Information before saving text content.
+-   **(P1) Implement Cohort Analyzer by Industry**: Add an  field to cases and modify the Cohort Analyzer to allow grouping by this new field.
+-   **(P1) Add Visual Graph to Claim Graph**: Enhance the  page with an interactive graph visualization (e.g., using D3.js or a similar library) to show relationships between claims and evidence.
+-   **(P2) Export Auditor Report to PDF**: Add a feature to export the Auditor de Expediente report to a PDF.
+-   **(P2) Improve Prompt History UI**: Enhance the UI to more clearly show the status of each entry.
 
 **Completed work in this session**
--   **Bug Fix:** Resolved a critical crash on the  page caused by an invalid  value.
--   **Feature: OCR for Scanned PDFs:** Implemented a robust text extraction pipeline that uses  and automatically falls back to an OCR service (Gemini via OpenRouter) if the PDF is scanned. This was a major multi-step effort.
--   **Feature: Structured Data Extraction (Case Miner):** Created the  module. This uses a powerful LLM prompt to extract a rich JSON object from document text, including issues mapped to a taxonomy, evidence requests, and document metadata.
--   **Feature: Document Date Extraction:** Added a feature to extract the document's date from its content during processing.
--   **Feature: Trends Dashboard ():** Built a new dashboard with  to visualize extracted data, including top issues, distribution by prong, and issue counts. Added a descriptive legend as requested.
--   **Feature: Taxonomy Editor ():** Implemented a full CRUD interface for managing the issue taxonomy codes stored in the database.
--   **Feature: Manual AI Processing:** Added a Procesar con IA button on the document detail page to allow users to trigger analysis on-demand.
--   **UI/UX Enhancements:**
-    -   Created and fixed the document detail page ().
-    -   Integrated the detailed case view () with the main case list.
-    -   Added a delete button with confirmation to the main document list.
-    -   Fixed stale data on the  page by disabling server-side caching.
-    -   Added a Back button to the Trends dashboard.
-    -   Fixed filenames not appearing correctly in the case detail view.
+- **Fixed Bulk Upload Backend**: Resolved a critical crash and multiple schema-related bugs. The backend at  is now robust and tested via curl.
+- **Implemented Intelligent Embeddings**: The bulk upload process now auto-detects document types from filenames and only generates embeddings for analysis-heavy documents (, , ).
+- **Implemented Page-Level Citations**: The entire RAG pipeline (processing, storage, API, UI) was upgraded to support and display page number citations for sources.
+- **Implemented Drift Detector**: Created database tables, a backend API, and a new UI page () to show emerging trends in document issues.
+- **Implemented Issue Frequency Engine**: Created a backend API and integrated it into the Drift Detector UI to show a ranked list of the most common issues.
+- **Implemented Claim Graph Foundation**: Created the database schema, a powerful backend API for LLM-based claim/evidence analysis, and the initial UI page.
+- **Dashboard Integration**: Added links to all new features (Drift Detector, Drive Import) on the main dashboard.
+- **Started Drive/ZIP Import Feature**: Created the initial UI and backend APIs for both import methods, including logic for progress bars and folder exclusion.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: Auth Redirect Loop**: This is the most critical unresolved issue, as described in All Pending/In progress Issue list.
+-   **Issue 1: Supabase Email Verification for New Users**
+    -   **Debug checklist**:
+        1.  Navigate to the Supabase project settings.
+        2.  Go to the Authentication -> Providers section.
+        3.  Find the Email provider settings.
+        4.  Disable the Confirm email toggle.
+        5.  This will allow new users to log in immediately after signing up, which is suitable for a development environment.
+    -   **Why to solve this issue and what will be achieved with this?**: This will fix the user onboarding flow and allow for proper end-to-end testing of features that require authentication, without needing workarounds.
+    -   **Should Test frontend/backend/both after fix**: backend
+    -   **Is recurring issue?**: Y
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Framework:** Next.js 14 (App Router)
--   **Backend:** Next.js API Routes
--   **Database:** Supabase (PostgreSQL)
--   **UI:** shadcn/ui, Tailwind CSS, Recharts for charts
--   **AI/LLM:** OpenRouter is used as a gateway to access models like Google Gemini and Anthropic Claude for OCR and structured data extraction.
--   **Text Extraction:** A hybrid approach using  for text-based PDFs and a custom  for scanned PDFs.
+- **Framework:** Next.js 14 (App Router)
+- **Database:** Supabase (PostgreSQL) with **pgvector**.
+- **AI/LLM:** OpenRouter for various models ().
+- **File Processing:**  for PDF text extraction (now page-aware), **** for ZIP file handling.
+- **Real-time UI:** **Server-Sent Events (SSE)** for live progress bars during imports.
+- **External APIs:** **Google Drive API**.
 
 **key DB schema**
--   : { id, name, text_content, **document_date (DATE)**, **ai_analysis (JSONB)** } - Standalone documents.
--   : { id, case_id, original_name, text_content, **structured_data (JSONB)** } - Documents belonging to a case. **This table is central to the current P0 issue.**
--   : { id, title, beneficiary_name, cv_analysis } - Main cases table.
--   : { id, code, description, prong, category, level1, level2 } - (New) Stores the definitions of issue codes.
--   : { id, document_id, issue_code, severity, quote } - (New) Stores issues found in documents. **Has a problematic FK to .**
--   : { id, document_id, request_text } - (New) Stores evidence requests from USCIS. **Has a problematic FK to .**
-
-**changes in tech stack**
--    was added for creating charts in the Trends Dashboard.
--    and  were tried for OCR but removed due to conflicts. The current solution uses direct API calls with file buffers.
+- : (MODIFIED) Added  (text) to store the page number of the text chunk.
+- : (NEW) { case_id, claim_text, prong_mapping, evidence_strength_score, status }
+- : (NEW) { claim_id, evidence_doc_id, strength_score, rationale, gaps_identified }
+- : (NEW) { taxonomy_code, alert_type, change_pct, severity }
+- : (NEW) { cohort_type, cohort_value, period_start, rfe_rate, top_issues }
 
 **All files of reference**
--   : The heart of the AI extraction logic. Contains the main prompt.
--   : The primary entry point for document processing.
--   : The corresponding entry point for documents uploaded to a case.
--   : The endpoint for the current P0 bug investigation. It tries to process a document on-demand.
--   : The UI where the on-demand processing is triggered and results are displayed.
--   : Contains workarounds for the authentication bug.
--   : The SQL script defining the new tables.
-
-**Areas that need refactoring**
--   **Database Schema for Documents:** The separation and differing structures of  and  are a source of bugs. The foreign key constraints on  and  are too restrictive. This needs a redesign, possibly a single  table with a nullable .
--   **:** This remains a very large god component that is difficult to maintain. It should be broken down into smaller components.
--   **Ad-hoc SQL Migrations:** The agent repeatedly asks the user to run  commands. This is error-prone. A consolidated, idempotent migration script should be created and maintained.
-
-**key api endpoints**
--   : Uploads a document, runs text extraction/OCR, and triggers the Case Miner.
--   : Manually triggers the Case Miner for an existing document.
--   : Aggregates data from  for the trends dashboard.
--   , : CRUD endpoints for the taxonomy editor.
+-   : **CRITICAL**. Contains schema for new P0 features. Must be executed.
+-   : **CRITICAL**. Adds page reference column. Must be executed.
+-   : The UI for the in-progress import feature.
+-   : The backend for the in-progress import feature.
+-   : The new, untested UI for the Claim Graph.
+-   : The new, untested API for the Claim Graph.
+-   : The UI for the new, working Drift Detector feature.
+-   : The fixed and improved backend for bulk uploads.
 
 **Critical Info for New Agent**
--   **IMMEDIATE ACTION:** Your top priority is to fix the Procesamiento desde Casos feature. The user just asked for this. The core of the problem lies in the database schema. You must ensure that analysis results for documents in  can be saved and retrieved. Verify if the user has added the  column to . You will likely need to remove the restrictive foreign keys on  and .
--   **FIX AUTHENTICATION:** The original authentication redirect loop was never solved and is a critical bug. After fixing the P0 issue, this should be the next priority.
--   **CONSOLIDATE MIGRATIONS:** Instead of asking the user to run one-off SQL commands, create a single, versioned SQL migration file that can be run to bring any schema up to date. This will prevent future schema drift bugs.
-
-**documents created in this job**
--   
--   
--   
--   
--   
--   
--   
--   
--   
--   
--   
--   
--   Multiple files were overwritten or significantly edited.
+-   **IMMEDIATE ACTION REQUIRED**: You **MUST** run the SQL files  and  in the Supabase SQL Editor. The majority of the new features built in the last session depend on these database schema changes and will fail without them.
+-   **TOP PRIORITY**: Your first development task is to stabilize and complete the Drive/ZIP import feature, which was left in a half-finished state. Start by testing the simpler ZIP import flow, then move to the Google Drive flow.
+-   **AUTH IS BROKEN**: New user signup is broken due to a required email verification step in Supabase. For testing, you can either use the existing user  (if sessions persist) or disable email confirmation in the Supabase project settings.
+-   **TEST NEW FEATURES**: After running the SQL migrations, the Claim Graph () and Drift Detector () are ready for end-to-end testing.
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. : Requests to continue with fixing Procesamiento desde Casos. (IN PROGRESS)
-9.  : Asks for an updated list of what's done and what's pending. (COMPLETED)
-8.  : Reports the Taxonomía section is not visible in the main dashboard navigation. (COMPLETED, agent added the link).
-7.  : Asks to proceed with the Taxonomía editable task. (COMPLETED)
-6.  : After on-demand processing, reports a success message but the UI doesn't update. (IN PROGRESS - this is the core of the P0 issue).
-5.  : Asks if AI processing can be triggered manually for a document that was missed. (COMPLETED, feature was implemented).
-4.  : Reports that the document name is not showing correctly in the case detail view. (COMPLETED)
-3.  : Reports not being able to navigate to the new detailed case view. (COMPLETED, agent added a button).
-2.  : Asks which case view was edited. (COMPLETED, agent clarified).
-1.  : Asks for a back arrow on the Trends Dashboard. (COMPLETED)
+10. Asks for a way to import from a Google Drive folder. (IN PROGRESS)
+9.  Provides details for the Drive import: use sub-folders, handle many files. (IN PROGRESS)
+8.  Provides the Google Drive API Key. (DONE)
+7.  Shows a screenshot of a 403 error from the Drive import. (ADDRESSED, needs user to enable API).
+6.  Reports a 500 error and asks for a progress bar for the Drive import. (IN PROGRESS)
+5.  Suggests using a .zip file upload as an alternative to Google Drive. (IN PROGRESS)
+4.  Asks to be able to exclude folders from the import process. (IN PROGRESS)
+3.  Asks to start work on the Claim Graph. (DONE)
+2.  Asks to implement Citas con página/párrafo. (DONE)
+1.  Asks for an explanation of which partially implemented features are most important. (DONE)
 
 **Project Health Check:**
 -   **Broken**:
-    -   AI analysis saving for documents within a Caso ().
-    -   Core user authentication flow (redirect loop).
+    -   The Google Drive / ZIP import feature is mid-development and not functional.
+    -   The database schema is out of sync with the code, breaking all new features.
+    -   The authentication flow for new users is broken due to email verification.
 -   **Mocked**: None.
 
 **3rd Party Integrations**
--   **Supabase**: For database, auth, and storage. Requires user-provided keys.
--   **OpenRouter**: For LLM access (Gemini, Claude). Uses an API Key which is present in the environment variables.
+-   **Supabase**: For database, auth, storage, and . Requires user-provided keys.
+-   **OpenRouter**: For all LLM and embedding model access. Uses an API Key from environment variables.
+-   **Google Drive API**: To list and download files from a user's Google Drive. Requires a user-provided API key, which has been added to .
+-   **adm-zip**: A new npm <command>
+
+Usage:
+
+npm install        install all the dependencies in your project
+npm install <foo>  add the <foo> dependency to your project
+npm test           run this project's tests
+npm run <foo>      run the script named <foo>
+npm <command> -h   quick help on <command>
+npm -l             display usage info for all commands
+npm help <term>    search for help on <term>
+npm help npm       more involved overview
+
+All commands:
+
+    access, adduser, audit, bugs, cache, ci, completion,
+    config, dedupe, deprecate, diff, dist-tag, docs, doctor,
+    edit, exec, explain, explore, find-dupes, fund, get, help,
+    help-search, hook, init, install, install-ci-test,
+    install-test, link, ll, login, logout, ls, org, outdated,
+    owner, pack, ping, pkg, prefix, profile, prune, publish,
+    query, rebuild, repo, restart, root, run-script, sbom,
+    search, set, shrinkwrap, star, stars, start, stop, team,
+    test, token, uninstall, unpublish, unstar, update, version,
+    view, whoami
+
+Specify configs in the ini-formatted file:
+    /root/.npmrc
+or on the command line via: npm <command> --key=value
+
+More configuration info: npm help config
+Configuration fields: npm help 7 config
+
+npm@10.8.2 /usr/lib/node_modules/npm dependency for handling .zip files on the backend.
+-   **react-markdown**: Used for rendering chat responses.
 
 **Testing status**
 -   Testing agent used after significant changes: NO
 -   Troubleshoot agent used after agent stuck in loop: NO
 -   Test files created: None.
--   Known regressions: The authentication system remains broken.
+-   Known regressions: New user signup is effectively broken.
 
 **Credentials to test flow:**
-User has provided Supabase and OpenRouter credentials, which are available as environment variables.
+-   An active user session for  may exist.
+-   A new user  was created, but cannot log in due to required email verification.
+-   Google Drive API key is present in  as .
 
 **What agent forgot to execute**
--   The agent has not created a consolidated database migration script, despite repeatedly encountering schema drift issues and asking the user to run ad-hoc SQL commands. This is a process improvement that was missed.
--   The agent has consistently de-prioritized and bypassed the critical authentication bug instead of fixing it.
-
+-   The agent created two critical SQL migration files ( and ) but **never ran them on the database**. This is a critical oversight that will cause the Drift Detector, Claim Graph, and page-level citation features to fail. This must be the very first action taken.
 </analysis>
