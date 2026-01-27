@@ -79,14 +79,55 @@ export async function POST(request, { params }) {
     const visaType = isEB1A ? 'EB1A' : 'NIW'
     
     console.log(`🔬 Analizando caso ${caseData.title} como ${visaType}`)
+    console.log(`📂 Total documentos: ${documents.length}`)
 
-    // Preparar el contenido de los documentos
-    const docsContent = documents.map(doc => ({
+    // Separar documentos por prioridad
+    const rfeNoidDocs = documents.filter(d => 
+      ['RFE', 'NOID', 'Denial'].includes(d.doc_type)
+    )
+    const petitionDocs = documents.filter(d => 
+      ['Petition Letter', 'Business Plan'].includes(d.doc_type)
+    )
+    const evidenceDocs = documents.filter(d => 
+      ['Carta de Recomendación', 'CV/Resume', 'Evidencia'].includes(d.doc_type)
+    )
+    const otherDocs = documents.filter(d => 
+      !['RFE', 'NOID', 'Denial', 'Petition Letter', 'Business Plan', 'Carta de Recomendación', 'CV/Resume', 'Evidencia'].includes(d.doc_type)
+    )
+
+    console.log(`📋 RFE/NOID: ${rfeNoidDocs.length}, Petition: ${petitionDocs.length}, Evidence: ${evidenceDocs.length}, Other: ${otherDocs.length}`)
+
+    // Preparar contenido con límites diferentes según prioridad
+    const prepareDoc = (doc, maxChars) => ({
       type: doc.doc_type,
       name: doc.original_name,
-      content: doc.text_content?.substring(0, 5000) || 'Sin contenido',
-      structuredData: doc.structured_data || null
-    }))
+      content: doc.text_content?.substring(0, maxChars) || 'Sin contenido',
+      wordCount: doc.word_count || 0
+    })
+
+    // RFE/NOID: máximo contenido (son los más importantes)
+    const rfeContent = rfeNoidDocs.map(d => prepareDoc(d, 25000))
+    
+    // Petition/Business Plan: contenido alto
+    const petitionContent = petitionDocs.map(d => prepareDoc(d, 15000))
+    
+    // Cartas de recomendación y CV: contenido medio
+    const evidenceContent = evidenceDocs.map(d => prepareDoc(d, 8000))
+    
+    // Otros documentos: solo resumen
+    const otherContent = otherDocs.map(d => prepareDoc(d, 3000))
+
+    const docsContent = {
+      rfe_noid_documents: rfeContent,
+      petition_documents: petitionContent,
+      evidence_documents: evidenceContent,
+      other_documents: otherContent,
+      summary: {
+        total: documents.length,
+        rfe_count: rfeNoidDocs.length,
+        evidence_count: evidenceDocs.length
+      }
+    }
 
     // Determinar el tipo de análisis según el outcome
     const isApproved = caseData.outcome === 'approved'
