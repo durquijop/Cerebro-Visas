@@ -38,6 +38,7 @@ export default function DriveImportPage() {
   const [importing, setImporting] = useState(false)
   const [previewData, setPreviewData] = useState(null)
   const [selectedFiles, setSelectedFiles] = useState(new Set())
+  const [excludedFolders, setExcludedFolders] = useState(new Set())
   const [generateEmbeddings, setGenerateEmbeddings] = useState(true)
   const [importProgress, setImportProgress] = useState(0)
   const [importResults, setImportResults] = useState(null)
