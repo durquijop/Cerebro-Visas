@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { analyzeCaseByVisa } from '@/lib/case-miner'
+import { getTaxonomyForVisa, getAnalysisPrompt } from '@/lib/taxonomy'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -18,7 +20,7 @@ async function callLLM(messages) {
       'X-Title': 'Cerebro Visas'
     },
     body: JSON.stringify({
-      model: 'openai/gpt-4o-mini',
+      model: 'anthropic/claude-sonnet-4',
       messages,
       temperature: 0.2,
       max_tokens: 4000,
@@ -62,11 +64,19 @@ export async function POST(request, { params }) {
       )
     }
 
+    // Detectar tipo de visa
+    const visaCategory = caseData.visa_category || 'EB2-NIW'
+    const isEB1A = visaCategory.toUpperCase().includes('EB1')
+    const visaType = isEB1A ? 'EB1A' : 'NIW'
+    
+    console.log(`🔬 Analizando caso ${caseData.title} como ${visaType}`)
+
     // Preparar el contenido de los documentos
     const docsContent = documents.map(doc => ({
       type: doc.doc_type,
       name: doc.original_name,
-      content: doc.text_content?.substring(0, 5000) || 'Sin contenido'
+      content: doc.text_content?.substring(0, 5000) || 'Sin contenido',
+      structuredData: doc.structured_data || null
     }))
 
     // Determinar el tipo de análisis según el outcome
@@ -74,78 +84,127 @@ export async function POST(request, { params }) {
     const isRFE = caseData.outcome === 'rfe' || caseData.outcome === 'noid'
     const isDenied = caseData.outcome === 'denied'
 
+    // Obtener contexto de análisis según visa
+    const analysisContext = getAnalysisPrompt(visaType)
+    
     let analysisPrompt = ''
 
-    if (isApproved) {
-      analysisPrompt = `Eres un experto en visas EB-2 NIW. Este caso fue APROBADO.
+    if (isEB1A) {
+      // Análisis EB-1A
+      analysisPrompt = `${analysisContext.system}
 
-Analiza los documentos y extrae:
-1. Las FORTALEZAS del caso: ¿Qué se hizo bien? ¿Qué estrategias funcionaron?
-2. MEJORES PRÁCTICAS: ¿Qué pueden aprender otros casos de éste?
-3. RECOMENDACIONES: Consejos para replicar este éxito.
+${analysisContext.criteria_explanation}
+
+${isRFE ? `
+ESTE CASO RECIBIÓ UN RFE/NOID. Analiza:
+1. ¿Qué criterios fueron cuestionados?
+2. ¿Qué evidencia adicional se necesita para cada criterio?
+3. ¿Se cuestiona la "aclamación sostenida" o estar en el "top del campo"?
+` : isApproved ? `
+ESTE CASO FUE APROBADO. Analiza:
+1. ¿Qué criterios fueron aceptados?
+2. ¿Qué estrategias funcionaron?
+` : isDenied ? `
+ESTE CASO FUE DENEGADO. Analiza:
+1. ¿Qué criterios fallaron?
+2. ¿Qué se puede mejorar si se presenta de nuevo?
+` : `
+ESTE CASO ESTÁ PENDIENTE. Analiza:
+1. ¿Qué criterios están bien documentados?
+2. ¿Qué criterios necesitan más evidencia?
+3. ¿Hay riesgo de RFE? ¿En qué criterios?
+`}
 
 Responde SOLO con JSON:
 {
+  "visa_type": "EB1A",
   "summary": "Resumen ejecutivo del análisis (2-3 oraciones)",
-  "strengths": ["Lista de fortalezas y lo que se hizo bien"],
-  "best_practices": ["Mejores prácticas identificadas"],
-  "recommendations": ["Recomendaciones para futuros casos"]
-}`
-    } else if (isRFE) {
-      analysisPrompt = `Eres un experto en visas EB-2 NIW. Este caso recibió un RFE/NOID.
-
-Analiza los documentos y el RFE para identificar:
-1. DEBILIDADES: ¿Qué problemas tenían los documentos originales?
-2. CAUSAS del RFE: ¿Por qué USCIS pidió más evidencia?
-3. RECOMENDACIONES: ¿Cómo se debería responder? ¿Qué mejorar?
-
-Busca específicamente:
-- Prong 1: ¿Se demostró importancia nacional?
-- Prong 2: ¿Se demostró que el beneficiario está bien posicionado?
-- Prong 3: ¿Se justificó el waiver del labor certification?
-
-Responde SOLO con JSON:
-{
-  "summary": "Resumen del análisis del RFE (2-3 oraciones)",
-  "weaknesses": ["Lista de debilidades identificadas en los documentos"],
-  "rfe_causes": ["Causas probables del RFE según el análisis"],
-  "prong_analysis": {
-    "p1": "Análisis de Prong 1",
-    "p2": "Análisis de Prong 2",
-    "p3": "Análisis de Prong 3"
+  "criteria_assessment": {
+    "C1_PREMIOS": {"status": "strong|adequate|weak|not_claimed", "notes": "..."},
+    "C2_MEMBRESIAS": {"status": "strong|adequate|weak|not_claimed", "notes": "..."},
+    "C3_MATERIAL_PUBLICADO": {"status": "strong|adequate|weak|not_claimed", "notes": "..."},
+    "C4_JUEZ": {"status": "strong|adequate|weak|not_claimed", "notes": "..."},
+    "C5_CONTRIBUCIONES": {"status": "strong|adequate|weak|not_claimed", "notes": "..."},
+    "C6_ARTICULOS": {"status": "strong|adequate|weak|not_claimed", "notes": "..."},
+    "C7_EXHIBICIONES": {"status": "strong|adequate|weak|not_claimed", "notes": "..."},
+    "C8_ROL_PRINCIPAL": {"status": "strong|adequate|weak|not_claimed", "notes": "..."},
+    "C9_SALARIO_ALTO": {"status": "strong|adequate|weak|not_claimed", "notes": "..."},
+    "C10_EXITO_COMERCIAL": {"status": "strong|adequate|weak|not_claimed", "notes": "..."}
   },
-  "recommendations": ["Recomendaciones específicas para responder al RFE"]
-}`
-    } else if (isDenied) {
-      analysisPrompt = `Eres un experto en visas EB-2 NIW. Este caso fue DENEGADO.
-
-Analiza los documentos para identificar:
-1. ERRORES CRÍTICOS: ¿Qué falló en el caso?
-2. DEBILIDADES: Problemas en los documentos y argumentación
-3. LECCIONES: ¿Qué se puede aprender de este caso?
-
-Responde SOLO con JSON:
-{
-  "summary": "Resumen del análisis de la denegación (2-3 oraciones)",
-  "critical_errors": ["Errores críticos que llevaron a la denegación"],
-  "weaknesses": ["Debilidades en los documentos"],
-  "lessons_learned": ["Lecciones aprendidas"],
-  "recommendations": ["Recomendaciones si se presenta una moción o nuevo caso"]
+  "criteria_count": {
+    "strong": <número>,
+    "adequate": <número>,
+    "weak": <número>,
+    "not_claimed": <número>
+  },
+  "meets_3_criteria": <true/false>,
+  "sustained_acclaim": {
+    "demonstrated": <true/false>,
+    "concerns": "..."
+  },
+  "strengths": ["Lista de fortalezas"],
+  "weaknesses": ["Lista de debilidades"],
+  "recommendations": ["Recomendaciones específicas para EB-1A"],
+  "overall_score": <0-100>
 }`
     } else {
-      analysisPrompt = `Eres un experto en visas EB-2 NIW. Este caso está PENDIENTE.
+      // Análisis NIW
+      analysisPrompt = `${analysisContext.system}
 
-Analiza los documentos para identificar:
-1. FORTALEZAS: ¿Qué está bien en el caso actual?
-2. POSIBLES DEBILIDADES: ¿Qué podría causar un RFE?
-3. RECOMENDACIONES: ¿Qué se puede mejorar antes de presentar?
+${isRFE ? `
+ESTE CASO RECIBIÓ UN RFE/NOID. Analiza:
+1. ¿Qué Prongs fueron cuestionados?
+2. ¿Cuáles fueron las deficiencias específicas en cada Prong?
+3. ¿Qué evidencia adicional se necesita?
+` : isApproved ? `
+ESTE CASO FUE APROBADO. Analiza:
+1. ¿Qué hizo bien el caso en cada Prong?
+2. ¿Qué estrategias funcionaron?
+` : isDenied ? `
+ESTE CASO FUE DENEGADO. Analiza:
+1. ¿Qué Prong(s) fallaron?
+2. ¿Qué se puede mejorar?
+` : `
+ESTE CASO ESTÁ PENDIENTE. Analiza:
+1. ¿Qué tan fuerte está cada Prong?
+2. ¿Dónde hay riesgo de RFE?
+3. ¿Qué se puede reforzar?
+`}
 
 Responde SOLO con JSON:
 {
-  "summary": "Resumen del estado actual del caso (2-3 oraciones)",
-  "strengths": ["Fortalezas actuales del caso"],
-  "weaknesses": ["Posibles debilidades o riesgos de RFE"],
-  "recommendations": ["Recomendaciones para fortalecer el caso"]
+  "visa_type": "NIW",
+  "summary": "Resumen ejecutivo del análisis (2-3 oraciones)",
+  "prong_analysis": {
+    "P1": {
+      "name": "Mérito Sustancial e Importancia Nacional",
+      "score": <0-100>,
+      "status": "strong|adequate|weak",
+      "notes": "Análisis del Prong 1",
+      "deficiencies": ["Lista de deficiencias si hay"],
+      "recommendations": ["Recomendaciones específicas"]
+    },
+    "P2": {
+      "name": "Bien Posicionado para Avanzar",
+      "score": <0-100>,
+      "status": "strong|adequate|weak",
+      "notes": "Análisis del Prong 2",
+      "deficiencies": ["Lista de deficiencias si hay"],
+      "recommendations": ["Recomendaciones específicas"]
+    },
+    "P3": {
+      "name": "Balance de Factores (Waiver)",
+      "score": <0-100>,
+      "status": "strong|adequate|weak",
+      "notes": "Análisis del Prong 3",
+      "deficiencies": ["Lista de deficiencias si hay"],
+      "recommendations": ["Recomendaciones específicas"]
+    }
+  },
+  "strengths": ["Lista de fortalezas del caso"],
+  "weaknesses": ["Lista de debilidades"],
+  "recommendations": ["Recomendaciones generales prioritarias"],
+  "overall_score": <0-100>
 }`
     }
 
@@ -154,7 +213,7 @@ Responde SOLO con JSON:
       { role: 'system', content: analysisPrompt },
       { 
         role: 'user', 
-        content: `CASO: ${caseData.title}\nCATEGORÍA: ${caseData.visa_category}\nESTADO: ${caseData.outcome}\n\nDOCUMENTOS:\n${JSON.stringify(docsContent, null, 2)}`
+        content: `CASO: ${caseData.title}\nCATEGORÍA: ${visaCategory}\nBENEFICIARIO: ${caseData.beneficiary_name || 'No especificado'}\nESTADO: ${caseData.outcome}\n\nDOCUMENTOS (${documents.length}):\n${JSON.stringify(docsContent, null, 2)}`
       }
     ])
 
@@ -169,6 +228,8 @@ Responde SOLO con JSON:
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
+
+    console.log(`✅ Análisis completado: Score ${analysis.overall_score}`)
 
     return NextResponse.json({ analysis })
   } catch (error) {
