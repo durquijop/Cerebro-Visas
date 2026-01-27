@@ -204,7 +204,7 @@ export default function CaseDetailPage() {
     try {
       setSaving(true)
       const response = await fetch(`/api/casos/${params.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editForm)
       })
