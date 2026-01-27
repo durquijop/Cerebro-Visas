@@ -10,7 +10,8 @@ const publicRoutes = [
   '/auth/callback',
   '/auth/auth-code-error',
   '/drift-detector',  // Temporalmente público para desarrollo
-  '/taxonomy'         // Temporalmente público para desarrollo
+  '/taxonomy',        // Temporalmente público para desarrollo
+  '/drive-import'     // Temporalmente público para desarrollo
 ]
 
 // Rutas que son públicas si empiezan con estos prefijos
