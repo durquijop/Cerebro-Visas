@@ -8,13 +8,32 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton-loaders'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { 
   Brain, ArrowLeft, FileText, Trash2, Upload,
   Calendar, Loader2, AlertCircle, AlertTriangle,
   CheckCircle, XCircle, Clock, User, Building2,
   FolderOpen, BarChart3, ClipboardList, Eye,
   TrendingUp, ClipboardCheck, Target, Lightbulb, Shield,
-  ChevronRight, AlertOctagon, Info, BookOpen
+  ChevronRight, AlertOctagon, Info, BookOpen, Pencil, Save
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
