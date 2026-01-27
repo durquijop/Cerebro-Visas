@@ -619,24 +619,62 @@ export default function ImportPage() {
           </Card>
         )}
 
-        {/* Nombre del cliente */}
+        {/* Nombre del cliente o Caso existente */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-lg">Información del Cliente</CardTitle>
+            <CardDescription>
+              Crea un caso nuevo o agrega archivos a uno existente
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4 items-end">
-              <div className="flex-1">
+            <div className="space-y-4">
+              {/* Selector de caso existente */}
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre del Cliente / Caso
+                  ¿Agregar a caso existente?
                 </label>
-                <Input
-                  placeholder="Ej: Juan Pérez"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
+                <select
+                  className="w-full p-2 border rounded-lg bg-white"
+                  value={selectedCaseId || ''}
+                  onChange={(e) => setSelectedCaseId(e.target.value || null)}
                   disabled={importing || uploadingZip}
-                />
+                >
+                  <option value="">— Crear caso nuevo —</option>
+                  {existingCases.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.title || c.beneficiary_name} ({c.documents_count || 0} docs)
+                    </option>
+                  ))}
+                </select>
               </div>
+
+              {/* Nombre del cliente (solo si es caso nuevo) */}
+              {!selectedCaseId && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nombre del Cliente / Caso
+                  </label>
+                  <Input
+                    placeholder="Ej: Juan Pérez"
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    disabled={importing || uploadingZip}
+                  />
+                </div>
+              )}
+
+              {/* Info del caso seleccionado */}
+              {selectedCaseId && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Caso seleccionado:</strong> {clientName}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    {existingDocNames.size} documentos ya subidos — los duplicados se omitirán automáticamente
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
