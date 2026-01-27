@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { 
   FolderOpen, FileText, Upload, Search, Loader2, CheckCircle, 
   XCircle, AlertTriangle, Brain, ArrowLeft, FolderTree,
-  File, ChevronRight, RefreshCw, Sparkles
+  File, ChevronRight, RefreshCw, Sparkles, Folder
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -41,6 +41,7 @@ export default function DriveImportPage() {
   const [generateEmbeddings, setGenerateEmbeddings] = useState(true)
   const [importProgress, setImportProgress] = useState(0)
   const [importResults, setImportResults] = useState(null)
+  const [scanProgress, setScanProgress] = useState(null)
 
   const previewFolder = async () => {
     if (!driveUrl.trim()) {
@@ -51,6 +52,7 @@ export default function DriveImportPage() {
     try {
       setLoading(true)
       setPreviewData(null)
+      setScanProgress({ status: 'starting', message: 'Conectando con Google Drive...' })
       
       const res = await fetch('/api/drive-import', {
         method: 'POST',
@@ -70,10 +72,12 @@ export default function DriveImportPage() {
       setPreviewData(data)
       // Seleccionar todos por defecto
       setSelectedFiles(new Set(data.files.map(f => f.id)))
-      toast.success(`${data.processable_files} archivos encontrados`)
+      setScanProgress({ status: 'complete', message: 'Escaneo completado' })
+      toast.success(`${data.processable_files} archivos encontrados en ${data.folders_scanned || 0} carpetas`)
 
     } catch (error) {
       console.error('Preview error:', error)
+      setScanProgress({ status: 'error', message: error.message })
       toast.error(error.message)
     } finally {
       setLoading(false)
@@ -197,6 +201,7 @@ export default function DriveImportPage() {
                 value={driveUrl}
                 onChange={(e) => setDriveUrl(e.target.value)}
                 className="flex-1"
+                disabled={loading}
               />
               <Button onClick={previewFolder} disabled={loading}>
                 {loading ? (
@@ -204,9 +209,37 @@ export default function DriveImportPage() {
                 ) : (
                   <FolderTree className="h-4 w-4 mr-2" />
                 )}
-                {loading ? 'Explorando...' : 'Explorar Carpeta'}
+                {loading ? 'Escaneando...' : 'Explorar Carpeta'}
               </Button>
             </div>
+
+            {/* Barra de progreso del escaneo */}
+            {loading && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-3 mb-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                  <span className="font-medium text-blue-800">
+                    {scanProgress?.message || 'Escaneando carpetas...'}
+                  </span>
+                </div>
+                <Progress value={undefined} className="h-2" />
+                <p className="text-xs text-blue-600 mt-2">
+                  Explorando subcarpetas y detectando tipos de documentos...
+                </p>
+              </div>
+            )}
+
+            {scanProgress?.status === 'error' && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <XCircle className="h-5 w-5 text-red-600" />
+                  <span className="font-medium text-red-800">Error: {scanProgress.message}</span>
+                </div>
+                <p className="text-sm text-red-600 mt-2">
+                  Verifica que la carpeta esté compartida como "Cualquier persona con el link" y que la Google Drive API esté habilitada.
+                </p>
+              </div>
+            )}
 
             <div className="text-sm text-gray-500">
               <p>💡 Asegúrate de que la carpeta esté compartida con "Cualquier persona con el link"</p>
@@ -225,11 +258,28 @@ export default function DriveImportPage() {
                   Paso 2: Revisar Archivos Detectados
                 </CardTitle>
                 <CardDescription>
-                  Se encontraron {previewData.total_files} archivos en {previewData.folders_count} carpetas.
+                  Se encontraron {previewData.total_files} archivos en {previewData.folders_scanned || previewData.folders?.length || 0} carpetas.
                   {previewData.processable_files} son procesables.
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {/* Carpetas encontradas */}
+                {previewData.folders && previewData.folders.length > 0 && (
+                  <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                      <Folder className="h-4 w-4" />
+                      Carpetas escaneadas:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {previewData.folders.map((folder, idx) => (
+                        <Badge key={idx} variant="outline" className="text-xs">
+                          {folder}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Agrupados por tipo */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                   {Object.entries(previewData.files_by_type || {}).map(([type, files]) => (
