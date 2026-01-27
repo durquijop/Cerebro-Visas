@@ -79,6 +79,11 @@ export default function ImportPage() {
   const [localFiles, setLocalFiles] = useState([])
   const [isDragging, setIsDragging] = useState(false)
   
+  // Estado para caso existente (agregar más archivos)
+  const [existingCases, setExistingCases] = useState([])
+  const [selectedCaseId, setSelectedCaseId] = useState(null)
+  const [existingDocNames, setExistingDocNames] = useState(new Set())
+  
   // Estado para ZIP grande (background)
   const [zipFile, setZipFile] = useState(null)
   const [uploadingZip, setUploadingZip] = useState(false)
@@ -87,6 +92,51 @@ export default function ImportPage() {
   // Estado para trabajos en segundo plano
   const [backgroundJobs, setBackgroundJobs] = useState([])
   const [loadingJobs, setLoadingJobs] = useState(true)
+
+  // Cargar casos existentes
+  const loadExistingCases = async () => {
+    try {
+      const res = await fetch('/api/casos')
+      if (res.ok) {
+        const data = await res.json()
+        setExistingCases(data.cases || [])
+      }
+    } catch (err) {
+      console.error('Error loading cases:', err)
+    }
+  }
+
+  // Cargar documentos de un caso para detectar duplicados
+  const loadCaseDocuments = async (caseId) => {
+    if (!caseId) {
+      setExistingDocNames(new Set())
+      return
+    }
+    try {
+      const res = await fetch(`/api/casos/${caseId}`)
+      if (res.ok) {
+        const data = await res.json()
+        const docNames = new Set(data.case?.documents?.map(d => d.original_name) || [])
+        setExistingDocNames(docNames)
+        toast.info(`Caso tiene ${docNames.size} documentos existentes`)
+      }
+    } catch (err) {
+      console.error('Error loading case docs:', err)
+    }
+  }
+
+  // Cuando cambia el caso seleccionado
+  useEffect(() => {
+    if (selectedCaseId) {
+      loadCaseDocuments(selectedCaseId)
+      const selectedCase = existingCases.find(c => c.id === selectedCaseId)
+      if (selectedCase) {
+        setClientName(selectedCase.title || selectedCase.beneficiary_name || '')
+      }
+    } else {
+      setExistingDocNames(new Set())
+    }
+  }, [selectedCaseId])
 
   // Cargar trabajos en segundo plano
   const loadBackgroundJobs = async () => {
