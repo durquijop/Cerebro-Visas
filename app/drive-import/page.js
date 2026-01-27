@@ -135,16 +135,40 @@ export default function ImportPage() {
       return
     }
 
-    const newFiles = validFiles.map(file => ({
-      id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
-      file: file,
-      name: file.name,
-      size: file.size,
-      type: detectDocType(file.name),
-      status: 'pending'
-    }))
-    setLocalFiles(prev => [...prev, ...newFiles])
-    toast.success(`${validFiles.length} archivo(s) agregado(s)`)
+    // Detectar duplicados (comparar por nombre y tamaño)
+    const existingKeys = new Set(localFiles.map(f => `${f.name}-${f.size}`))
+    const newFiles = []
+    let skippedCount = 0
+
+    for (const file of validFiles) {
+      const key = `${file.name}-${file.size}`
+      if (existingKeys.has(key)) {
+        skippedCount++
+      } else {
+        existingKeys.add(key)
+        newFiles.push({
+          id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
+          file: file,
+          name: file.name,
+          size: file.size,
+          type: detectDocType(file.name),
+          status: 'pending'
+        })
+      }
+    }
+
+    if (newFiles.length > 0) {
+      setLocalFiles(prev => [...prev, ...newFiles])
+    }
+
+    // Mostrar mensaje apropiado
+    if (newFiles.length > 0 && skippedCount > 0) {
+      toast.success(`${newFiles.length} nuevos archivos agregados (${skippedCount} duplicados omitidos)`)
+    } else if (newFiles.length > 0) {
+      toast.success(`${newFiles.length} archivo(s) agregado(s)`)
+    } else if (skippedCount > 0) {
+      toast.info(`${skippedCount} archivos ya estaban en la lista`)
+    }
   }
 
   // Manejar selección de archivos locales
