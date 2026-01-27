@@ -519,40 +519,79 @@ export default function ImportPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileUp className="h-5 w-5 text-blue-600" />
-                  Subir Archivos Individuales
+                  Subir Archivos o Carpeta
                 </CardTitle>
                 <CardDescription>
-                  Selecciona o arrastra múltiples PDFs, Word, etc. (máx. 50MB c/u)
+                  Selecciona archivos individuales o una carpeta completa
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Zona de drop/selección */}
+                {/* Botones de selección */}
+                <div className="flex gap-3 mb-4">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={importing}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Seleccionar Archivos
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                    onClick={() => folderInputRef.current?.click()}
+                    disabled={importing}
+                  >
+                    <Folder className="h-4 w-4 mr-2" />
+                    Seleccionar Carpeta
+                  </Button>
+                </div>
+
+                {/* Input oculto para archivos */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.xlsx,.xls"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  disabled={importing}
+                />
+
+                {/* Input oculto para carpeta */}
+                <input
+                  ref={folderInputRef}
+                  type="file"
+                  webkitdirectory=""
+                  directory=""
+                  multiple
+                  onChange={handleFolderSelect}
+                  className="hidden"
+                  disabled={importing}
+                />
+
+                {/* Zona de drop */}
                 <div 
                   className={`border-2 border-dashed rounded-lg p-8 text-center transition-all cursor-pointer mb-4 ${
                     isDragging 
                       ? 'border-blue-500 bg-blue-50 scale-[1.02]' 
                       : 'border-gray-300 hover:border-blue-400'
                   }`}
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => folderInputRef.current?.click()}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                 >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.xlsx,.xls"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    disabled={importing}
-                  />
-                  <Upload className={`h-12 w-12 mx-auto mb-4 transition-colors ${isDragging ? 'text-blue-500' : 'text-gray-400'}`} />
+                  <Folder className={`h-12 w-12 mx-auto mb-4 transition-colors ${isDragging ? 'text-blue-500' : 'text-gray-400'}`} />
                   <p className={`text-lg font-medium ${isDragging ? 'text-blue-700' : 'text-gray-700'}`}>
-                    {isDragging ? '¡Suelta los archivos aquí!' : 'Haz clic o arrastra archivos aquí'}
+                    {isDragging ? '¡Suelta los archivos aquí!' : 'Haz clic para seleccionar una CARPETA'}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    o arrastra archivos/carpetas aquí
                   </p>
                   <p className="text-xs text-gray-400 mt-2">
-                    PDF, Word, Excel, Imágenes
+                    PDF, Word, Excel, Imágenes (se ignoran archivos ocultos)
                   </p>
                 </div>
 
