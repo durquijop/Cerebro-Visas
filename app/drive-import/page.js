@@ -309,6 +309,8 @@ export default function ImportPage() {
   // Limpiar todo
   const clearAll = () => {
     setLocalFiles([])
+    setZipFile(null)
+    setZipPreview(null)
     setImportResults(null)
     setClientName('')
   }
