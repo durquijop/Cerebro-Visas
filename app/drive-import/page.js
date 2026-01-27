@@ -95,6 +95,34 @@ export default function DriveImportPage() {
     setSelectedFiles(newSelected)
   }
 
+  const toggleFolderExclusion = (folderName) => {
+    const newExcluded = new Set(excludedFolders)
+    
+    if (newExcluded.has(folderName)) {
+      // Re-incluir carpeta
+      newExcluded.delete(folderName)
+      // Re-seleccionar archivos de esta carpeta
+      const folderFiles = previewData?.files?.filter(f => 
+        f.path?.startsWith(folderName + '/') || f.parentFolderName === folderName
+      ) || []
+      const newSelected = new Set(selectedFiles)
+      folderFiles.forEach(f => newSelected.add(f.id))
+      setSelectedFiles(newSelected)
+    } else {
+      // Excluir carpeta
+      newExcluded.add(folderName)
+      // Deseleccionar archivos de esta carpeta
+      const folderFiles = previewData?.files?.filter(f => 
+        f.path?.startsWith(folderName + '/') || f.parentFolderName === folderName
+      ) || []
+      const newSelected = new Set(selectedFiles)
+      folderFiles.forEach(f => newSelected.delete(f.id))
+      setSelectedFiles(newSelected)
+    }
+    
+    setExcludedFolders(newExcluded)
+  }
+
   const selectAllByType = (type) => {
     const filesOfType = previewData?.files?.filter(f => f.detectedType === type) || []
     const newSelected = new Set(selectedFiles)
