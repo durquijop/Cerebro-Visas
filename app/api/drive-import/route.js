@@ -39,37 +39,44 @@ export async function POST(request) {
 
       console.log(`📂 Listando carpeta de Drive: ${driveInfo.id}`)
       
-      const { files, folders } = await listDriveFolder(driveInfo.id, true)
-      
-      // Filtrar archivos procesables
-      const processableFiles = filterProcessableFiles(files)
-      
-      // Detectar tipos de documentos
-      const filesWithTypes = processableFiles.map(file => ({
-        ...file,
-        detectedType: detectDocumentType(file.name, file.parentFolderName || ''),
-        sizeFormatted: formatBytes(file.size)
-      }))
+      try {
+        const { files, folders } = await listDriveFolder(driveInfo.id, true)
+        
+        // Filtrar archivos procesables
+        const processableFiles = filterProcessableFiles(files)
+        
+        // Detectar tipos de documentos
+        const filesWithTypes = processableFiles.map(file => ({
+          ...file,
+          detectedType: detectDocumentType(file.name, file.parentFolderName || ''),
+          sizeFormatted: formatBytes(file.size)
+        }))
 
-      // Agrupar por tipo
-      const byType = {}
-      filesWithTypes.forEach(file => {
-        if (!byType[file.detectedType]) {
-          byType[file.detectedType] = []
-        }
-        byType[file.detectedType].push(file)
-      })
+        // Agrupar por tipo
+        const byType = {}
+        filesWithTypes.forEach(file => {
+          if (!byType[file.detectedType]) {
+            byType[file.detectedType] = []
+          }
+          byType[file.detectedType].push(file)
+        })
 
-      return NextResponse.json({
-        success: true,
-        folder_id: driveInfo.id,
-        total_files: files.length,
-        processable_files: processableFiles.length,
-        folders_count: folders.length,
-        files: filesWithTypes,
-        files_by_type: byType,
-        folders: folders.map(f => f.name)
-      })
+        return NextResponse.json({
+          success: true,
+          folder_id: driveInfo.id,
+          total_files: files.length,
+          processable_files: processableFiles.length,
+          folders_scanned: folders.length,
+          files: filesWithTypes,
+          files_by_type: byType,
+          folders: folders
+        })
+      } catch (driveError) {
+        console.error('Drive error:', driveError)
+        return NextResponse.json({ 
+          error: driveError.message || 'Error accediendo a Google Drive'
+        }, { status: 500 })
+      }
     }
 
     // Acción: Importar archivos
