@@ -194,7 +194,7 @@ export default function ClaimGraphPage() {
               <span className="text-xl font-bold text-gold-subtle">Claim Graph</span>
               {caseData && (
                 <p className="text-sm text-gold-muted">
-                  Caso: {caseData.case_name || caseData.beneficiary_name}
+                  Caso: {caseData.title || caseData.beneficiary_name}
                 </p>
               )}
             </div>
