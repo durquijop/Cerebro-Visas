@@ -34,6 +34,17 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No se envió archivo ZIP' }, { status: 400 })
     }
 
+    // Validar tamaño máximo (300MB para evitar problemas de memoria)
+    const MAX_ZIP_SIZE = 300 * 1024 * 1024 // 300MB
+    if (zipFile.size > MAX_ZIP_SIZE) {
+      return NextResponse.json({ 
+        error: `El archivo ZIP es demasiado grande (${formatBytes(zipFile.size)}). El tamaño máximo es 300MB. Por favor divide el ZIP en partes más pequeñas o usa la opción de "Subir Archivos" para subir los documentos directamente.`,
+        size: zipFile.size,
+        maxSize: MAX_ZIP_SIZE,
+        suggestion: 'Divide el ZIP en partes de ~200MB cada una'
+      }, { status: 413 })
+    }
+
     console.log(`📦 Procesando ZIP: ${zipFile.name} (${formatBytes(zipFile.size)})`)
 
     // Leer el ZIP
