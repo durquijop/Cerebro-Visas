@@ -117,7 +117,25 @@ export default function ImportPage() {
 
   // Función para agregar archivos (usada por click y drag&drop)
   const addFiles = (files) => {
-    const newFiles = files.map(file => ({
+    // Filtrar archivos válidos y no ocultos
+    const validFiles = files.filter(file => {
+      const name = file.name.toLowerCase()
+      // Ignorar archivos ocultos y de sistema
+      if (name.startsWith('.') || name.includes('__macosx') || name.includes('.ds_store')) {
+        return false
+      }
+      // Solo aceptar tipos válidos
+      return name.endsWith('.pdf') || name.endsWith('.doc') || name.endsWith('.docx') || 
+             name.endsWith('.txt') || name.endsWith('.png') || name.endsWith('.jpg') || 
+             name.endsWith('.jpeg') || name.endsWith('.xlsx') || name.endsWith('.xls')
+    })
+
+    if (validFiles.length === 0) {
+      toast.error('No se encontraron archivos válidos')
+      return
+    }
+
+    const newFiles = validFiles.map(file => ({
       id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
       file: file,
       name: file.name,
@@ -126,12 +144,19 @@ export default function ImportPage() {
       status: 'pending'
     }))
     setLocalFiles(prev => [...prev, ...newFiles])
-    toast.success(`${files.length} archivo(s) agregado(s)`)
+    toast.success(`${validFiles.length} archivo(s) agregado(s)`)
   }
 
   // Manejar selección de archivos locales
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files)
+    addFiles(files)
+  }
+
+  // Manejar selección de carpeta
+  const handleFolderSelect = (e) => {
+    const files = Array.from(e.target.files)
+    toast.info(`Procesando ${files.length} archivos de la carpeta...`)
     addFiles(files)
   }
 
