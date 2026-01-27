@@ -113,10 +113,10 @@ export async function POST(request) {
     const { data: newCase, error: caseError } = await supabase
       .from('visa_cases')
       .insert({
-        case_name: clientName,
+        id: uuidv4(),
+        title: clientName,
         beneficiary_name: clientName,
-        visa_type: 'EB2-NIW',
-        status: 'in_progress',
+        visa_category: 'EB2-NIW',
         outcome: 'pending'
       })
       .select('id')
