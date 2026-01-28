@@ -688,7 +688,7 @@ export default function CaseDetailPage() {
               </CardHeader>
               <CardContent>
                 {caseData.documents && caseData.documents.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
                     {caseData.documents.map((doc) => (
                       <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
                         <div className="flex items-center gap-3">
