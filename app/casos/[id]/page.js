@@ -1011,6 +1011,24 @@ export default function CaseDetailPage() {
                     <><ClipboardCheck className="h-4 w-4 mr-1" /> Auditar</>
                   )}
                 </Button>
+                
+                {/* Botón Generar Estrategia RFE */}
+                {(caseData.outcome === 'rfe' || caseData.outcome === 'noid') && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={generateStrategy}
+                    disabled={generatingStrategy}
+                    className="bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
+                  >
+                    {generatingStrategy ? (
+                      <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Generando...</>
+                    ) : (
+                      <><FileDown className="h-4 w-4 mr-1" /> Estrategia RFE</>
+                    )}
+                  </Button>
+                )}
+                
                 <Link href={`/casos/${params.id}/claims`}>
                   <Button 
                     variant="outline" 
