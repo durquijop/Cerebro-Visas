@@ -969,7 +969,7 @@ export default function CasosPage() {
                   </CardHeader>
                   <CardContent>
                     {selectedCase.documents && selectedCase.documents.length > 0 ? (
-                      <div className="space-y-3">
+                      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
                         {selectedCase.documents.map((doc) => (
                           <div 
                             key={doc.id} 
