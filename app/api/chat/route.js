@@ -266,14 +266,15 @@ ${context}`
     { role: 'user', content: message }
   ]
 
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+  const response = await fetch(OPENAI_API_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.0-flash-001',
+      model: 'gpt-4.1',
       messages,
       temperature: 0.7,
       max_tokens: 2000
