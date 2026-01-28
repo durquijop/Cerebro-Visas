@@ -8,19 +8,17 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions'
 
 async function callLLM(messages) {
-  const response = await fetch(OPENROUTER_API_URL, {
+  const response = await fetch(OPENAI_API_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
-      'X-Title': 'Cerebro Visas'
+      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'anthropic/claude-sonnet-4',
+      model: 'gpt-4.1',
       messages,
       temperature: 0.2,
       max_tokens: 4000
@@ -29,7 +27,7 @@ async function callLLM(messages) {
 
   if (!response.ok) {
     const error = await response.text()
-    throw new Error(`LLM API error: ${error}`)
+    throw new Error(`OpenAI API error: ${error}`)
   }
 
   const data = await response.json()
