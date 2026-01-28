@@ -230,6 +230,455 @@ export default function CaseDetailPage() {
     }
   }
 
+  // Generar estrategia RFE y descargar PDF
+  const generateStrategy = async () => {
+    try {
+      setGeneratingStrategy(true)
+      toast.info('Generando estrategia de respuesta... Esto puede tomar unos segundos.')
+
+      const response = await fetch(`/api/casos/${params.id}/strategy`, {
+        method: 'POST'
+      })
+
+      if (!response.ok) {
+        const errData = await response.json()
+        throw new Error(errData.error || 'Error al generar estrategia')
+      }
+
+      const data = await response.json()
+      setStrategyData(data.strategy)
+      
+      // Generar y descargar PDF
+      await generateStrategyPDF(data.strategy)
+      
+      toast.success('¡Estrategia generada y descargada!')
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setGeneratingStrategy(false)
+    }
+  }
+
+  // Generar PDF de la estrategia
+  const generateStrategyPDF = async (strategy) => {
+    // Importar jspdf dinámicamente (client-side only)
+    const { jsPDF } = await import('jspdf')
+    const autoTable = (await import('jspdf-autotable')).default
+    
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const margin = 20
+    let yPos = 20
+
+    // Colores
+    const primaryColor = [30, 41, 59] // Navy
+    const accentColor = [212, 175, 55] // Gold
+    const textColor = [51, 51, 51]
+
+    // Helper para agregar página si es necesario
+    const checkPageBreak = (neededSpace = 30) => {
+      if (yPos + neededSpace > doc.internal.pageSize.getHeight() - 20) {
+        doc.addPage()
+        yPos = 20
+        return true
+      }
+      return false
+    }
+
+    // === PORTADA ===
+    doc.setFillColor(...primaryColor)
+    doc.rect(0, 0, pageWidth, 60, 'F')
+    
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(24)
+    doc.setFont('helvetica', 'bold')
+    doc.text('ESTRATEGIA DE RESPUESTA RFE', pageWidth / 2, 30, { align: 'center' })
+    
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Caso: ${strategy.metadata?.case_name || 'N/A'}`, pageWidth / 2, 45, { align: 'center' })
+    
+    yPos = 75
+    doc.setTextColor(...textColor)
+
+    // Metadata del caso
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    const metadata = [
+      `Beneficiario: ${strategy.metadata?.beneficiary || 'No especificado'}`,
+      `Categoría de Visa: ${strategy.metadata?.visa_category || 'N/A'}`,
+      `Fecha de generación: ${new Date().toLocaleDateString('es-ES')}`,
+      `Documentos RFE analizados: ${strategy.metadata?.rfe_documents_analyzed || 0}`,
+      `Documentos de evidencia: ${strategy.metadata?.evidence_documents_available || 0}`
+    ]
+    
+    metadata.forEach(line => {
+      doc.text(line, margin, yPos)
+      yPos += 6
+    })
+    
+    yPos += 10
+
+    // === RESUMEN EJECUTIVO ===
+    doc.setFillColor(...accentColor)
+    doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('RESUMEN EJECUTIVO', margin + 3, yPos + 6)
+    yPos += 15
+    
+    doc.setTextColor(...textColor)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    
+    const summaryLines = doc.splitTextToSize(strategy.executive_summary || 'No disponible', pageWidth - 2 * margin)
+    doc.text(summaryLines, margin, yPos)
+    yPos += summaryLines.length * 5 + 10
+
+    // === VISIÓN GENERAL DEL RFE ===
+    checkPageBreak(50)
+    doc.setFillColor(...accentColor)
+    doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('VISIÓN GENERAL DEL RFE', margin + 3, yPos + 6)
+    yPos += 15
+
+    doc.setTextColor(...textColor)
+    doc.setFontSize(10)
+    
+    if (strategy.rfe_overview) {
+      const overview = strategy.rfe_overview
+      doc.setFont('helvetica', 'bold')
+      doc.text(`Tipo: ${overview.document_type || 'RFE'}`, margin, yPos)
+      doc.text(`Severidad: ${overview.overall_severity?.toUpperCase() || 'N/A'}`, margin + 80, yPos)
+      yPos += 8
+      
+      if (overview.main_concerns && overview.main_concerns.length > 0) {
+        doc.setFont('helvetica', 'bold')
+        doc.text('Principales preocupaciones de USCIS:', margin, yPos)
+        yPos += 6
+        doc.setFont('helvetica', 'normal')
+        overview.main_concerns.forEach((concern, i) => {
+          checkPageBreak(8)
+          const concernLines = doc.splitTextToSize(`${i + 1}. ${concern}`, pageWidth - 2 * margin - 10)
+          doc.text(concernLines, margin + 5, yPos)
+          yPos += concernLines.length * 5 + 2
+        })
+      }
+    }
+    yPos += 10
+
+    // === DEFICIENCIAS Y ESTRATEGIAS ===
+    if (strategy.deficiencies && strategy.deficiencies.length > 0) {
+      checkPageBreak(40)
+      doc.setFillColor(...accentColor)
+      doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'bold')
+      doc.text('DEFICIENCIAS Y ESTRATEGIAS DE RESPUESTA', margin + 3, yPos + 6)
+      yPos += 15
+
+      strategy.deficiencies.forEach((def, index) => {
+        checkPageBreak(60)
+        
+        // Título de la deficiencia
+        doc.setFillColor(240, 240, 240)
+        doc.rect(margin, yPos, pageWidth - 2 * margin, 10, 'F')
+        doc.setTextColor(...primaryColor)
+        doc.setFontSize(11)
+        doc.setFont('helvetica', 'bold')
+        doc.text(`${index + 1}. ${def.title || 'Deficiencia'}`, margin + 3, yPos + 7)
+        yPos += 14
+
+        doc.setTextColor(...textColor)
+        doc.setFontSize(9)
+        
+        // Info de la deficiencia
+        doc.setFont('helvetica', 'bold')
+        doc.text(`Prong/Criterio: ${def.prong_or_criteria || 'N/A'}`, margin, yPos)
+        doc.text(`Severidad: ${def.severity?.toUpperCase() || 'N/A'}`, margin + 80, yPos)
+        yPos += 6
+        
+        // Preocupación de USCIS
+        if (def.uscis_concern) {
+          doc.setFont('helvetica', 'bold')
+          doc.text('Preocupación de USCIS:', margin, yPos)
+          yPos += 5
+          doc.setFont('helvetica', 'italic')
+          const concernLines = doc.splitTextToSize(`"${def.uscis_concern}"`, pageWidth - 2 * margin - 10)
+          doc.text(concernLines, margin + 5, yPos)
+          yPos += concernLines.length * 4 + 4
+        }
+
+        // Evidencia existente
+        if (def.existing_evidence && def.existing_evidence.length > 0) {
+          checkPageBreak(20)
+          doc.setFont('helvetica', 'bold')
+          doc.setTextColor(34, 139, 34) // Verde
+          doc.text('✓ Evidencia existente que aplica:', margin, yPos)
+          yPos += 5
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(...textColor)
+          def.existing_evidence.forEach(ev => {
+            const evLines = doc.splitTextToSize(`• ${ev}`, pageWidth - 2 * margin - 10)
+            doc.text(evLines, margin + 5, yPos)
+            yPos += evLines.length * 4 + 1
+          })
+          yPos += 3
+        }
+
+        // Evidencia faltante
+        if (def.evidence_gaps && def.evidence_gaps.length > 0) {
+          checkPageBreak(20)
+          doc.setFont('helvetica', 'bold')
+          doc.setTextColor(220, 53, 69) // Rojo
+          doc.text('✗ Evidencia faltante a conseguir:', margin, yPos)
+          yPos += 5
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(...textColor)
+          def.evidence_gaps.forEach(gap => {
+            const gapLines = doc.splitTextToSize(`• ${gap}`, pageWidth - 2 * margin - 10)
+            doc.text(gapLines, margin + 5, yPos)
+            yPos += gapLines.length * 4 + 1
+          })
+          yPos += 3
+        }
+
+        // Respuesta recomendada
+        if (def.recommended_response) {
+          checkPageBreak(30)
+          doc.setFont('helvetica', 'bold')
+          doc.setTextColor(...primaryColor)
+          doc.text('Estrategia de respuesta:', margin, yPos)
+          yPos += 5
+          doc.setTextColor(...textColor)
+          
+          if (def.recommended_response.main_argument) {
+            doc.setFont('helvetica', 'bold')
+            doc.text('Argumento principal:', margin + 5, yPos)
+            yPos += 4
+            doc.setFont('helvetica', 'normal')
+            const argLines = doc.splitTextToSize(def.recommended_response.main_argument, pageWidth - 2 * margin - 15)
+            doc.text(argLines, margin + 10, yPos)
+            yPos += argLines.length * 4 + 3
+          }
+
+          if (def.recommended_response.legal_citations && def.recommended_response.legal_citations.length > 0) {
+            doc.setFont('helvetica', 'bold')
+            doc.text('Citas legales:', margin + 5, yPos)
+            yPos += 4
+            doc.setFont('helvetica', 'normal')
+            def.recommended_response.legal_citations.forEach(cite => {
+              doc.text(`• ${cite}`, margin + 10, yPos)
+              yPos += 4
+            })
+            yPos += 2
+          }
+        }
+
+        yPos += 8
+      })
+    }
+
+    // === CHECKLIST DE EVIDENCIA ===
+    if (strategy.evidence_checklist) {
+      checkPageBreak(50)
+      doc.addPage()
+      yPos = 20
+      
+      doc.setFillColor(...accentColor)
+      doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'bold')
+      doc.text('CHECKLIST DE EVIDENCIA A PREPARAR', margin + 3, yPos + 6)
+      yPos += 15
+
+      doc.setTextColor(...textColor)
+      doc.setFontSize(10)
+
+      // Esencial
+      if (strategy.evidence_checklist.essential && strategy.evidence_checklist.essential.length > 0) {
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(220, 53, 69)
+        doc.text('🔴 ESENCIAL (Requerido):', margin, yPos)
+        yPos += 6
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(...textColor)
+        
+        strategy.evidence_checklist.essential.forEach(item => {
+          checkPageBreak(15)
+          doc.text(`☐ ${item.item}`, margin + 5, yPos)
+          yPos += 4
+          if (item.purpose) {
+            doc.setFontSize(8)
+            doc.text(`   Propósito: ${item.purpose}`, margin + 10, yPos)
+            yPos += 4
+            doc.setFontSize(10)
+          }
+          yPos += 2
+        })
+        yPos += 5
+      }
+
+      // Recomendado
+      if (strategy.evidence_checklist.recommended && strategy.evidence_checklist.recommended.length > 0) {
+        checkPageBreak(20)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(255, 193, 7)
+        doc.text('🟡 RECOMENDADO:', margin, yPos)
+        yPos += 6
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(...textColor)
+        
+        strategy.evidence_checklist.recommended.forEach(item => {
+          checkPageBreak(12)
+          doc.text(`☐ ${item.item}`, margin + 5, yPos)
+          yPos += 5
+        })
+        yPos += 5
+      }
+
+      // Opcional
+      if (strategy.evidence_checklist.optional_strengthening && strategy.evidence_checklist.optional_strengthening.length > 0) {
+        checkPageBreak(20)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(40, 167, 69)
+        doc.text('🟢 OPCIONAL (Fortalece el caso):', margin, yPos)
+        yPos += 6
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(...textColor)
+        
+        strategy.evidence_checklist.optional_strengthening.forEach(item => {
+          checkPageBreak(12)
+          doc.text(`☐ ${item.item}`, margin + 5, yPos)
+          yPos += 5
+        })
+      }
+    }
+
+    // === ARGUMENTOS LEGALES ===
+    if (strategy.legal_arguments && strategy.legal_arguments.length > 0) {
+      checkPageBreak(50)
+      doc.addPage()
+      yPos = 20
+      
+      doc.setFillColor(...accentColor)
+      doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'bold')
+      doc.text('ARGUMENTOS LEGALES RECOMENDADOS', margin + 3, yPos + 6)
+      yPos += 15
+
+      doc.setTextColor(...textColor)
+      
+      strategy.legal_arguments.forEach((arg, index) => {
+        checkPageBreak(40)
+        
+        doc.setFontSize(11)
+        doc.setFont('helvetica', 'bold')
+        doc.text(`${index + 1}. ${arg.argument_title || 'Argumento'}`, margin, yPos)
+        yPos += 7
+        
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        
+        if (arg.legal_basis) {
+          doc.setFont('helvetica', 'bold')
+          doc.text('Base legal: ', margin, yPos)
+          doc.setFont('helvetica', 'normal')
+          const basisLines = doc.splitTextToSize(arg.legal_basis, pageWidth - 2 * margin - 25)
+          doc.text(basisLines, margin + 22, yPos)
+          yPos += basisLines.length * 4 + 3
+        }
+        
+        if (arg.application) {
+          doc.setFont('helvetica', 'bold')
+          doc.text('Aplicación: ', margin, yPos)
+          doc.setFont('helvetica', 'normal')
+          const appLines = doc.splitTextToSize(arg.application, pageWidth - 2 * margin - 25)
+          doc.text(appLines, margin + 22, yPos)
+          yPos += appLines.length * 4 + 3
+        }
+        
+        yPos += 8
+      })
+    }
+
+    // === EVALUACIÓN DE RIESGOS ===
+    if (strategy.risk_assessment) {
+      checkPageBreak(60)
+      
+      doc.setFillColor(...accentColor)
+      doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'bold')
+      doc.text('EVALUACIÓN DE RIESGOS', margin + 3, yPos + 6)
+      yPos += 15
+
+      doc.setTextColor(...textColor)
+      doc.setFontSize(10)
+      
+      const risk = strategy.risk_assessment
+      
+      doc.setFont('helvetica', 'bold')
+      const probColor = risk.approval_probability_if_addressed === 'high' ? [40, 167, 69] :
+                        risk.approval_probability_if_addressed === 'medium' ? [255, 193, 7] : [220, 53, 69]
+      doc.setTextColor(...probColor)
+      doc.text(`Probabilidad de aprobación si se abordan los puntos: ${risk.approval_probability_if_addressed?.toUpperCase() || 'N/A'}`, margin, yPos)
+      yPos += 8
+      
+      doc.setTextColor(...textColor)
+      
+      if (risk.critical_success_factors && risk.critical_success_factors.length > 0) {
+        doc.setFont('helvetica', 'bold')
+        doc.text('Factores críticos de éxito:', margin, yPos)
+        yPos += 5
+        doc.setFont('helvetica', 'normal')
+        risk.critical_success_factors.forEach(factor => {
+          doc.text(`• ${factor}`, margin + 5, yPos)
+          yPos += 5
+        })
+        yPos += 3
+      }
+      
+      if (risk.contingency_recommendations) {
+        checkPageBreak(20)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Recomendaciones de contingencia:', margin, yPos)
+        yPos += 5
+        doc.setFont('helvetica', 'normal')
+        const contLines = doc.splitTextToSize(risk.contingency_recommendations, pageWidth - 2 * margin)
+        doc.text(contLines, margin, yPos)
+        yPos += contLines.length * 5
+      }
+    }
+
+    // === PIE DE PÁGINA ===
+    const pageCount = doc.internal.getNumberOfPages()
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i)
+      doc.setFontSize(8)
+      doc.setTextColor(128, 128, 128)
+      doc.text(
+        `Cerebro Visas - Estrategia RFE | Página ${i} de ${pageCount}`,
+        pageWidth / 2,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: 'center' }
+      )
+    }
+
+    // Descargar
+    const fileName = `Estrategia_RFE_${strategy.metadata?.case_name?.replace(/\s+/g, '_') || 'caso'}_${new Date().toISOString().split('T')[0]}.pdf`
+    doc.save(fileName)
+  }
+
   const getScoreColor = (score) => {
     if (score >= 80) return 'text-green-600'
     if (score >= 60) return 'text-yellow-600'
