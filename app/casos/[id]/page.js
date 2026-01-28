@@ -33,7 +33,8 @@ import {
   CheckCircle, XCircle, Clock, User, Building2,
   FolderOpen, BarChart3, ClipboardList, Eye,
   TrendingUp, ClipboardCheck, Target, Lightbulb, Shield,
-  ChevronRight, AlertOctagon, Info, BookOpen, Pencil, Save
+  ChevronRight, AlertOctagon, Info, BookOpen, Pencil, Save,
+  Download, FileDown, Sparkles
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
