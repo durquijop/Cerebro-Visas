@@ -79,6 +79,11 @@ export default function CaseDetailPage() {
   // Edit modal state
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  
+  // Strategy state
+  const [generatingStrategy, setGeneratingStrategy] = useState(false)
+  const [strategyData, setStrategyData] = useState(null)
+  
   const [editForm, setEditForm] = useState({
     title: '',
     beneficiary_name: '',
