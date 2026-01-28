@@ -3,7 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { generateEmbedding } from '@/lib/embeddings'
 import { NextResponse } from 'next/server'
 
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY
+const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions'
 
 // Función para obtener cliente admin (lazy initialization)
 function getSupabaseAdmin() {
