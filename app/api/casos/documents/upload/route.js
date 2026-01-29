@@ -86,11 +86,16 @@ export async function POST(request) {
     // Para documentos RFE/NOID/Denial, usar el Case Miner
     const isRFEorNOID = ['rfe_document', 'noid_document', 'denial_notice'].includes(docType)
     
-    if (isRFEorNOID && extraction.success && cleanText.length > 100) {
+    // También considerar tipos alternativos
+    const isRFEType = isRFEorNOID || ['RFE', 'NOID', 'Denial'].includes(docType)
+    
+    let embeddingsGenerated = 0
+    
+    if (isRFEType && extraction.success && cleanText.length > 100) {
       console.log('🔬 Iniciando extracción estructurada (Case Miner)...')
       try {
-        const outcomeType = docType === 'rfe_document' ? 'RFE' : 
-                           docType === 'noid_document' ? 'NOID' : 'Denial'
+        const outcomeType = docType === 'rfe_document' || docType === 'RFE' ? 'RFE' : 
+                           docType === 'noid_document' || docType === 'NOID' ? 'NOID' : 'Denial'
         
         const extractionResult = await extractStructuredData(cleanText, outcomeType)
         
@@ -126,6 +131,32 @@ export async function POST(request) {
       } catch (mineError) {
         console.error('Error en Case Miner:', mineError.message)
       }
+      
+      // GENERAR EMBEDDINGS para documentos RFE/NOID/Denial
+      // Esto permite búsquedas RAG y estadísticas
+      console.log('🧠 Generando embeddings para documento RFE/NOID...')
+      try {
+        const docForEmbedding = {
+          id: fileId,
+          text_content: cleanText,
+          doc_type: docType,
+          original_name: file.name,
+          outcome_type: docType === 'rfe_document' || docType === 'RFE' ? 'RFE' : 
+                       docType === 'noid_document' || docType === 'NOID' ? 'NOID' : 'Denial'
+        }
+        
+        const embResult = await generateDocumentEmbeddings(supabaseAdmin, docForEmbedding, true)
+        
+        if (embResult.success) {
+          embeddingsGenerated = embResult.chunks || 0
+          console.log(`✅ Embeddings generados: ${embeddingsGenerated} chunks vectorizados`)
+        } else {
+          console.log(`⚠️ No se generaron embeddings: ${embResult.reason || embResult.error}`)
+        }
+      } catch (embError) {
+        console.error('Error generando embeddings:', embError.message)
+      }
+      
     } else if (docType !== 'cv' && !skipAnalysis && extraction.success && cleanText.length > 100) {
       // Para otros documentos, usar análisis de relevancia
       console.log('🧠 Iniciando análisis automático del documento...')
