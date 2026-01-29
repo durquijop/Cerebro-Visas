@@ -197,7 +197,12 @@ export async function POST(request) {
         requests_count: structuredData.requests?.length || 0,
         prongs_affected: structuredData.summary?.prongs_affected,
         executive_summary: structuredData.summary?.executive_summary
-      } : null
+      } : null,
+      embeddings: {
+        generated: embeddingsGenerated > 0,
+        chunks: embeddingsGenerated,
+        searchable: embeddingsGenerated > 0
+      }
     })
   } catch (error) {
     console.error('Upload error:', error)
