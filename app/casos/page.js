@@ -138,19 +138,6 @@ export default function CasosPage() {
   const [docTypeSearch, setDocTypeSearch] = useState('')
   const [documentSearch, setDocumentSearch] = useState('')
 
-  // Filtrar documentos del caso seleccionado
-  const filteredDocuments = useMemo(() => {
-    if (!selectedCase?.documents) return []
-    if (!documentSearch.trim()) return selectedCase.documents
-    
-    const search = documentSearch.toLowerCase()
-    return selectedCase.documents.filter(doc => 
-      doc.original_name?.toLowerCase().includes(search) ||
-      doc.doc_type?.toLowerCase().includes(search) ||
-      getDocTypeLabel(doc.doc_type)?.toLowerCase().includes(search)
-    )
-  }, [selectedCase?.documents, documentSearch])
-
   // Filtrar tipos de documento por búsqueda
   const filteredDocTypes = useMemo(() => {
     if (!docTypeSearch) return DOC_TYPES
