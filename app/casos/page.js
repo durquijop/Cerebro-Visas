@@ -978,13 +978,34 @@ export default function CasosPage() {
                   <CardHeader>
                     <CardTitle className="text-gold-subtle">Documentos del Caso</CardTitle>
                     <CardDescription className="text-gold-muted">
-                      {selectedCase.documents?.length || 0} documento(s) asociado(s)
+                      {filteredDocuments.length === selectedCase.documents?.length 
+                        ? `${selectedCase.documents?.length || 0} documento(s) asociado(s)`
+                        : `${filteredDocuments.length} de ${selectedCase.documents?.length || 0} documento(s)`
+                      }
                     </CardDescription>
+                    {/* Buscador de documentos */}
+                    <div className="relative mt-2">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gold-muted" />
+                      <Input
+                        placeholder="Buscar documentos..."
+                        value={documentSearch}
+                        onChange={(e) => setDocumentSearch(e.target.value)}
+                        className="pl-9 bg-navy-primary border-navy-light text-gold-subtle placeholder:text-gold-muted/50"
+                      />
+                      {documentSearch && (
+                        <button
+                          onClick={() => setDocumentSearch('')}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gold-muted hover:text-gold-subtle"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    {selectedCase.documents && selectedCase.documents.length > 0 ? (
+                    {filteredDocuments.length > 0 ? (
                       <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                        {selectedCase.documents.map((doc) => (
+                        {filteredDocuments.map((doc) => (
                           <div 
                             key={doc.id} 
                             className={`p-3 bg-navy-primary rounded-lg border hover:border-gold-muted cursor-pointer transition-colors ${
