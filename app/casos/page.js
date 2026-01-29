@@ -183,6 +183,7 @@ export default function CasosPage() {
       const res = await fetch(`/api/casos/${caseId}`)
       const data = await res.json()
       setSelectedCase(data.case)
+      setDocumentSearch('') // Limpiar búsqueda al cambiar de caso
     } catch (error) {
       toast.error('Error al cargar el caso')
     }
