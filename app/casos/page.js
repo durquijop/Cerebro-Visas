@@ -448,6 +448,19 @@ export default function CasosPage() {
     return DOC_TYPES.find(d => d.value === type)?.label || type
   }
 
+  // Filtrar documentos del caso seleccionado por búsqueda
+  const filteredDocuments = useMemo(() => {
+    if (!selectedCase?.documents) return []
+    if (!documentSearch.trim()) return selectedCase.documents
+    
+    const search = documentSearch.toLowerCase()
+    return selectedCase.documents.filter(doc => 
+      doc.original_name?.toLowerCase().includes(search) ||
+      doc.doc_type?.toLowerCase().includes(search) ||
+      getDocTypeLabel(doc.doc_type)?.toLowerCase().includes(search)
+    )
+  }, [selectedCase?.documents, documentSearch])
+
   return (
     <div className="min-h-screen bg-navy-primary">
       {/* Header */}
