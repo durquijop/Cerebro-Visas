@@ -1089,8 +1089,25 @@ export default function CasosPage() {
                     ) : (
                       <div className="text-center py-8">
                         <FileText className="h-12 w-12 text-navy-light mx-auto mb-2" />
-                        <p className="text-gold-muted">No hay documentos</p>
-                        <p className="text-sm text-gold-muted mt-1">Sube documentos para analizar el caso</p>
+                        {documentSearch ? (
+                          <>
+                            <p className="text-gold-muted">No se encontraron documentos</p>
+                            <p className="text-sm text-gold-muted mt-1">
+                              No hay resultados para "{documentSearch}"
+                            </p>
+                            <button
+                              onClick={() => setDocumentSearch('')}
+                              className="mt-2 text-sm text-purple-400 hover:text-purple-300"
+                            >
+                              Limpiar búsqueda
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-gold-muted">No hay documentos</p>
+                            <p className="text-sm text-gold-muted mt-1">Sube documentos para analizar el caso</p>
+                          </>
+                        )}
                       </div>
                     )}
                   </CardContent>
