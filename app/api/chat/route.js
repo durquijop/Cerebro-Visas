@@ -404,9 +404,9 @@ export async function POST(request) {
         console.log('📚 Intent desconocido, usando RAG...')
         const defaultResult = await generateRAGResponse(message, conversationHistory)
         response = {
-          message: defaultResult.message,
+          message: defaultResult.response,
           sources: defaultResult.sources,
-          documentsFound: defaultResult.documentsFound,
+          searchMethod: defaultResult.searchMethod,
           intent: 'DOCUMENTS',
           intentReason: 'Default fallback'
         }
