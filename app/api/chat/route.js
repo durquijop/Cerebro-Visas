@@ -376,9 +376,9 @@ export async function POST(request) {
         console.log('📚 Ejecutando búsqueda en documentos...')
         const ragResult = await generateRAGResponse(message, conversationHistory)
         response = {
-          message: ragResult.message,
+          message: ragResult.response,
           sources: ragResult.sources,
-          documentsFound: ragResult.documentsFound,
+          searchMethod: ragResult.searchMethod,
           intent: 'DOCUMENTS',
           intentReason: reason
         }
