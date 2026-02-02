@@ -393,7 +393,7 @@ export async function POST(request) {
         response = {
           message: directMessage,
           sources: [],
-          documentsFound: 0,
+          searchMethod: 'direct',
           intent,
           intentReason: reason
         }
