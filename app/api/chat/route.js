@@ -292,44 +292,6 @@ async function generateRAGResponse(message, conversationHistory) {
     context = 'No se encontraron documentos específicos. Respondiendo con conocimiento general sobre EB-2 NIW.'
     searchMethod = 'general'
   }
-      const docName = metadata.original_name || 'Documento'
-      const docType = metadata.doc_type || 'N/A'
-      const pageRef = doc.page_ref || null
-      
-      // Construir referencia de ubicación
-      let locationRef = ''
-      if (pageRef) {
-        locationRef = ` - ${pageRef}`
-      } else if (doc.page_start) {
-        locationRef = doc.page_start === doc.page_end 
-          ? ` - Pág. ${doc.page_start}`
-          : ` - Págs. ${doc.page_start}-${doc.page_end}`
-      }
-      
-      context += `--- DOCUMENTO: ${docName} (${docType})${locationRef} ---\n`
-      context += `Relevancia: ${(doc.similarity * 100).toFixed(1)}%\n`
-      context += `Contenido:\n${doc.content_chunk}\n\n`
-      
-      sources.push({
-        id: doc.document_id || doc.case_document_id,
-        name: docName,
-        type: docType,
-        similarity: doc.similarity,
-        isFromCase: !!doc.case_document_id,
-        pageRef: pageRef,
-        pageStart: doc.page_start,
-        pageEnd: doc.page_end,
-        // Formato de cita legible
-        citation: pageRef 
-          ? `${docName} (${pageRef})`
-          : doc.page_start 
-            ? `${docName} (Pág. ${doc.page_start}${doc.page_end !== doc.page_start ? `-${doc.page_end}` : ''})`
-            : docName
-      })
-    }
-  } else {
-    context = 'No se encontraron documentos relevantes en la base de datos.\n'
-  }
 
   // 4. Generar respuesta con contexto
   const systemPrompt = `Eres un asistente experto en casos de inmigración EB-2 NIW.
@@ -337,18 +299,13 @@ async function generateRAGResponse(message, conversationHistory) {
 Tu rol es ayudar a abogados y analistas basándote en los documentos proporcionados.
 
 IMPORTANTE:
-- Basa tus respuestas en los documentos proporcionados
-- Si no encuentras información relevante, indícalo claramente
+- Basa tus respuestas en los documentos proporcionados cuando estén disponibles
+- Si no encuentras información relevante, responde con conocimiento general
 - Responde en español
 - Sé conciso pero completo
-- **SIEMPRE cita las fuentes con número de página cuando esté disponible**
-- Usa el formato: "Según [Nombre del documento] (Pág. X)..." o "[Documento, Pág. X]"
-- Si un documento no tiene página, solo menciona el nombre del documento
+- Cita las fuentes cuando sea posible
 
-Ejemplo de cita correcta:
-- "El oficial señala que las cartas son genéricas [RFE_caso_123.pdf, Pág. 3]"
-- "Según el Business Plan (Págs. 5-7), las proyecciones..."
-
+CONTEXTO:
 ${context}`
 
   const messages = [
@@ -380,10 +337,12 @@ ${context}`
   }
 
   const data = await response.json()
+  const responseText = data.choices[0]?.message?.content || 'No pude generar una respuesta.'
+
   return {
-    message: data.choices[0]?.message?.content || 'No pude generar una respuesta.',
-    sources: sources.slice(0, 5),
-    documentsFound: similarDocs?.length || 0
+    response: responseText,
+    sources: sources,
+    searchMethod: searchMethod
   }
 }
 
