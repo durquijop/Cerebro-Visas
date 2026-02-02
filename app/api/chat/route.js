@@ -153,51 +153,145 @@ Responde en español.`
 
 /**
  * Busca en documentos y genera respuesta con RAG
+ * Si falla el embedding, usa búsqueda por texto o responde con conocimiento general
  */
 async function generateRAGResponse(message, conversationHistory) {
-  // 1. Generar embedding de la pregunta
-  console.log('🔍 RAG: Generando embedding para búsqueda...')
-  const queryEmbedding = await generateEmbedding(message)
-  console.log('✅ Embedding generado, dimensiones:', queryEmbedding.length)
-
-  // 2. Crear cliente admin y buscar documentos similares
-  console.log('🔎 Buscando documentos similares...')
   const supabaseAdmin = getSupabaseAdmin()
-  
-  // Debug: verificar que el cliente funciona
-  const { count: embCount } = await supabaseAdmin
-    .from('document_embeddings')
-    .select('*', { count: 'exact', head: true })
-  console.log('📊 Total embeddings en BD:', embCount)
-  
-  const embeddingStr = JSON.stringify(queryEmbedding)
-  console.log('📏 Embedding string length:', embeddingStr.length)
-  
-  const { data: similarDocs, error: searchError } = await supabaseAdmin
-    .rpc('search_similar_documents', {
-      query_embedding: embeddingStr,
-      match_threshold: 0.2,
-      match_count: 10
-    })
-
-  if (searchError) {
-    console.error('❌ Error searching documents:', JSON.stringify(searchError))
-  }
-  
-  console.log('📊 Documentos encontrados:', similarDocs?.length || 0)
-  if (similarDocs && similarDocs.length > 0) {
-    console.log('📄 Primer documento similarity:', similarDocs[0]?.similarity)
-  }
-
-  // 3. Construir contexto
   let context = ''
   const sources = []
+  let searchMethod = 'none'
 
-  if (similarDocs && similarDocs.length > 0) {
-    context = '### DOCUMENTOS RELEVANTES ENCONTRADOS:\n\n'
+  // Intentar búsqueda con embeddings (si funciona)
+  try {
+    console.log('🔍 RAG: Intentando búsqueda con embeddings...')
+    const queryEmbedding = await generateEmbedding(message)
+    console.log('✅ Embedding generado, dimensiones:', queryEmbedding.length)
     
-    for (const doc of similarDocs) {
-      const metadata = doc.metadata || {}
+    const embeddingStr = JSON.stringify(queryEmbedding)
+    
+    const { data: similarDocs, error: searchError } = await supabaseAdmin
+      .rpc('search_similar_documents', {
+        query_embedding: embeddingStr,
+        match_threshold: 0.2,
+        match_count: 10
+      })
+
+    if (!searchError && similarDocs && similarDocs.length > 0) {
+      searchMethod = 'embeddings'
+      context = '### DOCUMENTOS RELEVANTES ENCONTRADOS:\n\n'
+      
+      for (const doc of similarDocs) {
+        const metadata = doc.metadata || {}
+        const docName = metadata.document_name || metadata.name || 'Documento'
+        const docType = metadata.doc_type || 'unknown'
+        const pageRef = metadata.page_number ? ` (Página ${metadata.page_number})` : ''
+        
+        context += `**${docName}${pageRef}** [${docType}]\n`
+        context += `${doc.text_chunk}\n\n`
+        
+        sources.push({
+          name: docName,
+          type: docType,
+          page: metadata.page_number,
+          similarity: doc.similarity
+        })
+      }
+      console.log('📊 Documentos encontrados con embeddings:', similarDocs.length)
+    }
+  } catch (embeddingError) {
+    console.log('⚠️ Embeddings no disponibles:', embeddingError.message)
+  }
+
+  // Si no hay embeddings, buscar por texto en documentos RFE/NOID
+  if (!context) {
+    try {
+      console.log('🔍 RAG: Usando búsqueda por texto...')
+      
+      // Extraer palabras clave del mensaje
+      const keywords = message.toLowerCase()
+        .replace(/[¿?¡!.,]/g, '')
+        .split(' ')
+        .filter(w => w.length > 3)
+        .slice(0, 5)
+      
+      // Buscar en documentos RFE/NOID que tengan texto
+      const { data: docs, error: docsError } = await supabaseAdmin
+        .from('case_documents')
+        .select('id, original_name, doc_type, text_content, structured_data')
+        .in('doc_type', ['RFE', 'NOID', 'Denial', 'rfe_document', 'noid_document', 'denial_notice'])
+        .not('text_content', 'is', null)
+        .limit(20)
+
+      if (!docsError && docs && docs.length > 0) {
+        searchMethod = 'text-search'
+        context = '### INFORMACIÓN DE DOCUMENTOS RFE/NOID:\n\n'
+        
+        // Buscar documentos que contengan las palabras clave
+        const relevantDocs = docs.filter(doc => {
+          const text = (doc.text_content || '').toLowerCase()
+          return keywords.some(kw => text.includes(kw))
+        }).slice(0, 5)
+
+        if (relevantDocs.length > 0) {
+          for (const doc of relevantDocs) {
+            context += `**${doc.original_name}** [${doc.doc_type}]\n`
+            
+            // Extraer fragmento relevante
+            const textLower = doc.text_content.toLowerCase()
+            let relevantSnippet = ''
+            
+            for (const kw of keywords) {
+              const idx = textLower.indexOf(kw)
+              if (idx !== -1) {
+                const start = Math.max(0, idx - 200)
+                const end = Math.min(doc.text_content.length, idx + 500)
+                relevantSnippet = '...' + doc.text_content.substring(start, end) + '...'
+                break
+              }
+            }
+            
+            if (!relevantSnippet && doc.text_content) {
+              relevantSnippet = doc.text_content.substring(0, 1000) + '...'
+            }
+            
+            context += `${relevantSnippet}\n\n`
+            
+            sources.push({
+              name: doc.original_name,
+              type: doc.doc_type
+            })
+          }
+          console.log('📊 Documentos encontrados por texto:', relevantDocs.length)
+        } else {
+          // No hay documentos relevantes, usar resumen de structured_data
+          const docsWithStructured = docs.filter(d => d.structured_data)
+          if (docsWithStructured.length > 0) {
+            context = '### RESUMEN DE ISSUES EN RFEs:\n\n'
+            for (const doc of docsWithStructured.slice(0, 3)) {
+              const sd = doc.structured_data
+              context += `**${doc.original_name}**\n`
+              if (sd.issues && sd.issues.length > 0) {
+                context += `Issues: ${sd.issues.map(i => i.title || i.description).join(', ')}\n`
+              }
+              if (sd.summary?.executive_summary) {
+                context += `Resumen: ${sd.summary.executive_summary}\n`
+              }
+              context += '\n'
+            }
+          }
+        }
+      }
+    } catch (textSearchError) {
+      console.log('⚠️ Búsqueda por texto falló:', textSearchError.message)
+    }
+  }
+
+  // Si aún no hay contexto, responder con conocimiento general
+  if (!context) {
+    console.log('ℹ️ Sin documentos disponibles, usando conocimiento general')
+    context = 'No se encontraron documentos específicos. Respondiendo con conocimiento general sobre EB-2 NIW.'
+    searchMethod = 'general'
+  }
       const docName = metadata.original_name || 'Documento'
       const docType = metadata.doc_type || 'N/A'
       const pageRef = doc.page_ref || null
