@@ -293,7 +293,7 @@ export default function ChatPanel({ isExpanded = true, onToggle }) {
                               )}
                             </div>
                             <Badge className="text-[10px] bg-purple-500/20 text-purple-300 flex-shrink-0">
-                              {(source.similarity * 100).toFixed(0)}%
+                              {source.relevance != null ? source.relevance : (source.similarity != null ? (source.similarity * 100).toFixed(0) : '?')}%
                             </Badge>
                           </div>
                         ))}
