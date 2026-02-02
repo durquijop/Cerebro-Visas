@@ -202,84 +202,120 @@ async function generateRAGResponse(message, conversationHistory) {
     console.log('⚠️ Embeddings no disponibles:', embeddingError.message)
   }
 
-  // Si no hay embeddings, buscar por texto en documentos RFE/NOID
+  // Si no hay embeddings, buscar por texto en TODOS los documentos
   if (!context) {
     try {
-      console.log('🔍 RAG: Usando búsqueda por texto...')
+      console.log('🔍 RAG: Usando búsqueda por texto en todos los documentos...')
       
       // Extraer palabras clave del mensaje
       const keywords = message.toLowerCase()
         .replace(/[¿?¡!.,]/g, '')
         .split(' ')
         .filter(w => w.length > 3)
-        .slice(0, 5)
+        .slice(0, 8)
       
-      // Buscar en documentos RFE/NOID que tengan texto
+      console.log('🔑 Palabras clave:', keywords)
+      
+      // Buscar en TODOS los documentos que tengan texto
       const { data: docs, error: docsError } = await supabaseAdmin
         .from('case_documents')
-        .select('id, original_name, doc_type, text_content, structured_data')
-        .in('doc_type', ['RFE', 'NOID', 'Denial', 'rfe_document', 'noid_document', 'denial_notice'])
+        .select('id, original_name, doc_type, text_content, word_count')
         .not('text_content', 'is', null)
-        .limit(20)
+        .gt('word_count', 50)
+        .order('word_count', { ascending: false })
+        .limit(50)
 
       if (!docsError && docs && docs.length > 0) {
-        searchMethod = 'text-search'
-        context = '### INFORMACIÓN DE DOCUMENTOS RFE/NOID:\n\n'
+        console.log(`📚 Total documentos con texto: ${docs.length}`)
         
-        // Buscar documentos que contengan las palabras clave
-        const relevantDocs = docs.filter(doc => {
+        // Calcular relevancia por coincidencias de palabras clave
+        const scoredDocs = docs.map(doc => {
           const text = (doc.text_content || '').toLowerCase()
-          return keywords.some(kw => text.includes(kw))
-        }).slice(0, 5)
+          let score = 0
+          let matchedKeywords = []
+          
+          for (const kw of keywords) {
+            const matches = (text.match(new RegExp(kw, 'gi')) || []).length
+            if (matches > 0) {
+              score += matches
+              matchedKeywords.push(kw)
+            }
+          }
+          
+          // Bonus para documentos RFE/NOID
+          if (['RFE', 'NOID', 'Denial', 'rfe_document', 'noid_document'].includes(doc.doc_type)) {
+            score *= 1.5
+          }
+          
+          return {
+            ...doc,
+            relevanceScore: score,
+            matchedKeywords
+          }
+        })
+        .filter(d => d.relevanceScore > 0)
+        .sort((a, b) => b.relevanceScore - a.relevanceScore)
+        .slice(0, 8)
 
-        if (relevantDocs.length > 0) {
-          for (const doc of relevantDocs) {
+        if (scoredDocs.length > 0) {
+          searchMethod = 'text-search'
+          context = '### INFORMACIÓN DE DOCUMENTOS RELEVANTES:\n\n'
+          
+          for (const doc of scoredDocs) {
             context += `**${doc.original_name}** [${doc.doc_type}]\n`
             
-            // Extraer fragmento relevante
+            // Extraer fragmento relevante basado en palabras clave encontradas
             const textLower = doc.text_content.toLowerCase()
             let relevantSnippet = ''
             
-            for (const kw of keywords) {
+            for (const kw of doc.matchedKeywords) {
               const idx = textLower.indexOf(kw)
               if (idx !== -1) {
-                const start = Math.max(0, idx - 200)
-                const end = Math.min(doc.text_content.length, idx + 500)
+                const start = Math.max(0, idx - 150)
+                const end = Math.min(doc.text_content.length, idx + 400)
                 relevantSnippet = '...' + doc.text_content.substring(start, end) + '...'
                 break
               }
             }
             
             if (!relevantSnippet && doc.text_content) {
-              relevantSnippet = doc.text_content.substring(0, 1000) + '...'
+              relevantSnippet = doc.text_content.substring(0, 800) + '...'
             }
             
             context += `${relevantSnippet}\n\n`
             
+            // Calcular porcentaje de relevancia (0-100)
+            const maxScore = keywords.length * 10
+            const relevancePercent = Math.min(100, Math.round((doc.relevanceScore / maxScore) * 100))
+            
             sources.push({
               name: doc.original_name,
-              type: doc.doc_type
+              type: doc.doc_type,
+              relevance: relevancePercent
             })
           }
-          console.log('📊 Documentos encontrados por texto:', relevantDocs.length)
+          console.log(`📊 Documentos relevantes encontrados: ${scoredDocs.length}`)
         } else {
-          // No hay documentos relevantes, usar resumen de structured_data
-          const docsWithStructured = docs.filter(d => d.structured_data)
-          if (docsWithStructured.length > 0) {
-            context = '### RESUMEN DE ISSUES EN RFEs:\n\n'
-            for (const doc of docsWithStructured.slice(0, 3)) {
-              const sd = doc.structured_data
-              context += `**${doc.original_name}**\n`
-              if (sd.issues && sd.issues.length > 0) {
-                context += `Issues: ${sd.issues.map(i => i.title || i.description).join(', ')}\n`
-              }
-              if (sd.summary?.executive_summary) {
-                context += `Resumen: ${sd.summary.executive_summary}\n`
-              }
-              context += '\n'
-            }
+          // No hay coincidencias, mostrar los documentos más grandes
+          console.log('⚠️ Sin coincidencias de keywords, usando documentos principales')
+          const topDocs = docs.slice(0, 5)
+          
+          searchMethod = 'browse'
+          context = '### DOCUMENTOS DISPONIBLES EN EL SISTEMA:\n\n'
+          
+          for (const doc of topDocs) {
+            context += `**${doc.original_name}** [${doc.doc_type}] - ${doc.word_count} palabras\n`
+            context += `${doc.text_content?.substring(0, 500) || 'Sin contenido'}...\n\n`
+            
+            sources.push({
+              name: doc.original_name,
+              type: doc.doc_type,
+              relevance: 50
+            })
           }
         }
+      } else {
+        console.log('⚠️ No hay documentos con texto en la base de datos')
       }
     } catch (textSearchError) {
       console.log('⚠️ Búsqueda por texto falló:', textSearchError.message)
