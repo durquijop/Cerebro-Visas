@@ -127,14 +127,19 @@ export default function UploadClient({ userId, cases, userRole }) {
       setUploadProgress(100)
       setResult({
         success: true,
-        message: 'Documento subido exitosamente',
+        message: 'Documento procesado exitosamente',
         documentId: data.document?.id,
-        textExtracted: data.textExtracted,
-        aiProcessed: data.aiProcessed
+        documentName: data.document?.name,
+        docType: data.document?.doc_type,
+        extraction: data.extraction,
+        structuredData: data.structuredData,
+        embeddings: data.embeddings,
+        aiAnalysis: data.aiAnalysis
       })
 
-      toast.success('Documento subido exitosamente')
-      setFile(null)
+      toast.success('Documento procesado exitosamente')
+      // No limpiar el file para que pueda ver los resultados
+      // setFile(null)
 
     } catch (error) {
       setResult({
