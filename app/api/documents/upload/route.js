@@ -186,8 +186,9 @@ export async function POST(request) {
     
     console.log(`📋 processWithAI: ${processWithAI}, textContent length: ${textContent?.length || 0}`)
     
+    // Case Miner solo si se solicita
     if (processWithAI && textContent && textContent.length > 100) {
-      console.log('✅ Condiciones cumplidas, procesando con IA...')
+      console.log('✅ Condiciones cumplidas, procesando con Case Miner...')
       try {
         console.log('🔬 Iniciando extracción estructurada con Case Miner...')
         
@@ -212,8 +213,10 @@ export async function POST(request) {
         console.error('AI analysis error:', aiError)
         // No falla el upload si el AI falla
       }
-      
-      // 5. GENERAR EMBEDDINGS para búsqueda RAG
+    }
+    
+    // SIEMPRE generar embeddings si hay texto suficiente (independiente de processWithAI)
+    if (textContent && textContent.length > 100) {
       console.log('🧠 Iniciando generación de embeddings...')
       try {
         const docForEmbedding = {
@@ -241,7 +244,7 @@ export async function POST(request) {
         console.error(embError.stack)
       }
     } else {
-      console.log(`⚠️ No se procesa con IA: processWithAI=${processWithAI}, textLength=${textContent?.length || 0}`)
+      console.log(`⚠️ Sin texto suficiente para embeddings: ${textContent?.length || 0} caracteres`)
     }
 
     return NextResponse.json({
