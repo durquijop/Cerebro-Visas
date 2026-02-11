@@ -256,6 +256,10 @@ export async function POST(request) {
         overall_severity: structuredData.summary?.overall_severity,
         executive_summary: structuredData.summary?.executive_summary
       } : null,
+      embeddings: {
+        generated: embeddingsGenerated > 0,
+        chunks: embeddingsGenerated
+      },
       aiAnalysis
     })
 
