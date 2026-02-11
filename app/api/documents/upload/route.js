@@ -184,7 +184,10 @@ export async function POST(request) {
     let structuredData = null
     let embeddingsGenerated = 0
     
+    console.log(`📋 processWithAI: ${processWithAI}, textContent length: ${textContent?.length || 0}`)
+    
     if (processWithAI && textContent && textContent.length > 100) {
+      console.log('✅ Condiciones cumplidas, procesando con IA...')
       try {
         console.log('🔬 Iniciando extracción estructurada con Case Miner...')
         
