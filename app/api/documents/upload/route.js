@@ -182,6 +182,7 @@ export async function POST(request) {
     // 4. Procesar con IA si se solicitó y hay texto (EXTRACCIÓN ESTRUCTURADA)
     let aiAnalysis = null
     let structuredData = null
+    let embeddingsGenerated = 0
     
     if (processWithAI && textContent && textContent.length > 100) {
       try {
@@ -207,6 +208,28 @@ export async function POST(request) {
       } catch (aiError) {
         console.error('AI analysis error:', aiError)
         // No falla el upload si el AI falla
+      }
+      
+      // 5. GENERAR EMBEDDINGS para búsqueda RAG
+      try {
+        console.log('🧠 Generando embeddings para búsqueda...')
+        const docForEmbedding = {
+          id: fileId,
+          text_content: textContent,
+          doc_type: docType,
+          original_name: file.name
+        }
+        
+        const embResult = await generateDocumentEmbeddings(supabaseAdmin, docForEmbedding, false)
+        
+        if (embResult.success) {
+          embeddingsGenerated = embResult.chunks || 0
+          console.log(`✅ Embeddings generados: ${embeddingsGenerated} chunks`)
+        } else {
+          console.log(`⚠️ No se generaron embeddings: ${embResult.reason || embResult.error}`)
+        }
+      } catch (embError) {
+        console.error('Error generando embeddings:', embError)
       }
     }
 
