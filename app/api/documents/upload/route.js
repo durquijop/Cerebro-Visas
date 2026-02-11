@@ -214,8 +214,8 @@ export async function POST(request) {
       }
       
       // 5. GENERAR EMBEDDINGS para búsqueda RAG
+      console.log('🧠 Iniciando generación de embeddings...')
       try {
-        console.log('🧠 Generando embeddings para búsqueda...')
         const docForEmbedding = {
           id: fileId,
           text_content: textContent,
@@ -223,7 +223,12 @@ export async function POST(request) {
           original_name: file.name
         }
         
+        console.log(`   Documento ID: ${fileId}`)
+        console.log(`   Texto: ${textContent.length} caracteres`)
+        
         const embResult = await generateDocumentEmbeddings(supabaseAdmin, docForEmbedding, false)
+        
+        console.log(`   Resultado embeddings:`, embResult)
         
         if (embResult.success) {
           embeddingsGenerated = embResult.chunks || 0
@@ -232,8 +237,11 @@ export async function POST(request) {
           console.log(`⚠️ No se generaron embeddings: ${embResult.reason || embResult.error}`)
         }
       } catch (embError) {
-        console.error('Error generando embeddings:', embError)
+        console.error('❌ Error generando embeddings:', embError.message)
+        console.error(embError.stack)
       }
+    } else {
+      console.log(`⚠️ No se procesa con IA: processWithAI=${processWithAI}, textLength=${textContent?.length || 0}`)
     }
 
     return NextResponse.json({
