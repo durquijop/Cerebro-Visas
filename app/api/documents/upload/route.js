@@ -91,7 +91,7 @@ export async function POST(request) {
     const caseId = formData.get('case_id')
     const docType = formData.get('doc_type') || 'RFE'
     const userId = formData.get('user_id')
-    const processWithAI = formData.get('process_with_ai') === 'true'
+    const processWithAI = formData.get('processWithAI') === 'true'
 
     if (!file) {
       return NextResponse.json(
