@@ -246,7 +246,8 @@ export async function POST(request) {
       extraction: {
         success: extractionSuccess,
         textLength: textContent.length,
-        preview: textContent.substring(0, 500) + (textContent.length > 500 ? '...' : '')
+        preview: textContent.substring(0, 500) + (textContent.length > 500 ? '...' : ''),
+        fullText: textContent // Texto completo
       },
       structuredData: structuredData ? {
         document_info: structuredData.document_info,
