@@ -414,16 +414,158 @@ export default function UploadClient({ userId, cases, userRole }) {
                 {/* Result */}
                 {result && (
                   <div className={`p-4 rounded-lg ${result.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 mb-3">
                       {result.success ? (
                         <CheckCircle className="h-5 w-5 text-green-600" />
                       ) : (
                         <AlertCircle className="h-5 w-5 text-red-600" />
                       )}
-                      <span className={result.success ? 'text-green-800' : 'text-red-800'}>
+                      <span className={`font-medium ${result.success ? 'text-green-800' : 'text-red-800'}`}>
                         {result.message}
                       </span>
                     </div>
+                    
+                    {result.success && (
+                      <div className="space-y-4 mt-4">
+                        {/* Info del documento */}
+                        <div className="bg-white p-3 rounded border">
+                          <h4 className="font-medium text-gray-700 mb-2 flex items-center gap-2">
+                            <FileText className="h-4 w-4" />
+                            Documento
+                          </h4>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div><span className="text-gray-500">Nombre:</span> {result.documentName}</div>
+                            <div><span className="text-gray-500">Tipo:</span> <Badge variant="outline">{result.docType}</Badge></div>
+                            <div><span className="text-gray-500">ID:</span> <code className="text-xs bg-gray-100 px-1 rounded">{result.documentId?.substring(0, 8)}...</code></div>
+                          </div>
+                        </div>
+
+                        {/* Extracción de texto */}
+                        {result.extraction && (
+                          <div className="bg-white p-3 rounded border">
+                            <h4 className="font-medium text-gray-700 mb-2 flex items-center gap-2">
+                              <Brain className="h-4 w-4 text-purple-600" />
+                              Extracción de Texto
+                            </h4>
+                            <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+                              <div>
+                                <span className="text-gray-500">Estado:</span>{' '}
+                                {result.extraction.success ? (
+                                  <Badge className="bg-green-100 text-green-700">Exitosa</Badge>
+                                ) : (
+                                  <Badge className="bg-red-100 text-red-700">Fallida</Badge>
+                                )}
+                              </div>
+                              <div><span className="text-gray-500">Caracteres:</span> {result.extraction.textLength?.toLocaleString()}</div>
+                            </div>
+                            {result.extraction.preview && (
+                              <div className="mt-2">
+                                <span className="text-gray-500 text-xs">Vista previa:</span>
+                                <div className="bg-gray-50 p-2 rounded text-xs text-gray-600 max-h-32 overflow-y-auto mt-1 font-mono">
+                                  {result.extraction.preview}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Datos estructurados (Case Miner) */}
+                        {result.structuredData && (
+                          <div className="bg-white p-3 rounded border">
+                            <h4 className="font-medium text-gray-700 mb-2 flex items-center gap-2">
+                              <Sparkles className="h-4 w-4 text-amber-500" />
+                              Análisis Estructurado (Case Miner)
+                            </h4>
+                            <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                              <div className="flex items-center gap-1">
+                                <span className="text-gray-500">Issues:</span>
+                                <Badge className="bg-red-100 text-red-700">{result.structuredData.issues_count || 0}</Badge>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-gray-500">Requests:</span>
+                                <Badge className="bg-amber-100 text-amber-700">{result.structuredData.requests_count || 0}</Badge>
+                              </div>
+                              {result.structuredData.overall_severity && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-gray-500">Severidad:</span>
+                                  <Badge className={
+                                    result.structuredData.overall_severity === 'critical' ? 'bg-red-500 text-white' :
+                                    result.structuredData.overall_severity === 'high' ? 'bg-orange-500 text-white' :
+                                    'bg-yellow-500 text-white'
+                                  }>
+                                    {result.structuredData.overall_severity}
+                                  </Badge>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Prongs afectados */}
+                            {result.structuredData.prongs_affected && (
+                              <div className="mb-3">
+                                <span className="text-gray-500 text-xs">Prongs Afectados:</span>
+                                <div className="flex gap-2 mt-1">
+                                  {['P1', 'P2', 'P3'].map(prong => (
+                                    <div key={prong} className={`px-2 py-1 rounded text-xs font-medium ${
+                                      result.structuredData.prongs_affected[prong] 
+                                        ? 'bg-red-100 text-red-700 border border-red-200' 
+                                        : 'bg-gray-100 text-gray-400'
+                                    }`}>
+                                      {prong} {result.structuredData.prongs_affected[prong] ? '⚠️' : '✓'}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Resumen ejecutivo */}
+                            {result.structuredData.executive_summary && (
+                              <div>
+                                <span className="text-gray-500 text-xs">Resumen:</span>
+                                <div className="bg-amber-50 p-2 rounded text-sm text-gray-700 mt-1">
+                                  {result.structuredData.executive_summary}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Embeddings */}
+                        {result.embeddings && (
+                          <div className="bg-white p-3 rounded border">
+                            <h4 className="font-medium text-gray-700 mb-2 flex items-center gap-2">
+                              <Database className="h-4 w-4 text-blue-600" />
+                              Embeddings (RAG)
+                            </h4>
+                            <div className="flex items-center gap-3 text-sm">
+                              <div className="flex items-center gap-1">
+                                <span className="text-gray-500">Estado:</span>
+                                {result.embeddings.generated ? (
+                                  <Badge className="bg-blue-100 text-blue-700">Generados</Badge>
+                                ) : (
+                                  <Badge className="bg-gray-100 text-gray-500">No generados</Badge>
+                                )}
+                              </div>
+                              {result.embeddings.chunks > 0 && (
+                                <div>
+                                  <span className="text-gray-500">Chunks:</span>{' '}
+                                  <span className="font-medium">{result.embeddings.chunks}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Botón para subir otro */}
+                        <Button 
+                          variant="outline" 
+                          onClick={() => { setFile(null); setResult(null); }}
+                          className="w-full"
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Subir Otro Documento
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
