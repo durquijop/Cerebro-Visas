@@ -458,11 +458,26 @@ export default function UploadClient({ userId, cases, userRole }) {
                               </div>
                               <div><span className="text-gray-500">Caracteres:</span> {result.extraction.textLength?.toLocaleString()}</div>
                             </div>
-                            {result.extraction.preview && (
-                              <div className="mt-2">
-                                <span className="text-gray-500 text-xs">Vista previa:</span>
-                                <div className="bg-gray-50 p-2 rounded text-xs text-gray-600 max-h-32 overflow-y-auto mt-1 font-mono">
-                                  {result.extraction.preview}
+                            
+                            {/* Texto completo extraído */}
+                            {result.extraction.fullText && (
+                              <div className="mt-3">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-gray-500 text-xs font-medium">Texto Extraído Completo:</span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 text-xs"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(result.extraction.fullText)
+                                      toast.success('Texto copiado al portapapeles')
+                                    }}
+                                  >
+                                    Copiar
+                                  </Button>
+                                </div>
+                                <div className="bg-gray-50 p-3 rounded border text-sm text-gray-700 max-h-96 overflow-y-auto font-mono whitespace-pre-wrap">
+                                  {result.extraction.fullText}
                                 </div>
                               </div>
                             )}
