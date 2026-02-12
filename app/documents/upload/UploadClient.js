@@ -739,26 +739,77 @@ export default function UploadClient({ userId, cases, userRole }) {
                               {bulkResults.processed} documento(s) procesado(s)
                             </span>
                           </div>
+                          {bulkResults.totals && (
+                            <div className="flex flex-wrap gap-3 text-sm mt-2">
+                              {bulkResults.totals.issues > 0 && (
+                                <span className="text-orange-700">
+                                  📋 {bulkResults.totals.issues} issues extraídos
+                                </span>
+                              )}
+                              {bulkResults.totals.requests > 0 && (
+                                <span className="text-blue-700">
+                                  📝 {bulkResults.totals.requests} requests
+                                </span>
+                              )}
+                              {bulkResults.totals.embeddings > 0 && (
+                                <span className="text-purple-700">
+                                  🧠 {bulkResults.totals.embeddings} embeddings
+                                </span>
+                              )}
+                            </div>
+                          )}
                           {bulkResults.failed > 0 && (
-                            <p className="text-sm text-orange-700">
+                            <p className="text-sm text-orange-700 mt-2">
                               {bulkResults.failed} archivo(s) con errores
                             </p>
                           )}
                         </div>
 
                         {bulkResults.results && bulkResults.results.length > 0 && (
-                          <div className="border rounded-lg divide-y">
+                          <div className="border rounded-lg divide-y max-h-96 overflow-y-auto">
                             {bulkResults.results.map((r, idx) => (
-                              <div key={idx} className="p-3 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <CheckCircle className="h-4 w-4 text-green-600" />
-                                  <span className="text-sm">{r.file}</span>
+                              <div key={idx} className="p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                    <span className="text-sm font-medium truncate max-w-xs">{r.file}</span>
+                                  </div>
+                                  <Badge variant="outline" className="text-xs">
+                                    {r.docType}
+                                  </Badge>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="outline">{r.textLength} chars</Badge>
+                                <div className="flex flex-wrap gap-2">
+                                  <Badge variant="secondary" className="text-xs">
+                                    {r.textLength.toLocaleString()} chars
+                                  </Badge>
+                                  {r.numPages > 0 && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      {r.numPages} págs
+                                    </Badge>
+                                  )}
+                                  {r.processedWithAI && (
+                                    <Badge className="bg-green-100 text-green-700 text-xs">
+                                      ✓ IA
+                                    </Badge>
+                                  )}
+                                  {r.issuesCount > 0 && (
+                                    <Badge className="bg-orange-100 text-orange-700 text-xs">
+                                      {r.issuesCount} issues
+                                    </Badge>
+                                  )}
+                                  {r.requestsCount > 0 && (
+                                    <Badge className="bg-blue-100 text-blue-700 text-xs">
+                                      {r.requestsCount} requests
+                                    </Badge>
+                                  )}
                                   {r.embeddingsGenerated > 0 && (
-                                    <Badge className="bg-purple-100 text-purple-700">
-                                      {r.embeddingsGenerated} embeddings
+                                    <Badge className="bg-purple-100 text-purple-700 text-xs">
+                                      {r.embeddingsGenerated} emb
+                                    </Badge>
+                                  )}
+                                  {r.documentDate && (
+                                    <Badge variant="outline" className="text-xs">
+                                      📅 {r.documentDate}
                                     </Badge>
                                   )}
                                 </div>
