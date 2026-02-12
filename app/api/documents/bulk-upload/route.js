@@ -6,6 +6,18 @@ import { generateDocumentEmbeddings } from '@/lib/embeddings'
 import { extractStructuredData, saveStructuredData } from '@/lib/case-miner'
 import { v4 as uuidv4 } from 'uuid'
 
+// Configuración para permitir archivos grandes en producción
+export const config = {
+  api: {
+    bodyParser: false,
+    responseLimit: false,
+  },
+}
+
+// Aumentar el límite de tiempo para Next.js 14
+export const maxDuration = 300 // 5 minutos máximo
+export const dynamic = 'force-dynamic'
+
 // Cliente admin para operaciones
 function getSupabaseAdmin() {
   return createAdminClient(
