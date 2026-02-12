@@ -250,7 +250,26 @@ export default function UploadClient({ userId, cases, userRole }) {
         body: formData,
       })
 
-      const data = await response.json()
+      // Verificar si la respuesta es JSON válido
+      const contentType = response.headers.get('content-type')
+      let data
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json()
+      } else {
+        const text = await response.text()
+        console.error('Bulk upload response not JSON:', text)
+        
+        if (text.includes('413') || text.includes('too large') || text.includes('body exceeded')) {
+          throw new Error('Archivos muy grandes. Intente subir menos archivos o archivos más pequeños.')
+        } else if (text.includes('504') || text.includes('timeout') || text.includes('Gateway')) {
+          throw new Error('Tiempo de espera agotado. Intente con menos archivos.')
+        } else if (text.includes('502') || text.includes('Bad Gateway')) {
+          throw new Error('El servidor está procesando. Intente de nuevo en unos segundos.')
+        } else {
+          throw new Error('Error del servidor. Intente de nuevo más tarde.')
+        }
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Error en carga masiva')
@@ -277,6 +296,7 @@ export default function UploadClient({ userId, cases, userRole }) {
       }
 
     } catch (error) {
+      console.error('Bulk upload error:', error)
       toast.error(error.message)
       setBulkResults({ error: error.message })
     } finally {
