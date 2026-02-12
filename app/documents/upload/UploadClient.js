@@ -118,7 +118,27 @@ export default function UploadClient({ userId, cases, userRole }) {
 
       setUploadProgress(70)
 
-      const data = await response.json()
+      // Verificar si la respuesta es JSON válido
+      const contentType = response.headers.get('content-type')
+      let data
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json()
+      } else {
+        // Si no es JSON, probablemente es un error del servidor/proxy
+        const text = await response.text()
+        console.error('Response not JSON:', text)
+        
+        if (text.includes('413') || text.includes('too large') || text.includes('body exceeded')) {
+          throw new Error('Archivo demasiado grande. El límite del servidor es 20MB.')
+        } else if (text.includes('504') || text.includes('timeout') || text.includes('Gateway')) {
+          throw new Error('Tiempo de espera agotado. Intente con un archivo más pequeño o espere unos minutos.')
+        } else if (text.includes('502') || text.includes('Bad Gateway')) {
+          throw new Error('El servidor está procesando. Intente de nuevo en unos segundos.')
+        } else {
+          throw new Error('Error del servidor. Intente de nuevo más tarde.')
+        }
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Error al subir archivo')
@@ -142,6 +162,7 @@ export default function UploadClient({ userId, cases, userRole }) {
       // setFile(null)
 
     } catch (error) {
+      console.error('Upload error:', error)
       setResult({
         success: false,
         message: error.message
