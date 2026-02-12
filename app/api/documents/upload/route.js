@@ -197,16 +197,21 @@ export async function POST(request) {
     let structuredData = null
     let embeddingsGenerated = 0
     
-    console.log(`📋 processWithAI: ${processWithAI}, textContent length: ${textContent?.length || 0}`)
+    // Para archivos grandes (>5MB), limitar el procesamiento
+    const isLargeFile = file.size > 5 * 1024 * 1024
+    const maxTextForAI = isLargeFile ? 30000 : 50000 // Limitar texto para IA
+    const textForProcessing = textContent.substring(0, maxTextForAI)
     
-    // Case Miner solo si se solicita
-    if (processWithAI && textContent && textContent.length > 100) {
+    console.log(`📋 processWithAI: ${processWithAI}, textContent length: ${textContent?.length || 0}, isLargeFile: ${isLargeFile}`)
+    
+    // Case Miner solo si se solicita y el archivo no es muy grande
+    if (processWithAI && textForProcessing && textForProcessing.length > 100) {
       console.log('✅ Condiciones cumplidas, procesando con Case Miner...')
       try {
         console.log('🔬 Iniciando extracción estructurada con Case Miner...')
         
         // Usar el Case Miner para extracción estructurada
-        const extractionResult = await extractStructuredData(textContent, docType)
+        const extractionResult = await extractStructuredData(textForProcessing, docType)
         
         if (extractionResult.success) {
           structuredData = extractionResult.data
@@ -228,19 +233,20 @@ export async function POST(request) {
       }
     }
     
-    // SIEMPRE generar embeddings si hay texto suficiente (independiente de processWithAI)
-    if (textContent && textContent.length > 100) {
+    // Generar embeddings solo si no es un archivo muy grande (para ahorrar memoria)
+    // Para archivos grandes, se pueden generar después
+    if (textForProcessing && textForProcessing.length > 100 && !isLargeFile) {
       console.log('🧠 Iniciando generación de embeddings...')
       try {
         const docForEmbedding = {
           id: fileId,
-          text_content: textContent,
+          text_content: textForProcessing,
           doc_type: docType,
           original_name: file.name
         }
         
         console.log(`   Documento ID: ${fileId}`)
-        console.log(`   Texto: ${textContent.length} caracteres`)
+        console.log(`   Texto: ${textForProcessing.length} caracteres`)
         
         const embResult = await generateDocumentEmbeddings(supabaseAdmin, docForEmbedding, false)
         
