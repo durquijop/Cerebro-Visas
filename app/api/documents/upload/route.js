@@ -98,8 +98,12 @@ function extractDocumentDate(text) {
 
 // Tamaño máximo de archivo: 20MB
 const MAX_FILE_SIZE = 20 * 1024 * 1024
+// Tamaño para procesamiento rápido (sin OCR largo)
+const QUICK_PROCESS_SIZE = 8 * 1024 * 1024
 
 export async function POST(request) {
+  const startTime = Date.now()
+  
   try {
     const formData = await request.formData()
     const file = formData.get('file')
@@ -132,7 +136,8 @@ export async function POST(request) {
       )
     }
 
-    console.log(`📁 Procesando archivo: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`)
+    const isVeryLargeFile = file.size > QUICK_PROCESS_SIZE
+    console.log(`📁 Procesando archivo: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)${isVeryLargeFile ? ' [ARCHIVO GRANDE]' : ''}`)
 
     // Convertir archivo a buffer
     const bytes = await file.arrayBuffer()
