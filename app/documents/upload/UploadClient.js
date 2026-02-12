@@ -222,6 +222,7 @@ export default function UploadClient({ userId, cases, userRole }) {
       bulkFiles.forEach(file => formData.append('files', file))
       formData.append('docType', bulkDocType)
       formData.append('generateEmbeddings', generateEmbeddings.toString())
+      formData.append('processWithAI', 'true') // Procesar con Case Miner igual que individual
 
       const response = await fetch('/api/documents/bulk-upload', {
         method: 'POST',
@@ -236,12 +237,19 @@ export default function UploadClient({ userId, cases, userRole }) {
 
       setBulkResults(data)
       
-      const totalEmbeddings = data.results?.reduce((sum, r) => sum + (r.embeddingsGenerated || 0), 0) || 0
+      const totalEmbeddings = data.totals?.embeddings || data.results?.reduce((sum, r) => sum + (r.embeddingsGenerated || 0), 0) || 0
+      const totalIssues = data.totals?.issues || 0
+      const totalRequests = data.totals?.requests || 0
       
-      toast.success(
-        `${data.processed} documentos procesados` + 
-        (generateEmbeddings ? `, ${totalEmbeddings} embeddings generados` : '')
-      )
+      let message = `${data.processed} documentos procesados`
+      if (totalIssues > 0 || totalRequests > 0) {
+        message += `, ${totalIssues} issues, ${totalRequests} requests`
+      }
+      if (generateEmbeddings && totalEmbeddings > 0) {
+        message += `, ${totalEmbeddings} embeddings`
+      }
+      
+      toast.success(message)
 
       if (data.processed > 0) {
         setBulkFiles([])
