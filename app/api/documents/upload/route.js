@@ -5,6 +5,18 @@ import { extractStructuredData, saveStructuredData } from '@/lib/case-miner'
 import { generateDocumentEmbeddings } from '@/lib/embeddings'
 import { v4 as uuidv4 } from 'uuid'
 
+// Configuración para permitir archivos grandes en producción
+export const config = {
+  api: {
+    bodyParser: false, // Deshabilitamos el body parser por defecto
+    responseLimit: false,
+  },
+}
+
+// Aumentar el límite de tamaño del body para Next.js 14
+export const maxDuration = 300 // 5 minutos máximo
+export const dynamic = 'force-dynamic'
+
 // Supabase Admin client
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
