@@ -84,6 +84,9 @@ function extractDocumentDate(text) {
   return null
 }
 
+// Tamaño máximo de archivo: 20MB
+const MAX_FILE_SIZE = 20 * 1024 * 1024
+
 export async function POST(request) {
   try {
     const formData = await request.formData()
@@ -100,6 +103,14 @@ export async function POST(request) {
       )
     }
 
+    // Validar tamaño de archivo
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `Archivo demasiado grande. Máximo permitido: ${MAX_FILE_SIZE / 1024 / 1024}MB` },
+        { status: 400 }
+      )
+    }
+
     // Validar tipo de archivo
     const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
     if (!validTypes.includes(file.type) && !file.name.endsWith('.pdf') && !file.name.endsWith('.docx')) {
@@ -108,6 +119,8 @@ export async function POST(request) {
         { status: 400 }
       )
     }
+
+    console.log(`📁 Procesando archivo: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`)
 
     // Convertir archivo a buffer
     const bytes = await file.arrayBuffer()
