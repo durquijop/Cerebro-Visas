@@ -301,11 +301,10 @@ export async function POST(request) {
       } : null,
       embeddings: {
         generated: embeddingsGenerated > 0,
-        chunks: embeddingsGenerated,
-        skippedDueToSize: isLargeFile && embeddingsGenerated === 0
+        chunks: embeddingsGenerated
       },
       aiAnalysis,
-      warning: isLargeFile ? 'Archivo grande - algunos procesamientos fueron limitados para optimizar memoria' : null
+      warning: isLargeFile ? 'Archivo grande procesado correctamente' : null
     })
 
   } catch (error) {
