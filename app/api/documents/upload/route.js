@@ -262,9 +262,17 @@ export async function POST(request) {
         console.error('❌ Error generando embeddings:', embError.message)
         console.error(embError.stack)
       }
+    } else if (isLargeFile) {
+      console.log(`⚠️ Archivo grande (${(file.size / 1024 / 1024).toFixed(2)}MB), embeddings se pueden generar después`)
     } else {
-      console.log(`⚠️ Sin texto suficiente para embeddings: ${textContent?.length || 0} caracteres`)
+      console.log(`⚠️ Sin texto suficiente para embeddings: ${textForProcessing?.length || 0} caracteres`)
     }
+
+    // Limitar el texto en la respuesta para archivos grandes
+    const textPreview = textContent.substring(0, 2000)
+    const fullTextForResponse = isLargeFile 
+      ? textContent.substring(0, 10000) + '\n\n[... Texto truncado por tamaño del archivo ...]'
+      : textContent
 
     return NextResponse.json({
       success: true,
@@ -279,8 +287,9 @@ export async function POST(request) {
       extraction: {
         success: extractionSuccess,
         textLength: textContent.length,
-        preview: textContent.substring(0, 500) + (textContent.length > 500 ? '...' : ''),
-        fullText: textContent // Texto completo
+        preview: textPreview + (textContent.length > 2000 ? '...' : ''),
+        fullText: fullTextForResponse,
+        isLargeFile: isLargeFile
       },
       structuredData: structuredData ? {
         document_info: structuredData.document_info,
@@ -292,9 +301,11 @@ export async function POST(request) {
       } : null,
       embeddings: {
         generated: embeddingsGenerated > 0,
-        chunks: embeddingsGenerated
+        chunks: embeddingsGenerated,
+        skippedDueToSize: isLargeFile && embeddingsGenerated === 0
       },
-      aiAnalysis
+      aiAnalysis,
+      warning: isLargeFile ? 'Archivo grande - algunos procesamientos fueron limitados para optimizar memoria' : null
     })
 
   } catch (error) {
