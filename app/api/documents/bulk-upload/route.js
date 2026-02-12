@@ -305,12 +305,24 @@ export async function POST(request) {
         })
 
         console.log(`✅ ${file.name}: completado`)
+        break // Salir del while, archivo procesado exitosamente
 
       } catch (fileError) {
         console.error(`Error procesando ${file.name}:`, fileError)
+        
+        // Si es error temporal y podemos reintentar
+        if (fileError.message && (fileError.message.includes('503') || fileError.message.includes('502') || fileError.message.includes('timeout')) && fileRetries < MAX_FILE_RETRIES) {
+          fileRetries++
+          console.log(`   ⚠️ Error temporal, reintentando archivo en 10s... [intento ${fileRetries + 1}]`)
+          await new Promise(r => setTimeout(r, 10000))
+          continue
+        }
+        
         errors.push({ file: file.name, error: fileError.message })
+        break // Salir del while, error no recuperable
       }
-    }
+    } // Fin while
+    } // Fin for
 
     // Calcular totales
     const totalEmbeddings = results.reduce((sum, r) => sum + (r.embeddingsGenerated || 0), 0)
