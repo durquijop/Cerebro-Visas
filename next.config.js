@@ -11,13 +11,6 @@ const nextConfig = {
       bodySizeLimit: '25mb',
     },
   },
-  // Configuración para APIs que manejan archivos grandes
-  api: {
-    bodyParser: {
-      sizeLimit: '25mb',
-    },
-    responseLimit: false,
-  },
   webpack(config, { dev }) {
     if (dev) {
       // Reduce CPU/memory from file watching
