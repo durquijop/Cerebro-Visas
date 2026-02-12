@@ -6,6 +6,17 @@ const nextConfig = {
   experimental: {
     // Remove if not using Server Components
     serverComponentsExternalPackages: ['mongodb'],
+    // Aumentar límite de body para uploads
+    serverActions: {
+      bodySizeLimit: '25mb',
+    },
+  },
+  // Configuración para APIs que manejan archivos grandes
+  api: {
+    bodyParser: {
+      sizeLimit: '25mb',
+    },
+    responseLimit: false,
   },
   webpack(config, { dev }) {
     if (dev) {
