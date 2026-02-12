@@ -139,36 +139,47 @@ export async function POST(request) {
     const errors = []
 
     for (const file of files) {
-      try {
-        // Validar tamaño
-        if (file.size > MAX_FILE_SIZE) {
-          errors.push({ file: file.name, error: `Archivo muy grande (máx. ${MAX_FILE_SIZE / 1024 / 1024}MB)` })
-          continue
-        }
+      let fileRetries = 0
+      const MAX_FILE_RETRIES = 2
+      
+      while (fileRetries <= MAX_FILE_RETRIES) {
+        try {
+          // Validar tamaño
+          if (file.size > MAX_FILE_SIZE) {
+            errors.push({ file: file.name, error: `Archivo muy grande (máx. ${MAX_FILE_SIZE / 1024 / 1024}MB)` })
+            break
+          }
 
-        // Detectar tipo automáticamente
-        const detectedDocType = detectDocType(file.name, docType)
-        const isLargeFile = file.size > 5 * 1024 * 1024
-        
-        console.log(`📄 Procesando: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB, tipo: ${detectedDocType})`)
-        
-        // 1. Leer el archivo
-        const bytes = await file.arrayBuffer()
-        const buffer = Buffer.from(bytes)
+          // Detectar tipo automáticamente
+          const detectedDocType = detectDocType(file.name, docType)
+          const isLargeFile = file.size > 5 * 1024 * 1024
+          
+          console.log(`📄 Procesando: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB, tipo: ${detectedDocType})${fileRetries > 0 ? ` [intento ${fileRetries + 1}]` : ''}`)
+          
+          // 1. Leer el archivo
+          const bytes = await file.arrayBuffer()
+          const buffer = Buffer.from(bytes)
 
-        // 2. Extraer texto CON información de páginas (incluye OCR para escaneados)
-        const extractResult = await extractText(buffer, file.name)
-        
-        if (!extractResult.success || !extractResult.text || extractResult.text.length < 50) {
-          errors.push({ file: file.name, error: extractResult.error || 'No se pudo extraer texto suficiente' })
-          continue
-        }
+          // 2. Extraer texto CON información de páginas (incluye OCR para escaneados)
+          const extractResult = await extractText(buffer, file.name)
+          
+          if (!extractResult.success || !extractResult.text || extractResult.text.length < 50) {
+            // Si es un error temporal (503, etc.), reintentar
+            if (extractResult.error && extractResult.error.includes('503') && fileRetries < MAX_FILE_RETRIES) {
+              fileRetries++
+              console.log(`   ⚠️ Error temporal, reintentando archivo en 10s...`)
+              await new Promise(r => setTimeout(r, 10000))
+              continue
+            }
+            errors.push({ file: file.name, error: extractResult.error || 'No se pudo extraer texto suficiente' })
+            break
+          }
 
-        const textContent = normalizeText(extractResult.text)
-        const pageTexts = extractResult.pageTexts || null
-        const numPages = extractResult.numPages || 0
+          const textContent = normalizeText(extractResult.text)
+          const pageTexts = extractResult.pageTexts || null
+          const numPages = extractResult.numPages || 0
 
-        console.log(`   📖 Extraídos ${textContent.length} caracteres, ${numPages} páginas`)
+          console.log(`   📖 Extraídos ${textContent.length} caracteres, ${numPages} páginas`)
 
         // 2.5 Extraer fecha del documento
         let documentDate = null
