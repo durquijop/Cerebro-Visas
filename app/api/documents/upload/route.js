@@ -233,20 +233,22 @@ export async function POST(request) {
       }
     }
     
-    // Generar embeddings solo si no es un archivo muy grande (para ahorrar memoria)
-    // Para archivos grandes, se pueden generar después
-    if (textForProcessing && textForProcessing.length > 100 && !isLargeFile) {
+    // SIEMPRE generar embeddings si hay texto suficiente
+    // Usar texto limitado para archivos grandes para optimizar memoria
+    const textForEmbeddings = isLargeFile ? textContent.substring(0, 30000) : textForProcessing
+    
+    if (textForEmbeddings && textForEmbeddings.length > 100) {
       console.log('🧠 Iniciando generación de embeddings...')
       try {
         const docForEmbedding = {
           id: fileId,
-          text_content: textForProcessing,
+          text_content: textForEmbeddings,
           doc_type: docType,
           original_name: file.name
         }
         
         console.log(`   Documento ID: ${fileId}`)
-        console.log(`   Texto: ${textForProcessing.length} caracteres`)
+        console.log(`   Texto para embeddings: ${textForEmbeddings.length} caracteres`)
         
         const embResult = await generateDocumentEmbeddings(supabaseAdmin, docForEmbedding, false)
         
@@ -262,10 +264,8 @@ export async function POST(request) {
         console.error('❌ Error generando embeddings:', embError.message)
         console.error(embError.stack)
       }
-    } else if (isLargeFile) {
-      console.log(`⚠️ Archivo grande (${(file.size / 1024 / 1024).toFixed(2)}MB), embeddings se pueden generar después`)
     } else {
-      console.log(`⚠️ Sin texto suficiente para embeddings: ${textForProcessing?.length || 0} caracteres`)
+      console.log(`⚠️ Sin texto suficiente para embeddings: ${textForEmbeddings?.length || 0} caracteres`)
     }
 
     // Limitar el texto en la respuesta para archivos grandes
