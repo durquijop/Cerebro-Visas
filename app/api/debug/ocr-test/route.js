@@ -17,9 +17,12 @@ export async function GET() {
     },
     ocrConfig: {
       model: 'gpt-4o',
-      maxPagesPerBatch: 2,
-      pageTimeout: 45000,
+      method: 'vision-with-canvas-rendering',
+      maxPagesPerRequest: 4,
+      pageTimeout: 90000,
+      maxRetries: 3,
     },
+    version: 'v12',
     timestamp: new Date().toISOString()
   })
 }
