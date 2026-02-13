@@ -5,322 +5,138 @@ import { extractStructuredData, saveStructuredData } from '@/lib/case-miner'
 import { generateDocumentEmbeddings } from '@/lib/embeddings'
 import { v4 as uuidv4 } from 'uuid'
 
-// Configuración para Next.js 14 App Router
-export const maxDuration = 300 // 5 minutos máximo
+export const maxDuration = 300
 export const dynamic = 'force-dynamic'
 
-// Supabase Admin client
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-/**
- * Extrae la fecha del documento del texto
- * Busca patrones comunes de fecha al inicio del documento
- */
-function extractDocumentDate(text) {
-  if (!text) return null
-  
-  // Tomar solo los primeros 1000 caracteres para buscar la fecha
-  const header = text.substring(0, 1000)
-  
-  // Patrones de fecha comunes en documentos USCIS
-  const patterns = [
-    // December 22, 2025
-    /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})\b/i,
-    // 22 December 2025
-    /\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/i,
-    // 12/22/2025 or 12-22-2025
-    /\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/,
-    // 2025-12-22
-    /\b(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\b/
-  ]
-  
-  const monthMap = {
-    'january': '01', 'february': '02', 'march': '03', 'april': '04',
-    'may': '05', 'june': '06', 'july': '07', 'august': '08',
-    'september': '09', 'october': '10', 'november': '11', 'december': '12'
-  }
-  
-  for (const pattern of patterns) {
-    const match = header.match(pattern)
-    if (match) {
-      try {
-        let year, month, day
-        
-        if (pattern === patterns[0]) {
-          // December 22, 2025
-          month = monthMap[match[1].toLowerCase()]
-          day = match[2].padStart(2, '0')
-          year = match[3]
-        } else if (pattern === patterns[1]) {
-          // 22 December 2025
-          day = match[1].padStart(2, '0')
-          month = monthMap[match[2].toLowerCase()]
-          year = match[3]
-        } else if (pattern === patterns[2]) {
-          // 12/22/2025
-          month = match[1].padStart(2, '0')
-          day = match[2].padStart(2, '0')
-          year = match[3]
-        } else if (pattern === patterns[3]) {
-          // 2025-12-22
-          year = match[1]
-          month = match[2].padStart(2, '0')
-          day = match[3].padStart(2, '0')
-        }
-        
-        if (year && month && day) {
-          const dateStr = `${year}-${month}-${day}`
-          // Validar que sea una fecha válida
-          const date = new Date(dateStr)
-          if (!isNaN(date.getTime())) {
-            return dateStr
-          }
-        }
-      } catch (e) {
-        console.error('Error parsing date:', e)
-      }
-    }
-  }
-  
-  return null
-}
-
-// Tamaño máximo de archivo: 20MB
-const MAX_FILE_SIZE = 20 * 1024 * 1024
-// Tamaño para procesamiento rápido (sin OCR largo)
-const QUICK_PROCESS_SIZE = 8 * 1024 * 1024
-
 export async function POST(request) {
-  const startTime = Date.now()
+  console.log('📤 Nuevo upload recibido')
   
   try {
     const formData = await request.formData()
     const file = formData.get('file')
-    const caseId = formData.get('case_id')
     const docType = formData.get('doc_type') || 'RFE'
-    const userId = formData.get('user_id')
     const processWithAI = formData.get('processWithAI') === 'true'
 
     if (!file) {
-      return NextResponse.json(
-        { error: 'No se proporcionó archivo' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'No se proporcionó archivo' }, { status: 400 })
     }
 
-    // Validar tamaño de archivo
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: `Archivo demasiado grande. Máximo permitido: ${MAX_FILE_SIZE / 1024 / 1024}MB` },
-        { status: 400 }
-      )
+    // Validaciones
+    const maxSize = 20 * 1024 * 1024 // 20MB
+    if (file.size > maxSize) {
+      return NextResponse.json({ error: 'Archivo muy grande (máx 20MB)' }, { status: 400 })
     }
 
-    // Validar tipo de archivo
-    const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
-    if (!validTypes.includes(file.type) && !file.name.endsWith('.pdf') && !file.name.endsWith('.docx')) {
-      return NextResponse.json(
-        { error: 'Tipo de archivo no soportado. Use PDF, DOCX o TXT.' },
-        { status: 400 }
-      )
-    }
+    console.log(`📁 Archivo: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`)
 
-    const isVeryLargeFile = file.size > QUICK_PROCESS_SIZE
-    console.log(`📁 Procesando archivo: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)${isVeryLargeFile ? ' [ARCHIVO GRANDE]' : ''}`)
-
-    // Convertir archivo a buffer
+    // Leer archivo
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Generar nombre único para el archivo
+    // Generar ID único
     const fileId = uuidv4()
     const fileExt = file.name.split('.').pop()
-    const storagePath = `${caseId || 'uncategorized'}/${fileId}.${fileExt}`
+    const storagePath = `documents/${fileId}.${fileExt}`
 
-    // 1. Subir archivo a Supabase Storage
+    // 1. Subir a Storage
     const { error: uploadError } = await supabaseAdmin.storage
       .from('documents')
-      .upload(storagePath, buffer, {
-        contentType: file.type,
-        cacheControl: '3600'
-      })
+      .upload(storagePath, buffer, { contentType: file.type })
 
     if (uploadError) {
-      console.error('Storage upload error:', uploadError)
-      return NextResponse.json(
-        { error: `Error al subir archivo: ${uploadError.message}` },
-        { status: 500 }
-      )
+      console.error('Error subiendo archivo:', uploadError)
     }
 
-    // 2. Extraer texto del documento
-    const extractionResult = await extractText(buffer, file.name)
-    let textContent = ''
-    let extractionSuccess = false
+    // 2. Extraer texto
+    const extraction = await extractText(buffer, file.name)
+    const textContent = extraction.success ? normalizeText(extraction.text) : ''
+    
+    console.log(`📝 Extracción: ${extraction.success ? 'Exitosa' : 'Fallida'} - ${textContent.length} caracteres`)
 
-    if (extractionResult.success) {
-      textContent = normalizeText(extractionResult.text)
-      extractionSuccess = true
-    }
-
-    // 2.5 Extraer fecha del documento del texto
-    let documentDate = null
-    if (textContent && textContent.length > 20) {
-      documentDate = extractDocumentDate(textContent)
-      if (documentDate) {
-        console.log(`📅 Fecha del documento detectada: ${documentDate}`)
-      }
-    }
-
-    // 3. Crear registro en la base de datos
-    const documentRecord = {
-      id: fileId,
-      name: file.name,
-      doc_type: docType,
-      case_id: caseId || null,
-      storage_path: storagePath,
-      text_content: textContent.substring(0, 50000), // Limitar a 50k caracteres
-      created_by: userId || null,
-      document_date: documentDate
-    }
-
+    // 3. Guardar documento en DB
     const { data: document, error: dbError } = await supabaseAdmin
       .from('documents')
-      .insert(documentRecord)
+      .insert({
+        id: fileId,
+        name: file.name,
+        doc_type: docType,
+        storage_path: storagePath,
+        text_content: textContent.substring(0, 50000)
+      })
       .select()
       .single()
 
     if (dbError) {
-      console.error('Database error:', dbError)
-      return NextResponse.json(
-        { error: `Error al guardar documento: ${dbError.message}` },
-        { status: 500 }
-      )
+      console.error('Error guardando documento:', dbError)
+      return NextResponse.json({ error: 'Error guardando documento' }, { status: 500 })
     }
 
-    // 4. Procesar con IA si se solicitó y hay texto (EXTRACCIÓN ESTRUCTURADA)
-    let aiAnalysis = null
+    // Variables para respuesta
     let structuredData = null
-    let embeddingsGenerated = 0
-    
-    // Para archivos grandes (>5MB), limitar el procesamiento
-    const isLargeFile = file.size > 5 * 1024 * 1024
-    const maxTextForAI = isLargeFile ? 30000 : 50000 // Limitar texto para IA
-    const textForProcessing = textContent.substring(0, maxTextForAI)
-    
-    console.log(`📋 processWithAI: ${processWithAI}, textContent length: ${textContent?.length || 0}, isLargeFile: ${isLargeFile}`)
-    
-    // Case Miner solo si se solicita y el archivo no es muy grande
-    if (processWithAI && textForProcessing && textForProcessing.length > 100) {
-      console.log('✅ Condiciones cumplidas, procesando con Case Miner...')
+    let embeddingsResult = { generated: false, chunks: 0 }
+
+    // 4. Procesar con IA (si hay texto y se solicitó)
+    if (processWithAI && textContent.length > 100) {
+      console.log('🔬 Procesando con IA...')
       try {
-        console.log('🔬 Iniciando extracción estructurada con Case Miner...')
-        
-        // Usar el Case Miner para extracción estructurada
-        const extractionResult = await extractStructuredData(textForProcessing, docType)
-        
-        if (extractionResult.success) {
-          structuredData = extractionResult.data
-          aiAnalysis = structuredData
-          
-          // Guardar datos estructurados (issues, requests, metadata)
+        const result = await extractStructuredData(textContent.substring(0, 30000), docType)
+        if (result.success) {
+          structuredData = result.data
           await saveStructuredData(supabaseAdmin, fileId, structuredData)
-          
-          console.log(`✅ Extracción estructurada completada:`)
-          console.log(`   - Issues encontrados: ${structuredData.issues?.length || 0}`)
-          console.log(`   - Requests de USCIS: ${structuredData.requests?.length || 0}`)
-          console.log(`   - Prongs afectados: P1=${structuredData.summary?.prongs_affected?.P1}, P2=${structuredData.summary?.prongs_affected?.P2}, P3=${structuredData.summary?.prongs_affected?.P3}`)
-        } else {
-          console.error('❌ Error en extracción estructurada:', extractionResult.error)
+          console.log(`✅ Issues: ${structuredData.issues?.length || 0}, Requests: ${structuredData.requests?.length || 0}`)
         }
       } catch (aiError) {
-        console.error('AI analysis error:', aiError)
-        // No falla el upload si el AI falla
+        console.error('Error procesando con IA:', aiError.message)
       }
     }
-    
-    // SIEMPRE generar embeddings si hay texto suficiente
-    // Usar texto limitado para archivos grandes para optimizar memoria
-    const textForEmbeddings = isLargeFile ? textContent.substring(0, 30000) : textForProcessing
-    
-    if (textForEmbeddings && textForEmbeddings.length > 100) {
-      console.log('🧠 Iniciando generación de embeddings...')
+
+    // 5. Generar embeddings (si hay texto)
+    if (textContent.length > 100) {
+      console.log('🧠 Generando embeddings...')
       try {
-        const docForEmbedding = {
+        const embResult = await generateDocumentEmbeddings(supabaseAdmin, {
           id: fileId,
-          text_content: textForEmbeddings,
+          text_content: textContent,
           doc_type: docType,
           original_name: file.name
-        }
-        
-        console.log(`   Documento ID: ${fileId}`)
-        console.log(`   Texto para embeddings: ${textForEmbeddings.length} caracteres`)
-        
-        const embResult = await generateDocumentEmbeddings(supabaseAdmin, docForEmbedding, false)
-        
-        console.log(`   Resultado embeddings:`, embResult)
-        
-        if (embResult.success) {
-          embeddingsGenerated = embResult.chunks || 0
-          console.log(`✅ Embeddings generados: ${embeddingsGenerated} chunks`)
-        } else {
-          console.log(`⚠️ No se generaron embeddings: ${embResult.reason || embResult.error}`)
-        }
+        })
+        embeddingsResult = { generated: embResult.success, chunks: embResult.chunks || 0 }
       } catch (embError) {
-        console.error('❌ Error generando embeddings:', embError.message)
-        console.error(embError.stack)
+        console.error('Error generando embeddings:', embError.message)
       }
-    } else {
-      console.log(`⚠️ Sin texto suficiente para embeddings: ${textForEmbeddings?.length || 0} caracteres`)
     }
 
-    // Limitar el texto en la respuesta para archivos grandes
-    const textPreview = textContent.substring(0, 2000)
-    const fullTextForResponse = isLargeFile 
-      ? textContent.substring(0, 10000) + '\n\n[... Texto truncado por tamaño del archivo ...]'
-      : textContent
+    console.log('✅ Upload completado')
 
+    // Respuesta
     return NextResponse.json({
       success: true,
       document: {
         id: document.id,
         name: document.name,
         doc_type: document.doc_type,
-        storage_path: document.storage_path,
-        created_at: document.created_at,
-        document_date: documentDate
+        storage_path: document.storage_path
       },
       extraction: {
-        success: extractionSuccess,
+        success: extraction.success,
         textLength: textContent.length,
-        preview: textPreview + (textContent.length > 2000 ? '...' : ''),
-        fullText: fullTextForResponse,
-        isLargeFile: isLargeFile
+        method: extraction.method,
+        preview: textContent.substring(0, 500)
       },
       structuredData: structuredData ? {
-        document_info: structuredData.document_info,
         issues_count: structuredData.issues?.length || 0,
-        requests_count: structuredData.requests?.length || 0,
-        prongs_affected: structuredData.summary?.prongs_affected,
-        overall_severity: structuredData.summary?.overall_severity,
-        executive_summary: structuredData.summary?.executive_summary
+        requests_count: structuredData.requests?.length || 0
       } : null,
-      embeddings: {
-        generated: embeddingsGenerated > 0,
-        chunks: embeddingsGenerated
-      },
-      aiAnalysis,
-      warning: isLargeFile ? 'Archivo grande procesado correctamente' : null
+      embeddings: embeddingsResult
     })
 
   } catch (error) {
-    console.error('Upload error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Error interno del servidor' },
-      { status: 500 }
-    )
+    console.error('❌ Error en upload:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
