@@ -244,8 +244,14 @@ export async function GET(request) {
       outcomeTypes: ['RFE', 'NOID', 'Denial', 'Approval']
     }
 
-    // 11. Insights generados
-    const insights = generateInsights(allIssues, topIssues, severityDistribution, prongDistribution)
+    // 11. Generar análisis inteligente completo
+    const analysis = generateTrendsAnalysis(
+      allIssues,
+      documents || [],
+      topIssues,
+      prongDistribution,
+      severityDistribution
+    )
 
     return NextResponse.json({
       // Estadísticas principales
@@ -262,8 +268,8 @@ export async function GET(request) {
       serviceCenterDistribution,
       topRequests,
       
-      // Insights
-      insights,
+      // Análisis inteligente completo
+      analysis,
       
       // Filtros
       period,
