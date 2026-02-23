@@ -18,6 +18,7 @@ import {
   ChevronRight, Lightbulb, Target
 } from 'lucide-react'
 import Link from 'next/link'
+import AnalysisPanel from '@/components/AnalysisPanel'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart as RechartsPie, Pie, Cell, LineChart, Line, Area, AreaChart
