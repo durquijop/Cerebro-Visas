@@ -64,7 +64,7 @@ export default function TrendsClient() {
   const [driftData, setDriftData] = useState(null)
   const [driftLoading, setDriftLoading] = useState(false)
   const [driftConfig, setDriftConfig] = useState({ recentDays: '60', baselineDays: '180' })
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState('conclusions')
 
   // Cohort Analyzer state
   const [cohortData, setCohortData] = useState(null)
