@@ -366,7 +366,11 @@ export default function TrendsClient() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+            <TabsTrigger value="conclusions" className="flex items-center gap-2">
+              <Lightbulb className="h-4 w-4" />
+              Conclusiones
+            </TabsTrigger>
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Vista General
