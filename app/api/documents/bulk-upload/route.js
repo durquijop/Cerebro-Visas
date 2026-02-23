@@ -264,11 +264,9 @@ export async function POST(request) {
               { 
                 id: docRecord.id, 
                 text_content: textForEmbeddings, 
-                page_texts: pageTexts,
-                name: file.name, 
-                doc_type: detectedDocType 
-              },
-              false
+                doc_type: detectedDocType,
+                original_name: file.name
+              }
             )
             if (embResult.success) {
               embeddingsGenerated = embResult.chunks || 0
