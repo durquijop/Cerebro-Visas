@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { generateTrendsAnalysis } from '@/lib/trends-analysis'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
