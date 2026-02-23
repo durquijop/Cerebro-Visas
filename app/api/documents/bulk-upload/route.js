@@ -282,7 +282,7 @@ export async function POST(request) {
           id: docRecord.id,
           textLength: textContent.length,
           numPages: numPages,
-          hasPageRefs: !!pageTexts,
+          extractionMethod: extractResult.method || 'unknown',
           embeddingsGenerated,
           embeddingsSkipped: generateEmbeddings && !shouldGenerateEmbeddings,
           docType: detectedDocType,
