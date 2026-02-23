@@ -386,6 +386,38 @@ export default function TrendsClient() {
             </TabsTrigger>
           </TabsList>
 
+          {/* CONCLUSIONS TAB */}
+          <TabsContent value="conclusions">
+            <div className="mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground">Análisis Inteligente</h2>
+                  <p className="text-muted-foreground">
+                    Conclusiones y recomendaciones basadas en {data?.totalDocuments || 0} documentos y {data?.totalIssues || 0} issues
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={fetchData}
+                  disabled={loading}
+                  className="gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                  Actualizar
+                </Button>
+              </div>
+            </div>
+            
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Analizando datos...</span>
+              </div>
+            ) : (
+              <AnalysisPanel analysis={data?.analysis} />
+            )}
+          </TabsContent>
+
           {/* OVERVIEW TAB */}
           <TabsContent value="overview">
             {/* Controls Row: Period + Filters */}
