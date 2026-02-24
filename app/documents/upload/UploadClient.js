@@ -254,30 +254,19 @@ export default function UploadClient({ userId, cases, userRole }) {
           throw new Error('El procesamiento tardó demasiado. Verifique en "Mis Documentos".')
         }
       }
-        aiAnalysis: data.aiAnalysis
-      })
-
-      toast.success('Documento procesado exitosamente')
-      // No limpiar el file para que pueda ver los resultados
-      // setFile(null)
 
     } catch (error) {
       console.error('Upload error:', error)
       
-      let errorMessage = error.message
-      
-      // Caso especial: timeout pero documento no encontrado
-      if (error.message === 'TIMEOUT_DOCUMENT_NOT_FOUND') {
-        errorMessage = 'El procesamiento tardó demasiado y no se pudo verificar. Por favor revise en "Mis Documentos" si el archivo se procesó.'
-      }
-      // Manejar error de abort (timeout del cliente)
-      else if (error.name === 'AbortError') {
-        // Verificar si el documento se procesó
-        toast.info('Verificando si el documento se procesó...', { duration: 10000 })
-        const processedData = await checkDocumentProcessed(filename, 20, 5000)
-        
-        if (processedData && processedData.found && processedData.processed) {
-          setUploadProgress(100)
+      setResult({
+        success: false,
+        message: error.message
+      })
+      toast.error(error.message)
+    } finally {
+      setUploading(false)
+    }
+  }
           setResult({
             success: true,
             message: 'Documento procesado exitosamente',
