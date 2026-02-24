@@ -132,7 +132,6 @@ async function processDocumentAsync(jobId, buffer, filename, docType, processWit
         doc_type: docType,
         storage_path: storagePath,
         text_content: textContent,
-        file_size: buffer.length,
         case_id: caseId && caseId !== 'none' ? caseId : null
       })
       .select()
