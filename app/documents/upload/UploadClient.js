@@ -150,21 +150,25 @@ export default function UploadClient({ userId, cases, userRole }) {
       const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minutos
       
       // Simular progreso durante el procesamiento
-      const progressInterval = setInterval(() => {
+      let progressInterval = setInterval(() => {
         setUploadProgress(prev => {
           if (prev < 85) return prev + 3
           return prev
         })
       }, 2000)
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal
-      })
+      let response
+      try {
+        response = await fetch(endpoint, {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal
+        })
+      } finally {
+        clearTimeout(timeoutId)
+        clearInterval(progressInterval)
+      }
       
-      clearTimeout(timeoutId)
-      clearInterval(progressInterval)
       setUploadProgress(90)
 
       // Verificar si la respuesta es JSON válido
