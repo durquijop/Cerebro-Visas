@@ -212,12 +212,45 @@ export default function UploadClient({ userId, cases, userRole }) {
 
     } catch (error) {
       console.error('Upload error:', error)
+      clearInterval(progressInterval)
       
+      // Si hubo un error de conexión o timeout, verificar si el documento se procesó
+      const isConnectionError = error.name === 'AbortError' || 
+                                 error.message.includes('conexión') ||
+                                 error.message.includes('timeout') ||
+                                 error.message.includes('Gateway') ||
+                                 error.message.includes('502') ||
+                                 error.message.includes('504')
+      
+      if (isConnectionError) {
+        toast.info('Verificando si el documento se procesó...', { duration: 5000 })
+        setUploadProgress(90)
+        
+        // Esperar un poco y verificar si el documento se procesó
+        const processedData = await checkDocumentProcessed(filename, 15, 5000) // 15 intentos, cada 5 segundos
+        
+        if (processedData && processedData.found && processedData.processed) {
+          setUploadProgress(100)
+          setResult({
+            success: true,
+            message: 'Documento procesado exitosamente',
+            documentId: processedData.document?.id,
+            documentName: processedData.document?.name,
+            docType: processedData.document?.doc_type,
+            extraction: processedData.extraction,
+            structuredData: processedData.structuredData,
+            embeddings: processedData.embeddings,
+            aiAnalysis: processedData.aiAnalysis
+          })
+          toast.success('¡Documento procesado exitosamente!')
+          return
+        }
+      }
+      
+      // Si no se pudo verificar o no se procesó, mostrar error
       let errorMessage = error.message
-      
-      // Manejar error de abort (timeout)
       if (error.name === 'AbortError') {
-        errorMessage = 'El procesamiento tardó demasiado. El documento podría haberse procesado - verifique en "Mis Documentos".'
+        errorMessage = 'El procesamiento tardó demasiado. Verifique en "Mis Documentos" si el archivo se procesó.'
       }
       
       setResult({
