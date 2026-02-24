@@ -86,6 +86,29 @@ export default function UploadClient({ userId, cases, userRole }) {
     }
   }
 
+  // Función para verificar si el documento se procesó
+  const checkDocumentProcessed = async (filename, maxRetries = 10, delayMs = 3000) => {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const response = await fetch(`/api/documents/check-recent?filename=${encodeURIComponent(filename)}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.found && data.processed) {
+            return data
+          }
+        }
+      } catch (e) {
+        console.log(`Check attempt ${i + 1} failed:`, e.message)
+      }
+      
+      // Esperar antes del siguiente intento
+      if (i < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delayMs))
+      }
+    }
+    return null
+  }
+
   const handleUpload = async () => {
     if (!file) {
       toast.error('Seleccione un archivo')
@@ -94,6 +117,10 @@ export default function UploadClient({ userId, cases, userRole }) {
 
     setUploading(true)
     setUploadProgress(0)
+    setResult(null)
+
+    const filename = file.name
+    const fileSizeMB = file.size / (1024 * 1024)
 
     try {
       const formData = new FormData()
@@ -108,10 +135,9 @@ export default function UploadClient({ userId, cases, userRole }) {
       setUploadProgress(10)
       
       // Mostrar mensaje para archivos grandes
-      const fileSizeMB = file.size / (1024 * 1024)
       if (fileSizeMB > 3) {
         toast.info(`Procesando archivo grande (${fileSizeMB.toFixed(1)}MB). Esto puede tomar 2-3 minutos...`, {
-          duration: 10000
+          duration: 15000
         })
       }
 
@@ -126,10 +152,10 @@ export default function UploadClient({ userId, cases, userRole }) {
       // Simular progreso durante el procesamiento
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
-          if (prev < 85) return prev + 5
+          if (prev < 85) return prev + 3
           return prev
         })
-      }, 3000)
+      }, 2000)
 
       const response = await fetch(endpoint, {
         method: 'POST',
