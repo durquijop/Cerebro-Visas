@@ -20,8 +20,8 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Filename requerido' }, { status: 400 })
     }
     
-    // Buscar documento reciente con ese nombre (últimos 5 minutos)
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    // Buscar documento reciente con ese nombre (últimos 30 minutos)
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString()
     
     const { data: documents, error } = await supabase
       .from('documents')
