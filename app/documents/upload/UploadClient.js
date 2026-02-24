@@ -267,35 +267,6 @@ export default function UploadClient({ userId, cases, userRole }) {
       setUploading(false)
     }
   }
-          setResult({
-            success: true,
-            message: 'Documento procesado exitosamente',
-            documentId: processedData.document?.id,
-            documentName: processedData.document?.name,
-            docType: processedData.document?.doc_type,
-            visaCategory: processedData.document?.visa_category,
-            extraction: processedData.extraction,
-            structuredData: processedData.structuredData,
-            embeddings: processedData.embeddings,
-            aiAnalysis: processedData.aiAnalysis
-          })
-          toast.success('¡Documento procesado exitosamente!')
-          setUploading(false)
-          return
-        }
-        
-        errorMessage = 'El procesamiento tardó demasiado. Verifique en "Mis Documentos" si el archivo se procesó.'
-      }
-      
-      setResult({
-        success: false,
-        message: errorMessage
-      })
-      toast.error(errorMessage)
-    } finally {
-      setUploading(false)
-    }
-  }
 
   // ============ BULK UPLOAD FOR RAG ============
   const handleBulkDrag = useCallback((e) => {
