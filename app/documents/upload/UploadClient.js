@@ -86,15 +86,25 @@ export default function UploadClient({ userId, cases, userRole }) {
     }
   }
 
-  // Función para verificar si el documento se procesó
-  const checkDocumentProcessed = async (filename, maxRetries = 10, delayMs = 3000) => {
+  // Función para verificar el estado de un job asíncrono
+  const checkJobStatus = async (jobId, maxRetries = 90, delayMs = 2000) => {
     for (let i = 0; i < maxRetries; i++) {
       try {
-        const response = await fetch(`/api/documents/check-recent?filename=${encodeURIComponent(filename)}`)
+        const response = await fetch(`/api/documents/upload-async?jobId=${jobId}`)
         if (response.ok) {
           const data = await response.json()
-          if (data.found && data.processed) {
-            return data
+          
+          // Actualizar progreso
+          if (data.progress) {
+            setUploadProgress(data.progress)
+          }
+          
+          // Si completó o falló, retornar
+          if (data.status === 'completed') {
+            return { success: true, ...data }
+          }
+          if (data.status === 'failed') {
+            return { success: false, error: data.error }
           }
         }
       } catch (e) {
@@ -102,6 +112,28 @@ export default function UploadClient({ userId, cases, userRole }) {
       }
       
       // Esperar antes del siguiente intento
+      if (i < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delayMs))
+      }
+    }
+    return null
+  }
+
+  // Función para verificar si el documento se procesó (fallback)
+  const checkDocumentProcessed = async (filename, maxRetries = 20, delayMs = 5000) => {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const response = await fetch(`/api/documents/job-status?filename=${encodeURIComponent(filename)}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.found && data.status === 'completed') {
+            return data
+          }
+        }
+      } catch (e) {
+        console.log(`Check attempt ${i + 1} failed:`, e.message)
+      }
+      
       if (i < maxRetries - 1) {
         await new Promise(resolve => setTimeout(resolve, delayMs))
       }
@@ -132,7 +164,7 @@ export default function UploadClient({ userId, cases, userRole }) {
         formData.append('caseId', caseId)
       }
 
-      setUploadProgress(10)
+      setUploadProgress(5)
       
       // Mostrar mensaje para archivos grandes
       if (fileSizeMB > 3) {
@@ -141,103 +173,87 @@ export default function UploadClient({ userId, cases, userRole }) {
         })
       }
 
-      const endpoint = caseId && caseId !== 'none' 
-        ? '/api/casos/documents/upload'
-        : '/api/documents/upload'
-
-      // Crear AbortController con timeout de 5 minutos para archivos grandes
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minutos
-      
-      // Simular progreso durante el procesamiento
-      let progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev < 85) return prev + 3
-          return prev
-        })
-      }, 2000)
-
-      let response
-      try {
-        response = await fetch(endpoint, {
-          method: 'POST',
-          body: formData,
-          signal: controller.signal
-        })
-      } finally {
-        clearTimeout(timeoutId)
-        clearInterval(progressInterval)
-      }
-      
-      setUploadProgress(90)
-
-      // Verificar si la respuesta es JSON válido
-      const contentType = response.headers.get('content-type')
-      let data
-      
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json()
-      } else {
-        // Si no es JSON, es un error del servidor/proxy - verificar si el documento se procesó
-        const text = await response.text()
-        console.error('Response not JSON:', text, 'Status:', response.status)
-        
-        // Para cualquier error de proxy (502, 504, timeout), verificar si el doc se procesó
-        if (response.status === 502 || response.status === 504 || 
-            text.includes('502') || text.includes('504') || 
-            text.includes('Gateway') || text.includes('timeout')) {
-          
-          console.log('Error de proxy detectado, verificando si el documento se procesó...')
-          toast.info('Conexión interrumpida. Verificando si el documento se procesó...', { duration: 30000 })
-          setUploadProgress(85)
-          
-          // Esperar y verificar si el documento se procesó
-          const processedData = await checkDocumentProcessed(filename, 20, 5000) // 20 intentos x 5 seg = 100 seg
-          
-          if (processedData && processedData.found && processedData.processed) {
-            setUploadProgress(100)
-            setResult({
-              success: true,
-              message: 'Documento procesado exitosamente',
-              documentId: processedData.document?.id,
-              documentName: processedData.document?.name,
-              docType: processedData.document?.doc_type,
-              visaCategory: processedData.document?.visa_category,
-              extraction: processedData.extraction,
-              structuredData: processedData.structuredData,
-              embeddings: processedData.embeddings,
-              aiAnalysis: processedData.aiAnalysis
-            })
-            toast.success('¡Documento procesado exitosamente!')
-            setUploading(false)
-            return
-          }
-          
-          // Si después de verificar no se encontró, mostrar error apropiado
-          throw new Error('TIMEOUT_DOCUMENT_NOT_FOUND')
-        }
-        
-        if (text.includes('413') || text.includes('too large') || text.includes('body exceeded')) {
-          throw new Error('Archivo demasiado grande. El límite del servidor es 20MB.')
-        }
-        
-        throw new Error('Error de conexión con el servidor.')
-      }
+      // Usar el endpoint asíncrono
+      const response = await fetch('/api/documents/upload-async', {
+        method: 'POST',
+        body: formData
+      })
 
       if (!response.ok) {
-        throw new Error(data.error || 'Error al subir archivo')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Error ${response.status}`)
       }
 
-      setUploadProgress(100)
-      setResult({
-        success: true,
-        message: 'Documento procesado exitosamente',
-        documentId: data.document?.id,
-        documentName: data.document?.name,
-        docType: data.document?.doc_type,
-        extraction: data.extraction,
-        structuredData: data.structuredData,
-        embeddings: data.embeddings,
+      const initData = await response.json()
+      
+      if (!initData.success || !initData.jobId) {
+        throw new Error(initData.error || 'Error iniciando procesamiento')
+      }
+
+      console.log('Job iniciado:', initData.jobId)
+      setUploadProgress(10)
+      toast.success('Archivo recibido. Procesando...', { duration: 3000 })
+
+      // Hacer polling del estado del job
+      const jobResult = await checkJobStatus(initData.jobId, 90, 2000) // 90 intentos x 2 seg = 3 min
+
+      if (jobResult && jobResult.success) {
+        setUploadProgress(100)
+        setResult({
+          success: true,
+          message: 'Documento procesado exitosamente',
+          documentId: jobResult.result?.documentId,
+          documentName: jobResult.result?.documentName,
+          docType: jobResult.result?.docType,
+          visaCategory: jobResult.result?.visaCategory,
+          extraction: {
+            success: jobResult.result?.extractionSuccess,
+            textLength: jobResult.result?.textLength,
+            method: jobResult.result?.extractionMethod,
+            preview: jobResult.result?.preview
+          },
+          structuredData: {
+            issues_count: jobResult.result?.issuesCount || 0,
+            requests_count: jobResult.result?.requestsCount || 0
+          },
+          embeddings: {
+            generated: (jobResult.result?.embeddingsCount || 0) > 0,
+            chunks: jobResult.result?.embeddingsCount || 0
+          }
+        })
+        toast.success('¡Documento procesado exitosamente!')
+      } else if (jobResult && !jobResult.success) {
+        throw new Error(jobResult.error || 'Error en procesamiento')
+      } else {
+        // Timeout - verificar si el documento se procesó de todos modos
+        toast.info('Verificando estado final...', { duration: 5000 })
+        const processedData = await checkDocumentProcessed(filename, 10, 3000)
+        
+        if (processedData && processedData.found && processedData.status === 'completed') {
+          setUploadProgress(100)
+          setResult({
+            success: true,
+            message: 'Documento procesado exitosamente',
+            documentId: processedData.result?.documentId,
+            documentName: processedData.result?.documentName,
+            extraction: {
+              success: true,
+              textLength: processedData.result?.textLength
+            },
+            structuredData: {
+              issues_count: processedData.result?.issuesCount || 0,
+              requests_count: processedData.result?.requestsCount || 0
+            },
+            embeddings: {
+              generated: (processedData.result?.embeddingsCount || 0) > 0,
+              chunks: processedData.result?.embeddingsCount || 0
+            }
+          })
+          toast.success('¡Documento procesado exitosamente!')
+        } else {
+          throw new Error('El procesamiento tardó demasiado. Verifique en "Mis Documentos".')
+        }
+      }
         aiAnalysis: data.aiAnalysis
       })
 
