@@ -398,7 +398,7 @@ export default function TrendsClient() {
                 </div>
                 <Button 
                   variant="outline" 
-                  onClick={fetchData}
+                  onClick={fetchTrends}
                   disabled={loading}
                   className="gap-2"
                 >
