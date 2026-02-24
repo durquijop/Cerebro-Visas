@@ -186,11 +186,19 @@ export default function UploadClient({ userId, cases, userRole }) {
 
     } catch (error) {
       console.error('Upload error:', error)
+      
+      let errorMessage = error.message
+      
+      // Manejar error de abort (timeout)
+      if (error.name === 'AbortError') {
+        errorMessage = 'El procesamiento tardó demasiado. El documento podría haberse procesado - verifique en "Mis Documentos".'
+      }
+      
       setResult({
         success: false,
-        message: error.message
+        message: errorMessage
       })
-      toast.error(error.message)
+      toast.error(errorMessage)
     } finally {
       setUploading(false)
     }
