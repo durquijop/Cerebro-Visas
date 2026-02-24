@@ -246,20 +246,17 @@ export default function UploadClient({ userId, cases, userRole }) {
     } catch (error) {
       console.error('Upload error:', error)
       
-      // Si hubo un error de conexión o timeout, verificar si el documento se procesó
-      const isConnectionError = error.name === 'AbortError' || 
-                                 error.message.includes('conexión') ||
-                                 error.message.includes('timeout') ||
-                                 error.message.includes('Gateway') ||
-                                 error.message.includes('502') ||
-                                 error.message.includes('504')
+      let errorMessage = error.message
       
-      if (isConnectionError) {
-        toast.info('Verificando si el documento se procesó...', { duration: 5000 })
-        setUploadProgress(90)
-        
-        // Esperar un poco y verificar si el documento se procesó
-        const processedData = await checkDocumentProcessed(filename, 15, 5000) // 15 intentos, cada 5 segundos
+      // Caso especial: timeout pero documento no encontrado
+      if (error.message === 'TIMEOUT_DOCUMENT_NOT_FOUND') {
+        errorMessage = 'El procesamiento tardó demasiado y no se pudo verificar. Por favor revise en "Mis Documentos" si el archivo se procesó.'
+      }
+      // Manejar error de abort (timeout del cliente)
+      else if (error.name === 'AbortError') {
+        // Verificar si el documento se procesó
+        toast.info('Verificando si el documento se procesó...', { duration: 10000 })
+        const processedData = await checkDocumentProcessed(filename, 20, 5000)
         
         if (processedData && processedData.found && processedData.processed) {
           setUploadProgress(100)
@@ -269,19 +266,17 @@ export default function UploadClient({ userId, cases, userRole }) {
             documentId: processedData.document?.id,
             documentName: processedData.document?.name,
             docType: processedData.document?.doc_type,
+            visaCategory: processedData.document?.visa_category,
             extraction: processedData.extraction,
             structuredData: processedData.structuredData,
             embeddings: processedData.embeddings,
             aiAnalysis: processedData.aiAnalysis
           })
           toast.success('¡Documento procesado exitosamente!')
+          setUploading(false)
           return
         }
-      }
-      
-      // Si no se pudo verificar o no se procesó, mostrar error
-      let errorMessage = error.message
-      if (error.name === 'AbortError') {
+        
         errorMessage = 'El procesamiento tardó demasiado. Verifique en "Mis Documentos" si el archivo se procesó.'
       }
       
