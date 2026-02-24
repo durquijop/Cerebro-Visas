@@ -128,11 +128,11 @@ async function processDocumentAsync(jobId, buffer, filename, docType, processWit
       .insert({
         id: docId,
         name: filename,
-        original_name: filename,
         doc_type: docType,
         storage_path: storagePath,
         text_content: textContent,
-        case_id: caseId && caseId !== 'none' ? caseId : null
+        case_id: caseId && caseId !== 'none' ? caseId : null,
+        extraction_status: textContent.length > 0 ? 'completed' : 'failed'
       })
       .select()
       .single()
