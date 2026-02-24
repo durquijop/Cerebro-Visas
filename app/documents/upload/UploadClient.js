@@ -178,19 +178,48 @@ export default function UploadClient({ userId, cases, userRole }) {
       if (contentType && contentType.includes('application/json')) {
         data = await response.json()
       } else {
-        // Si no es JSON, probablemente es un error del servidor/proxy
+        // Si no es JSON, es un error del servidor/proxy - verificar si el documento se procesó
         const text = await response.text()
-        console.error('Response not JSON:', text)
+        console.error('Response not JSON:', text, 'Status:', response.status)
+        
+        // Para cualquier error de proxy (502, 504, timeout), verificar si el doc se procesó
+        if (response.status === 502 || response.status === 504 || 
+            text.includes('502') || text.includes('504') || 
+            text.includes('Gateway') || text.includes('timeout')) {
+          
+          console.log('Error de proxy detectado, verificando si el documento se procesó...')
+          
+          // Esperar y verificar si el documento se procesó
+          const processedData = await checkDocumentProcessed(filename, 20, 5000) // 20 intentos x 5 seg = 100 seg
+          
+          if (processedData && processedData.found && processedData.processed) {
+            setUploadProgress(100)
+            setResult({
+              success: true,
+              message: 'Documento procesado exitosamente',
+              documentId: processedData.document?.id,
+              documentName: processedData.document?.name,
+              docType: processedData.document?.doc_type,
+              visaCategory: processedData.document?.visa_category,
+              extraction: processedData.extraction,
+              structuredData: processedData.structuredData,
+              embeddings: processedData.embeddings,
+              aiAnalysis: processedData.aiAnalysis
+            })
+            toast.success('¡Documento procesado exitosamente!')
+            setUploading(false)
+            return
+          }
+          
+          // Si después de verificar no se encontró, mostrar error apropiado
+          throw new Error('TIMEOUT_DOCUMENT_NOT_FOUND')
+        }
         
         if (text.includes('413') || text.includes('too large') || text.includes('body exceeded')) {
           throw new Error('Archivo demasiado grande. El límite del servidor es 20MB.')
-        } else if (text.includes('504') || text.includes('timeout') || text.includes('Gateway Time')) {
-          throw new Error('El procesamiento está tomando más tiempo de lo esperado. El documento podría haberse procesado - verifique en "Mis Documentos".')
-        } else if (text.includes('502') || text.includes('Bad Gateway')) {
-          throw new Error('El servidor está ocupado. Intente de nuevo en unos segundos.')
-        } else {
-          throw new Error('Error de conexión. El documento podría haberse procesado - verifique en "Mis Documentos".')
         }
+        
+        throw new Error('Error de conexión con el servidor.')
       }
 
       if (!response.ok) {
