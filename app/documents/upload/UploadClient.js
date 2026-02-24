@@ -154,12 +154,12 @@ export default function UploadClient({ userId, cases, userRole }) {
         
         if (text.includes('413') || text.includes('too large') || text.includes('body exceeded')) {
           throw new Error('Archivo demasiado grande. El límite del servidor es 20MB.')
-        } else if (text.includes('504') || text.includes('timeout') || text.includes('Gateway')) {
-          throw new Error('Tiempo de espera agotado. Intente con un archivo más pequeño o espere unos minutos.')
+        } else if (text.includes('504') || text.includes('timeout') || text.includes('Gateway Time')) {
+          throw new Error('El procesamiento está tomando más tiempo de lo esperado. El documento podría haberse procesado - verifique en "Mis Documentos".')
         } else if (text.includes('502') || text.includes('Bad Gateway')) {
-          throw new Error('El servidor está procesando. Intente de nuevo en unos segundos.')
+          throw new Error('El servidor está ocupado. Intente de nuevo en unos segundos.')
         } else {
-          throw new Error('Error del servidor. Intente de nuevo más tarde.')
+          throw new Error('Error de conexión. El documento podría haberse procesado - verifique en "Mis Documentos".')
         }
       }
 
