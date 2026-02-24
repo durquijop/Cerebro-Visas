@@ -36,7 +36,7 @@ export async function GET(request) {
         analyzed_at
       `)
       .ilike('name', `%${filename.replace(/[%_]/g, '')}%`)
-      .gte('created_at', fiveMinutesAgo)
+      .gte('created_at', thirtyMinutesAgo)
       .order('created_at', { ascending: false })
       .limit(1)
     
