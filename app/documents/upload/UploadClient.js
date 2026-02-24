@@ -105,18 +105,41 @@ export default function UploadClient({ userId, cases, userRole }) {
         formData.append('caseId', caseId)
       }
 
-      setUploadProgress(30)
+      setUploadProgress(10)
+      
+      // Mostrar mensaje para archivos grandes
+      const fileSizeMB = file.size / (1024 * 1024)
+      if (fileSizeMB > 3) {
+        toast.info(`Procesando archivo grande (${fileSizeMB.toFixed(1)}MB). Esto puede tomar 2-3 minutos...`, {
+          duration: 10000
+        })
+      }
 
       const endpoint = caseId && caseId !== 'none' 
         ? '/api/casos/documents/upload'
         : '/api/documents/upload'
 
+      // Crear AbortController con timeout de 5 minutos para archivos grandes
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minutos
+      
+      // Simular progreso durante el procesamiento
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev < 85) return prev + 5
+          return prev
+        })
+      }, 3000)
+
       const response = await fetch(endpoint, {
         method: 'POST',
         body: formData,
+        signal: controller.signal
       })
-
-      setUploadProgress(70)
+      
+      clearTimeout(timeoutId)
+      clearInterval(progressInterval)
+      setUploadProgress(90)
 
       // Verificar si la respuesta es JSON válido
       const contentType = response.headers.get('content-type')
