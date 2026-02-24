@@ -188,6 +188,8 @@ export default function UploadClient({ userId, cases, userRole }) {
             text.includes('Gateway') || text.includes('timeout')) {
           
           console.log('Error de proxy detectado, verificando si el documento se procesó...')
+          toast.info('Conexión interrumpida. Verificando si el documento se procesó...', { duration: 30000 })
+          setUploadProgress(85)
           
           // Esperar y verificar si el documento se procesó
           const processedData = await checkDocumentProcessed(filename, 20, 5000) // 20 intentos x 5 seg = 100 seg
