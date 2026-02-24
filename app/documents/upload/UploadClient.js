@@ -216,7 +216,6 @@ export default function UploadClient({ userId, cases, userRole }) {
 
     } catch (error) {
       console.error('Upload error:', error)
-      clearInterval(progressInterval)
       
       // Si hubo un error de conexión o timeout, verificar si el documento se procesó
       const isConnectionError = error.name === 'AbortError' || 
