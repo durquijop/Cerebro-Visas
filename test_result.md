@@ -152,13 +152,11 @@ backend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 1
+  test_sequence: 2
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Fix structured data extraction mapping in upload-async"
-    - "Migrate case-miner.js from OpenAI to OpenRouter"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -166,5 +164,7 @@ test_plan:
 agent_communication:
     - agent: "main"
       message: "Fixed 2 bugs: (1) upload-async/route.js was not correctly reading the return value from extractStructuredData() - it returns {success, data, visaType} but the code was looking for issues/requests at the top level instead of in .data. (2) case-miner.js was hardcoded to use OPENAI_API_KEY when the rest of the app uses OPENROUTER_API_KEY. Created getLLMConfig() that prioritizes OpenRouter. Test the upload-async POST endpoint by sending a PDF file and verifying the job completes with issuesCount > 0 and requestsCount > 0. The GET endpoint for polling should also work. Key env vars: OPENROUTER_API_KEY, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY."
+    - agent: "testing"
+      message: "BACKEND TESTING COMPLETE: All 3 tasks tested and working. Created comprehensive backend_test.py that tests full async pipeline. Both bug fixes confirmed working: (1) Issues/requests now properly extracted from extractResult.data (4-5 issues, 4 requests consistently found), (2) OpenRouter integration working (logs show 'Using OpenRouter for extraction'). Upload->polling->completion cycle working perfectly. Ready for summary and finish."
 
 #====================================================================================================
