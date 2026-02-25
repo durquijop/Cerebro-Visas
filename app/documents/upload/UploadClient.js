@@ -431,14 +431,14 @@ export default function UploadClient({ userId, cases, userRole }) {
 
           {/* ============ TAB: SINGLE FILE ============ */}
           <TabsContent value="single">
-            <Card>
-              <CardHeader>
-                <CardTitle>Subir Documento</CardTitle>
+            <Card className="shadow-sm border-gray-200/80">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg">Subir Documento</CardTitle>
                 <CardDescription>
-                  Sube un documento RFE, NOID o Denial para análisis
+                  Sube un documento RFE, NOID o Denial para análisis con inteligencia artificial
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-5">
                 {/* Drop Zone */}
                 <div
                   onDragEnter={handleDrag}
@@ -446,14 +446,19 @@ export default function UploadClient({ userId, cases, userRole }) {
                   onDragOver={handleDrag}
                   onDrop={handleDrop}
                   className={`
-                    border-2 border-dashed rounded-lg p-8 text-center transition-colors
-                    ${dragActive ? 'border-purple-500 bg-purple-50' : 'border-gray-300'}
-                    ${file ? 'bg-green-50 border-green-500' : ''}
+                    relative border-2 border-dashed rounded-xl p-10 text-center transition-all duration-300 cursor-pointer
+                    ${dragActive 
+                      ? 'border-amber-400 bg-amber-50/50 scale-[1.01]' 
+                      : 'border-gray-200 hover:border-gray-300 bg-gradient-to-b from-gray-50/50 to-white'}
+                    ${file ? 'bg-emerald-50/50 border-emerald-300' : ''}
                   `}
+                  onClick={() => !file && document.getElementById('file-upload')?.click()}
                 >
                   {file ? (
-                    <div className="flex items-center justify-center gap-3">
-                      <FileText className="h-8 w-8 text-green-600" />
+                    <div className="flex items-center justify-center gap-4">
+                      <div className="h-12 w-12 rounded-lg bg-emerald-100 flex items-center justify-center">
+                        <FileText className="h-6 w-6 text-emerald-600" />
+                      </div>
                       <div className="text-left">
                         <p className="font-medium text-gray-900">{file.name}</p>
                         <p className="text-sm text-gray-500">
@@ -463,19 +468,22 @@ export default function UploadClient({ userId, cases, userRole }) {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setFile(null)}
+                        className="ml-2 h-8 w-8 rounded-full hover:bg-red-50 hover:text-red-500"
+                        onClick={(e) => { e.stopPropagation(); setFile(null); }}
                       >
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
                   ) : (
                     <>
-                      <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 mb-2">
+                      <div className="mx-auto mb-4 h-14 w-14 rounded-2xl bg-gradient-to-br from-slate-100 to-gray-50 border border-gray-200/80 flex items-center justify-center shadow-sm">
+                        <Upload className="h-6 w-6 text-gray-400" />
+                      </div>
+                      <p className="text-gray-600 font-medium mb-1">
                         Arrastra un archivo o haz clic para seleccionar
                       </p>
                       <p className="text-sm text-gray-400">
-                        PDF, DOCX o TXT (máx. 20MB)
+                        PDF, DOCX o TXT (max. 20MB)
                       </p>
                       <input
                         type="file"
@@ -484,21 +492,16 @@ export default function UploadClient({ userId, cases, userRole }) {
                         className="hidden"
                         id="file-upload"
                       />
-                      <label htmlFor="file-upload">
-                        <Button variant="outline" className="mt-4" asChild>
-                          <span>Seleccionar Archivo</span>
-                        </Button>
-                      </label>
                     </>
                   )}
                 </div>
 
                 {/* Options */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Tipo de Documento</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-gray-700">Tipo de Documento</Label>
                     <Select value={docType} onValueChange={setDocType}>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -511,10 +514,10 @@ export default function UploadClient({ userId, cases, userRole }) {
                     </Select>
                   </div>
 
-                  <div>
-                    <Label>Asociar a Caso (opcional)</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-gray-700">Asociar a Caso (opcional)</Label>
                     <Select value={caseId} onValueChange={setCaseId}>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-white">
                         <SelectValue placeholder="Sin caso" />
                       </SelectTrigger>
                       <SelectContent>
@@ -529,10 +532,15 @@ export default function UploadClient({ userId, cases, userRole }) {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <Label className="text-base">Procesar con IA</Label>
-                    <p className="text-sm text-gray-500">Extraer issues y requests automáticamente</p>
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-lg bg-amber-100/80 flex items-center justify-center">
+                      <Sparkles className="h-4 w-4 text-amber-600" />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold text-gray-800">Procesar con IA</Label>
+                      <p className="text-xs text-gray-500">Extraer issues y requests automaticamente</p>
+                    </div>
                   </div>
                   <Switch checked={processWithAI} onCheckedChange={setProcessWithAI} />
                 </div>
@@ -541,13 +549,13 @@ export default function UploadClient({ userId, cases, userRole }) {
                 <Button
                   onClick={handleUpload}
                   disabled={!file || uploading}
-                  className="w-full bg-purple-600 hover:bg-purple-700"
+                  className="w-full h-12 text-base font-semibold bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 text-white shadow-sm transition-all duration-200 rounded-xl"
                   size="lg"
                 >
                   {uploading ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Subiendo...</>
+                    <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Procesando documento...</>
                   ) : (
-                    <><Upload className="h-4 w-4 mr-2" /> Subir Documento</>
+                    <><Upload className="h-5 w-5 mr-2" /> Subir Documento</>
                   )}
                 </Button>
 
