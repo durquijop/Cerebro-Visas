@@ -106,39 +106,48 @@ user_problem_statement: "Document upload not generating issues or requests in th
 backend:
   - task: "Fix structured data extraction mapping in upload-async"
     implemented: true
-    working: "NA"
+    working: true
     file: "app/api/documents/upload-async/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Fixed Bug 1: extractStructuredData returns {success, data, visaType} but upload-async was reading structuredData.issues directly instead of structuredData.data.issues. Changed to properly destructure extractResult.data as analysisData."
+        - working: true
+          agent: "testing"
+          comment: "TESTED: Created backend_test.py and ran comprehensive tests. Upload endpoint successfully processes RFE documents. Extracted 4-5 issues and 4 requests consistently from test RFE content. Bug fix confirmed working - extractResult.data is properly accessed for issues/requests counts."
 
   - task: "Migrate case-miner.js from OpenAI to OpenRouter"
     implemented: true
-    working: "NA"
+    working: true
     file: "lib/case-miner.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Fixed Bug 2: case-miner.js was using OPENAI_API_KEY directly. Migrated to use OpenRouter (OPENROUTER_API_KEY) as primary with OpenAI as fallback via getLLMConfig() function. Model: openai/gpt-4.1 via OpenRouter."
+        - working: true
+          agent: "testing"
+          comment: "TESTED: Verified getLLMConfig() function properly prioritizes OpenRouter. Server logs confirm 'Using OpenRouter for extraction' during document processing. OpenRouter API integration working correctly with model openai/gpt-4.1."
 
   - task: "Upload async endpoint returns jobId and polls status"
     implemented: true
-    working: "NA"
+    working: true
     file: "app/api/documents/upload-async/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "POST endpoint starts async processing, GET endpoint returns job status. Both existed before, just fixing the data mapping."
+        - working: true
+          agent: "testing"
+          comment: "TESTED: POST endpoint returns valid jobId immediately. GET polling endpoint correctly tracks job progress through uploading->analyzing->completed states. Full async pipeline working including Supabase storage upload, AI analysis, and embeddings generation."
 
 metadata:
   created_by: "main_agent"
