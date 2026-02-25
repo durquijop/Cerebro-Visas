@@ -10,6 +10,19 @@ import time
 import os
 from pathlib import Path
 
+def load_env_vars():
+    """Load environment variables from .env file"""
+    env_path = Path('/app/.env')
+    if env_path.exists():
+        with open(env_path) as f:
+            for line in f:
+                if line.strip() and not line.startswith('#') and '=' in line:
+                    key, value = line.strip().split('=', 1)
+                    os.environ[key] = value
+
+# Load environment variables
+load_env_vars()
+
 # Configuration
 BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://cerebro-visas-2.preview.emergentagent.com')
 UPLOAD_ENDPOINT = f"{BASE_URL}/api/documents/upload-async"
