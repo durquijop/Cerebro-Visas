@@ -145,7 +145,6 @@ async function processDocumentAsync(jobId, buffer, filename, docType, processWit
     console.log(`   ✓ Documento guardado: ${docRecord.id}`)
 
     // 4. Análisis con AI (si está habilitado y hay texto)
-    let structuredData = null
     let issuesCount = 0
     let requestsCount = 0
 
@@ -153,27 +152,33 @@ async function processDocumentAsync(jobId, buffer, filename, docType, processWit
       updateJob({ status: 'analyzing', progress: 70, message: 'Analizando con AI...' })
       
       try {
-        structuredData = await extractStructuredData(textContent, docType)
+        const extractResult = await extractStructuredData(textContent, docType)
         
-        if (structuredData) {
-          issuesCount = structuredData.issues?.length || 0
-          requestsCount = structuredData.requests?.length || 0
+        // extractStructuredData retorna { success, data, visaType }
+        // Los issues/requests están dentro de extractResult.data
+        if (extractResult && extractResult.success && extractResult.data) {
+          const analysisData = extractResult.data
           
-          // Guardar en DB
+          issuesCount = analysisData.issues?.length || 0
+          requestsCount = analysisData.requests?.length || 0
+          
+          // Guardar structured_data en el documento
           await supabaseAdmin
             .from('documents')
             .update({ 
-              structured_data: structuredData,
+              structured_data: analysisData,
               analyzed_at: new Date().toISOString(),
-              visa_category: structuredData.document_info?.visa_category,
-              service_center: structuredData.document_info?.service_center
+              visa_category: analysisData.document_info?.visa_category,
+              service_center: analysisData.document_info?.service_center
             })
             .eq('id', docRecord.id)
           
-          // Guardar issues
-          await saveStructuredData(supabaseAdmin, docRecord.id, structuredData)
+          // Guardar issues y requests en tablas separadas
+          await saveStructuredData(supabaseAdmin, docRecord.id, analysisData)
           
           console.log(`   ✓ Análisis AI: ${issuesCount} issues, ${requestsCount} requests`)
+        } else {
+          console.log(`   ⚠️ Extracción no exitosa: ${extractResult?.error || 'sin datos'}`)
         }
       } catch (aiError) {
         console.error(`   ⚠️ Error en análisis AI: ${aiError.message}`)
