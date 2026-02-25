@@ -100,4 +100,62 @@
 
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
+
+user_problem_statement: "Document upload not generating issues or requests in the Análisis Estructurado (Case Miner) section. The UI shows Issues: 0 and Requests: 0 after upload."
+
+backend:
+  - task: "Fix structured data extraction mapping in upload-async"
+    implemented: true
+    working: "NA"
+    file: "app/api/documents/upload-async/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Fixed Bug 1: extractStructuredData returns {success, data, visaType} but upload-async was reading structuredData.issues directly instead of structuredData.data.issues. Changed to properly destructure extractResult.data as analysisData."
+
+  - task: "Migrate case-miner.js from OpenAI to OpenRouter"
+    implemented: true
+    working: "NA"
+    file: "lib/case-miner.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Fixed Bug 2: case-miner.js was using OPENAI_API_KEY directly. Migrated to use OpenRouter (OPENROUTER_API_KEY) as primary with OpenAI as fallback via getLLMConfig() function. Model: openai/gpt-4.1 via OpenRouter."
+
+  - task: "Upload async endpoint returns jobId and polls status"
+    implemented: true
+    working: "NA"
+    file: "app/api/documents/upload-async/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "POST endpoint starts async processing, GET endpoint returns job status. Both existed before, just fixing the data mapping."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Fix structured data extraction mapping in upload-async"
+    - "Migrate case-miner.js from OpenAI to OpenRouter"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: "Fixed 2 bugs: (1) upload-async/route.js was not correctly reading the return value from extractStructuredData() - it returns {success, data, visaType} but the code was looking for issues/requests at the top level instead of in .data. (2) case-miner.js was hardcoded to use OPENAI_API_KEY when the rest of the app uses OPENROUTER_API_KEY. Created getLLMConfig() that prioritizes OpenRouter. Test the upload-async POST endpoint by sending a PDF file and verifying the job completes with issuesCount > 0 and requestsCount > 0. The GET endpoint for polling should also work. Key env vars: OPENROUTER_API_KEY, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY."
+
 #====================================================================================================
