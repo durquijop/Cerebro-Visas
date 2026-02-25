@@ -446,7 +446,7 @@ export default function UploadClient({ userId, cases, userRole }) {
                   onDragOver={handleDrag}
                   onDrop={handleDrop}
                   className={`
-                    relative border-2 border-dashed rounded-xl p-10 text-center transition-all duration-300 cursor-pointer
+                    relative border-2 border-dashed rounded-3xl p-10 text-center transition-all duration-300 cursor-pointer
                     ${dragActive 
                       ? 'border-amber-400 bg-amber-50/50 scale-[1.01]' 
                       : 'border-gray-200 hover:border-gray-300 bg-gradient-to-b from-gray-50/50 to-white'}
