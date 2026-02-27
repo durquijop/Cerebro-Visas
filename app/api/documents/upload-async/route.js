@@ -112,11 +112,20 @@ export async function POST(request) {
 
 /**
  * Procesa el documento en segundo plano
+ * El registro ya existe en DB con status 'pending'
  */
-async function processDocumentAsync(jobId, buffer, filename, docType, processWithAI, caseId) {
+async function processDocumentAsync(jobId, docId, buffer, filename, storagePath, docType, processWithAI) {
   const updateJob = (updates) => {
     const current = jobs.get(jobId) || {}
     jobs.set(jobId, { ...current, ...updates })
+  }
+
+  // Helper para actualizar status en DB
+  const updateDocStatus = async (status, extraFields = {}) => {
+    await supabaseAdmin
+      .from('documents')
+      .update({ extraction_status: status, ...extraFields })
+      .eq('id', docId)
   }
 
   try {
@@ -124,6 +133,7 @@ async function processDocumentAsync(jobId, buffer, filename, docType, processWit
     
     // 1. Extraer texto
     updateJob({ status: 'extracting', progress: 20, message: 'Extrayendo texto...' })
+    await updateDocStatus('extracting')
     
     const extractResult = await extractText(buffer, filename)
     const textContent = extractResult.success ? normalizeText(extractResult.text) : ''
@@ -140,44 +150,30 @@ async function processDocumentAsync(jobId, buffer, filename, docType, processWit
     // 2. Subir archivo a Supabase Storage
     updateJob({ status: 'saving', progress: 55, message: 'Guardando archivo...' })
     
-    const fileExt = filename.split('.').pop()
-    const storagePath = `documents/${uuidv4()}.${fileExt}`
-    
     const { error: uploadError } = await supabaseAdmin.storage
       .from('documents')
       .upload(storagePath, buffer, {
-        contentType: `application/${fileExt}`,
-        upsert: false
+        contentType: `application/${filename.split('.').pop()}`,
+        upsert: true
       })
     
     if (uploadError) {
       console.log(`   ⚠️ Error subiendo a storage: ${uploadError.message}`)
     }
 
-    // 3. Crear registro en base de datos
+    // 3. Actualizar registro con texto extraído
     updateJob({ status: 'saving_db', progress: 60 })
     
-    const docId = uuidv4()
-    const { data: docRecord, error: dbError } = await supabaseAdmin
+    await supabaseAdmin
       .from('documents')
-      .insert({
-        id: docId,
-        name: filename,
-        doc_type: docType,
-        storage_path: storagePath,
+      .update({
         text_content: textContent,
-        case_id: caseId && caseId !== 'none' ? caseId : null,
-        extraction_status: textContent.length > 0 ? 'completed' : 'failed'
+        extraction_status: textContent.length > 0 ? 'analyzing' : 'failed'
       })
-      .select()
-      .single()
+      .eq('id', docId)
 
-    if (dbError) {
-      throw new Error(`Error guardando en DB: ${dbError.message}`)
-    }
-
-    updateJob({ documentId: docRecord.id, progress: 65 })
-    console.log(`   ✓ Documento guardado: ${docRecord.id}`)
+    updateJob({ documentId: docId, progress: 65 })
+    console.log(`   ✓ Documento actualizado: ${docId}`)
 
     // 4. Análisis con AI (si está habilitado y hay texto)
     let issuesCount = 0
