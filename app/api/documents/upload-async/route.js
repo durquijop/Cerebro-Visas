@@ -174,9 +174,14 @@ async function processDocumentAsync(jobId, buffer, filename, docType, processWit
             .eq('id', docRecord.id)
           
           // Guardar issues y requests en tablas separadas
-          await saveStructuredData(supabaseAdmin, docRecord.id, analysisData)
+          const saveResult = await saveStructuredData(supabaseAdmin, docRecord.id, analysisData)
           
-          console.log(`   ✓ Análisis AI: ${issuesCount} issues, ${requestsCount} requests`)
+          if (saveResult.success) {
+            console.log(`   ✓ Análisis AI: ${issuesCount} issues, ${requestsCount} requests (DB: ${saveResult.issuesSaved || 0} issues, ${saveResult.requestsSaved || 0} requests guardados)`)
+          } else {
+            console.error(`   ⚠️ Error guardando datos: ${saveResult.error}`)
+            console.log(`   ✓ Análisis AI: ${issuesCount} issues, ${requestsCount} requests (datos en structured_data, fallo en tablas separadas)`)
+          }
         } else {
           console.log(`   ⚠️ Extracción no exitosa: ${extractResult?.error || 'sin datos'}`)
         }
