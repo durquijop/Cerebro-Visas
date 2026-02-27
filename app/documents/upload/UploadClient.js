@@ -26,6 +26,7 @@ export default function UploadClient({ userId, cases, userRole }) {
   const [processWithAI, setProcessWithAI] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadStatusMessage, setUploadStatusMessage] = useState('')
   const [result, setResult] = useState(null)
   const [dragActive, setDragActive] = useState(false)
   
