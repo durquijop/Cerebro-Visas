@@ -145,15 +145,18 @@ backend:
 
   - task: "saveStructuredData resilient DB saving with error logging"
     implemented: true
-    working: "NA"
+    working: true
     file: "lib/case-miner.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "NEW FIX: saveStructuredData now checks every Supabase return for errors. If bulk insert to document_issues fails (FK constraint), it retries one-by-one. Same for document_requests. All errors are logged. upload-async now checks saveResult and logs success/failure counts."
+        - working: true
+          agent: "testing"
+          comment: "TESTED: Bug 3 fix working perfectly. The function correctly detects FK constraint violations, retries one-by-one, logs all errors, and continues processing. During test: 9 issues extracted but 0 saved due to taxonomy_code FK constraints, 5 requests extracted and all 5 saved successfully. Job completed successfully with detailed error logging instead of silent failure."
 
   - task: "Upload async endpoint returns jobId and polls status"
     implemented: true
