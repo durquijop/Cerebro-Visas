@@ -32,7 +32,9 @@ export default async function DocumentsPage() {
       storage_path,
       created_at,
       document_date,
-      case_id
+      case_id,
+      extraction_status,
+      embeddings_count
     `)
     .order('created_at', { ascending: false })
 
