@@ -202,10 +202,10 @@ async function processDocumentAsync(jobId, docId, buffer, filename, storagePath,
               visa_category: analysisData.document_info?.visa_category,
               service_center: analysisData.document_info?.service_center
             })
-            .eq('id', docRecord.id)
+            .eq('id', docId)
           
           // Guardar issues y requests en tablas separadas
-          const saveResult = await saveStructuredData(supabaseAdmin, docRecord.id, analysisData)
+          const saveResult = await saveStructuredData(supabaseAdmin, docId, analysisData)
           
           if (saveResult.success) {
             console.log(`   ✓ Análisis AI: ${issuesCount} issues, ${requestsCount} requests (DB: ${saveResult.issuesSaved || 0} issues, ${saveResult.requestsSaved || 0} requests guardados)`)
