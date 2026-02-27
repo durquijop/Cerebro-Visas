@@ -101,7 +101,7 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 
-user_problem_statement: "Document upload not generating issues or requests in the Análisis Estructurado (Case Miner) section. The UI shows Issues: 0 and Requests: 0 after upload."
+user_problem_statement: "Document upload should immediately create a document record in DB with 'pending' status, appear in the documents list, and update status as processing progresses. Also store embeddings_count in the document."
 
 backend:
   - task: "Fix structured data extraction mapping in upload-async"
