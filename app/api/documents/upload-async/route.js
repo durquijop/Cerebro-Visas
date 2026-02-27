@@ -230,7 +230,7 @@ async function processDocumentAsync(jobId, docId, buffer, filename, storagePath,
       
       try {
         const embResult = await generateDocumentEmbeddings(supabaseAdmin, {
-          id: docRecord.id,
+          id: docId,
           text_content: textContent,
           doc_type: docType,
           original_name: filename
