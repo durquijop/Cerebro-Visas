@@ -246,13 +246,24 @@ async function processDocumentAsync(jobId, docId, buffer, filename, storagePath,
     }
 
     // 6. Completado - actualizar DB con status final y embeddings_count
-    await supabaseAdmin
+    const updateFields = { 
+      extraction_status: 'completed'
+    }
+
+    // Intentar guardar embeddings_count (la columna puede no existir)
+    const { error: finalUpdateError } = await supabaseAdmin
       .from('documents')
-      .update({ 
-        extraction_status: 'completed',
-        embeddings_count: embeddingsCount
-      })
+      .update({ ...updateFields, embeddings_count: embeddingsCount })
       .eq('id', docId)
+
+    if (finalUpdateError) {
+      // Si falla por columna inexistente, guardar sin embeddings_count
+      console.log(`   ⚠️ No se pudo guardar embeddings_count: ${finalUpdateError.message}`)
+      await supabaseAdmin
+        .from('documents')
+        .update(updateFields)
+        .eq('id', docId)
+    }
 
     updateJob({
       status: 'completed',
