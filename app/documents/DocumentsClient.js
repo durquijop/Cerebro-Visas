@@ -96,6 +96,17 @@ export default function DocumentsClient({ documents: initialDocuments, userRole 
     return badges[type] || badges['Other']
   }
 
+  const getStatusBadge = (status) => {
+    const statuses = {
+      'pending': { label: 'Pendiente', className: 'bg-yellow-100 text-yellow-800 animate-pulse' },
+      'extracting': { label: 'Extrayendo texto...', className: 'bg-blue-100 text-blue-800 animate-pulse' },
+      'analyzing': { label: 'Analizando con IA...', className: 'bg-purple-100 text-purple-800 animate-pulse' },
+      'completed': { label: 'Completado', className: 'bg-green-100 text-green-800' },
+      'failed': { label: 'Error', className: 'bg-red-100 text-red-800' }
+    }
+    return statuses[status] || statuses['pending']
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
