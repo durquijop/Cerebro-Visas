@@ -196,13 +196,15 @@ export default function UploadClient({ userId, cases, userRole }) {
 
       console.log('Job iniciado:', initData.jobId)
       setUploadProgress(10)
+      setUploadStatusMessage('Archivo recibido. Iniciando procesamiento...')
       toast.success('Archivo recibido. Procesando...', { duration: 3000 })
 
-      // Hacer polling del estado del job
-      const jobResult = await checkJobStatus(initData.jobId, 90, 2000) // 90 intentos x 2 seg = 3 min
+      // Hacer polling del estado del job - 240 intentos x 2 seg = 8 min (suficiente para OCR de PDFs escaneados)
+      const jobResult = await checkJobStatus(initData.jobId, 240, 2000)
 
       if (jobResult && jobResult.success) {
         setUploadProgress(100)
+        setUploadStatusMessage('¡Procesamiento completado!')
         setResult({
           success: true,
           message: 'Documento procesado exitosamente',
@@ -229,34 +231,8 @@ export default function UploadClient({ userId, cases, userRole }) {
       } else if (jobResult && !jobResult.success) {
         throw new Error(jobResult.error || 'Error en procesamiento')
       } else {
-        // Timeout - verificar si el documento se procesó de todos modos
-        toast.info('Verificando estado final...', { duration: 5000 })
-        const processedData = await checkDocumentProcessed(filename, 10, 3000)
-        
-        if (processedData && processedData.found && processedData.status === 'completed') {
-          setUploadProgress(100)
-          setResult({
-            success: true,
-            message: 'Documento procesado exitosamente',
-            documentId: processedData.result?.documentId,
-            documentName: processedData.result?.documentName,
-            extraction: {
-              success: true,
-              textLength: processedData.result?.textLength
-            },
-            structuredData: {
-              issues_count: processedData.result?.issuesCount || 0,
-              requests_count: processedData.result?.requestsCount || 0
-            },
-            embeddings: {
-              generated: (processedData.result?.embeddingsCount || 0) > 0,
-              chunks: processedData.result?.embeddingsCount || 0
-            }
-          })
-          toast.success('¡Documento procesado exitosamente!')
-        } else {
-          throw new Error('El procesamiento tardó demasiado. Verifique en "Mis Documentos".')
-        }
+        // Timeout después de 8 minutos
+        throw new Error('El procesamiento tardó demasiado (>8 min). El documento puede seguir procesándose en segundo plano. Verifique en "Mis Documentos".')
       }
 
     } catch (error) {
