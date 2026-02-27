@@ -164,7 +164,7 @@ backend:
     file: "app/api/documents/upload-async/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
@@ -172,6 +172,9 @@ backend:
         - working: true
           agent: "testing"
           comment: "TESTED: POST endpoint returns valid jobId immediately. GET polling endpoint correctly tracks job progress through uploading->analyzing->completed states. Full async pipeline working including Supabase storage upload, AI analysis, and embeddings generation."
+        - working: true
+          agent: "testing"
+          comment: "RE-TESTED with Bug 3 fix: Full async pipeline confirmed working. POST returns jobId immediately, GET polling shows progress correctly (uploading->saving->analyzing->embeddings->completed). Final result shows extracted counts (9 issues, 5 requests) and document ID. All processing stages completed successfully."
 
 metadata:
   created_by: "main_agent"
