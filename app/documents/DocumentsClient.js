@@ -198,17 +198,27 @@ export default function DocumentsClient({ documents: initialDocuments, userRole 
                   <TableRow>
                     <TableHead>Nombre</TableHead>
                     <TableHead>Tipo</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Chunks</TableHead>
                     <TableHead>Caso Asociado</TableHead>
                     <TableHead>Fecha Doc.</TableHead>
                     <TableHead>Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredDocuments.map((doc) => (
-                    <TableRow key={doc.id}>
+                  {filteredDocuments.map((doc) => {
+                    const status = getStatusBadge(doc.extraction_status)
+                    const isProcessing = doc.extraction_status === 'pending' || doc.extraction_status === 'extracting' || doc.extraction_status === 'analyzing'
+                    
+                    return (
+                    <TableRow key={doc.id} className={isProcessing ? 'bg-yellow-50/50' : ''}>
                       <TableCell className="font-medium">
                         <div className="flex items-center space-x-2">
-                          <FileText className="h-4 w-4 text-gray-400" />
+                          {isProcessing ? (
+                            <Loader2 className="h-4 w-4 text-amber-500 animate-spin" />
+                          ) : (
+                            <FileText className="h-4 w-4 text-gray-400" />
+                          )}
                           <span>{doc.name}</span>
                         </div>
                       </TableCell>
@@ -216,6 +226,21 @@ export default function DocumentsClient({ documents: initialDocuments, userRole 
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDocTypeBadge(doc.doc_type)}`}>
                           {doc.doc_type}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.className}`}>
+                          {status.label}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {doc.embeddings_count != null ? (
+                          <span className="flex items-center gap-1 text-sm text-gray-600">
+                            <Database className="h-3.5 w-3.5" />
+                            {doc.embeddings_count}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-sm">—</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         {doc.cases?.title || (
@@ -230,11 +255,13 @@ export default function DocumentsClient({ documents: initialDocuments, userRole 
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Link href={`/documents/${doc.id}`}>
-                            <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4 mr-1" /> Ver
-                            </Button>
-                          </Link>
+                          {!isProcessing && (
+                            <Link href={`/documents/${doc.id}`}>
+                              <Button variant="ghost" size="sm">
+                                <Eye className="h-4 w-4 mr-1" /> Ver
+                              </Button>
+                            </Link>
+                          )}
                           <Button 
                             variant="ghost" 
                             size="sm"
@@ -251,7 +278,8 @@ export default function DocumentsClient({ documents: initialDocuments, userRole 
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    )
+                  })}
                 </TableBody>
               </Table>
             ) : (
