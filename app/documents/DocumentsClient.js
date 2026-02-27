@@ -137,11 +137,22 @@ export default function DocumentsClient({ documents: initialDocuments, userRole 
             </p>
           </div>
           {(userRole === 'admin' || userRole === 'attorney' || userRole === 'drafter') && (
-            <Link href="/documents/upload">
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Upload className="mr-2 h-4 w-4" /> Subir Documento
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRefresh}
+                disabled={refreshing}
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> 
+                Actualizar
               </Button>
-            </Link>
+              <Link href="/documents/upload">
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Upload className="mr-2 h-4 w-4" /> Subir Documento
+                </Button>
+              </Link>
+            </div>
           )}
         </div>
 
