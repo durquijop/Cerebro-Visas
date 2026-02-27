@@ -174,8 +174,17 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Fix structured data extraction mapping in upload-async"
+    - "saveStructuredData resilient DB saving with error logging"
+    - "Upload async endpoint returns jobId and polls status"
   stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: "Fixed 3 bugs total. Bug 3 (NEW): saveStructuredData in case-miner.js was not checking Supabase error returns. Supabase client does NOT throw exceptions on insert failure - it returns {data, error}. If the document_issues table has a FK constraint on taxonomy_code, the bulk insert silently fails. Fix: Now checks every Supabase return for errors. If bulk insert fails, retries one-by-one and logs each failure. Also upload-async now checks saveResult and logs DB save counts. Please test: (1) Upload a text file with RFE content, (2) Verify the job completes with issuesCount > 0, (3) Check server logs for '✓ Issues guardados' and '✓ Requests guardados' messages confirming DB writes. Key env vars: OPENROUTER_API_KEY, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY."
   test_all: false
   test_priority: "high_first"
 
