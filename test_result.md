@@ -184,19 +184,15 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Fix structured data extraction mapping in upload-async"
-    - "saveStructuredData resilient DB saving with error logging"
-    - "Upload async endpoint returns jobId and polls status"
+    - "Document created immediately with pending status"
+    - "Status updates during processing lifecycle"
+    - "Embeddings count stored in document"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
     - agent: "main"
-      message: "Fixed 3 bugs total. Bug 3 (NEW): saveStructuredData in case-miner.js was not checking Supabase error returns. Supabase client does NOT throw exceptions on insert failure - it returns {data, error}. If the document_issues table has a FK constraint on taxonomy_code, the bulk insert silently fails. Fix: Now checks every Supabase return for errors. If bulk insert fails, retries one-by-one and logs each failure. Also upload-async now checks saveResult and logs DB save counts. Please test: (1) Upload a text file with RFE content, (2) Verify the job completes with issuesCount > 0, (3) Check server logs for '✓ Issues guardados' and '✓ Requests guardados' messages confirming DB writes. Key env vars: OPENROUTER_API_KEY, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY."
-    - agent: "testing"
-      message: "BACKEND TESTING COMPLETE: All 3 tasks tested and working. Created comprehensive backend_test.py that tests full async pipeline. Both bug fixes confirmed working: (1) Issues/requests now properly extracted from extractResult.data (4-5 issues, 4 requests consistently found), (2) OpenRouter integration working (logs show 'Using OpenRouter for extraction'). Upload->polling->completion cycle working perfectly. Ready for summary and finish."
-    - agent: "testing"
-      message: "COMPREHENSIVE RE-TEST COMPLETE: Bug 3 fix verified working perfectly. Upload async pipeline fully functional - uploaded 5202-char RFE, extracted 9 issues + 5 requests, job completed successfully. Bug 3 fix provides excellent error handling: detects FK constraint violations, retries one-by-one, logs all failures. Requests saved successfully (5/5), issues show taxonomy FK issues (0/9) but structured_data contains all information. System no longer fails silently - provides detailed diagnostics and completes successfully."
+      message: "Major refactor of upload-async endpoint. Now creates document record IMMEDIATELY with extraction_status='pending' before processing starts. The documentId is returned in the POST response. Status lifecycle: pending -> extracting -> analyzing -> completed/failed. embeddings_count saved to document on completion. Test: (1) POST /api/documents/upload-async with text file, verify response has documentId, (2) Immediately GET /api/documents and verify doc exists with extraction_status='pending', (3) Poll job until completion, (4) Verify document has extraction_status='completed' and embeddings_count > 0."
 
 #====================================================================================================
