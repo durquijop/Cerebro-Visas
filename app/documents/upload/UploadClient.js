@@ -540,7 +540,14 @@ export default function UploadClient({ userId, cases, userRole }) {
                 </Button>
 
                 {uploading && (
-                  <Progress value={uploadProgress} className="w-full" />
+                  <div className="space-y-2">
+                    <Progress value={uploadProgress} className="w-full" />
+                    {uploadStatusMessage && (
+                      <p className="text-sm text-gray-500 text-center animate-pulse">
+                        {uploadStatusMessage}
+                      </p>
+                    )}
+                  </div>
                 )}
 
                 {/* Result */}
