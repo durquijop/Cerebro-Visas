@@ -153,6 +153,7 @@ export default function UploadClient({ userId, cases, userRole }) {
 
     setUploading(true)
     setUploadProgress(0)
+    setUploadStatusMessage('')
     setResult(null)
 
     const filename = file.name
