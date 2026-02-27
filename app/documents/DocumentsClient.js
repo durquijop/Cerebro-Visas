@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Brain, ArrowLeft, FileText, Upload, Search, Filter, Eye, Trash2, Loader2 } from 'lucide-react'
+import { Brain, ArrowLeft, FileText, Upload, Search, Filter, Eye, Trash2, Loader2, RefreshCw, Database } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
@@ -16,7 +16,45 @@ export default function DocumentsClient({ documents: initialDocuments, userRole 
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [deletingId, setDeletingId] = useState(null)
+  const [refreshing, setRefreshing] = useState(false)
   const router = useRouter()
+
+  // Auto-refresh si hay documentos en procesamiento
+  const hasPendingDocs = documents.some(d => 
+    d.extraction_status === 'pending' || 
+    d.extraction_status === 'extracting' || 
+    d.extraction_status === 'analyzing'
+  )
+
+  const refreshDocuments = useCallback(async () => {
+    try {
+      const response = await fetch('/api/documents')
+      if (response.ok) {
+        const data = await response.json()
+        const docs = Array.isArray(data) ? data : (data.documents || data.data || [])
+        setDocuments(docs)
+      }
+    } catch (err) {
+      console.error('Error refreshing documents:', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!hasPendingDocs) return
+
+    const interval = setInterval(() => {
+      refreshDocuments()
+    }, 5000) // Refresh cada 5 segundos si hay docs pendientes
+
+    return () => clearInterval(interval)
+  }, [hasPendingDocs, refreshDocuments])
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await refreshDocuments()
+    setRefreshing(false)
+    toast.success('Lista actualizada')
+  }
 
   const handleDelete = async (docId, docName) => {
     if (!confirm(`¿Está seguro de eliminar "${docName}"?`)) return
