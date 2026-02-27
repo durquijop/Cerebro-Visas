@@ -87,16 +87,19 @@ export default function UploadClient({ userId, cases, userRole }) {
   }
 
   // Función para verificar el estado de un job asíncrono
-  const checkJobStatus = async (jobId, maxRetries = 90, delayMs = 2000) => {
+  const checkJobStatus = async (jobId, maxRetries = 240, delayMs = 2000) => {
     for (let i = 0; i < maxRetries; i++) {
       try {
         const response = await fetch(`/api/documents/upload-async?jobId=${jobId}`)
         if (response.ok) {
           const data = await response.json()
           
-          // Actualizar progreso
+          // Actualizar progreso y mensaje
           if (data.progress) {
             setUploadProgress(data.progress)
+          }
+          if (data.message) {
+            setUploadStatusMessage(data.message)
           }
           
           // Si completó o falló, retornar
