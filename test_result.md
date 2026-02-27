@@ -110,7 +110,7 @@ backend:
     file: "app/api/documents/upload-async/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         - working: "NA"
           agent: "main"
@@ -118,6 +118,12 @@ backend:
         - working: true
           agent: "testing"
           comment: "TESTED: Created backend_test.py and ran comprehensive tests. Upload endpoint successfully processes RFE documents. Extracted 4-5 issues and 4 requests consistently from test RFE content. Bug fix confirmed working - extractResult.data is properly accessed for issues/requests counts."
+        - working: false
+          agent: "user"
+          comment: "User reports issues and requests still showing 0 in the UI after upload."
+        - working: "NA"
+          agent: "main"
+          comment: "Found Bug 3: saveStructuredData in case-miner.js was not checking Supabase return errors. Supabase does NOT throw on insert failure (returns {data, error}). If document_issues table has a FK constraint on taxonomy_code, the insert fails silently. Fixed: now checks error on every Supabase operation, falls back to individual inserts if bulk fails, and logs all errors. Also added saveResult checking in upload-async."
 
   - task: "Migrate case-miner.js from OpenAI to OpenRouter"
     implemented: true
@@ -134,13 +140,25 @@ backend:
           agent: "testing"
           comment: "TESTED: Verified getLLMConfig() function properly prioritizes OpenRouter. Server logs confirm 'Using OpenRouter for extraction' during document processing. OpenRouter API integration working correctly with model openai/gpt-4.1."
 
+  - task: "saveStructuredData resilient DB saving with error logging"
+    implemented: true
+    working: "NA"
+    file: "lib/case-miner.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "NEW FIX: saveStructuredData now checks every Supabase return for errors. If bulk insert to document_issues fails (FK constraint), it retries one-by-one. Same for document_requests. All errors are logged. upload-async now checks saveResult and logs success/failure counts."
+
   - task: "Upload async endpoint returns jobId and polls status"
     implemented: true
     working: true
     file: "app/api/documents/upload-async/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         - working: "NA"
           agent: "main"
