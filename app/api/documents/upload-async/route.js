@@ -245,14 +245,22 @@ async function processDocumentAsync(jobId, docId, buffer, filename, storagePath,
       }
     }
 
-    // 6. Completado
+    // 6. Completado - actualizar DB con status final y embeddings_count
+    await supabaseAdmin
+      .from('documents')
+      .update({ 
+        extraction_status: 'completed',
+        embeddings_count: embeddingsCount
+      })
+      .eq('id', docId)
+
     updateJob({
       status: 'completed',
       progress: 100,
       message: 'Procesamiento completado',
       completedAt: new Date().toISOString(),
       result: {
-        documentId: docRecord.id,
+        documentId: docId,
         documentName: filename,
         docType,
         textLength: textContent.length,
@@ -265,7 +273,7 @@ async function processDocumentAsync(jobId, docId, buffer, filename, storagePath,
       }
     })
 
-    console.log(`✅ Job ${jobId}: Completado exitosamente`)
+    console.log(`✅ Job ${jobId}: Completado exitosamente (${issuesCount} issues, ${requestsCount} requests, ${embeddingsCount} chunks)`)
 
   } catch (error) {
     console.error(`❌ Job ${jobId}: Error - ${error.message}`)
