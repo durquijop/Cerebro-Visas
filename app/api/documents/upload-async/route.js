@@ -18,10 +18,12 @@ const jobs = new Map()
 /**
  * POST /api/documents/upload-async
  * Sube un documento y lo procesa en segundo plano
+ * Crea el registro en DB inmediatamente con status 'pending'
  * Devuelve inmediatamente un jobId para hacer polling
  */
 export async function POST(request) {
   const jobId = uuidv4()
+  const docId = uuidv4()
   
   try {
     const formData = await request.formData()
@@ -34,38 +36,71 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No se recibió archivo' }, { status: 400 })
     }
 
-    // Inicializar estado del trabajo
-    jobs.set(jobId, {
-      status: 'uploading',
-      progress: 5,
-      filename: file.name,
-      startedAt: new Date().toISOString(),
-      documentId: null,
-      error: null
-    })
+    const filename = file.name
 
     // Leer el archivo
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    
-    jobs.set(jobId, { ...jobs.get(jobId), status: 'uploaded', progress: 10 })
 
-    // Iniciar procesamiento en segundo plano (no await)
-    processDocumentAsync(jobId, buffer, file.name, docType, processWithAI, caseId)
+    // 1. Crear registro en DB INMEDIATAMENTE con status 'pending'
+    const fileExt = filename.split('.').pop()
+    const storagePath = `documents/${docId}.${fileExt}`
+
+    const { data: docRecord, error: dbError } = await supabaseAdmin
+      .from('documents')
+      .insert({
+        id: docId,
+        name: filename,
+        doc_type: docType,
+        storage_path: storagePath,
+        case_id: caseId && caseId !== 'none' ? caseId : null,
+        extraction_status: 'pending',
+        text_content: ''
+      })
+      .select()
+      .single()
+
+    if (dbError) {
+      console.error('Error creando documento:', dbError.message)
+      return NextResponse.json({ error: `Error creando documento: ${dbError.message}` }, { status: 500 })
+    }
+
+    console.log(`📄 Documento creado: ${docId} (${filename}) - Status: pending`)
+
+    // 2. Inicializar estado del trabajo
+    jobs.set(jobId, {
+      status: 'pending',
+      progress: 5,
+      filename,
+      startedAt: new Date().toISOString(),
+      documentId: docId,
+      error: null,
+      message: 'Documento registrado. Iniciando procesamiento...'
+    })
+
+    // 3. Iniciar procesamiento en segundo plano (no await)
+    processDocumentAsync(jobId, docId, buffer, filename, storagePath, docType, processWithAI)
       .catch(err => {
         console.error(`Job ${jobId} failed:`, err)
         const job = jobs.get(jobId)
         if (job) {
           jobs.set(jobId, { ...job, status: 'failed', error: err.message })
         }
+        // Marcar documento como fallido en DB
+        supabaseAdmin
+          .from('documents')
+          .update({ extraction_status: 'failed' })
+          .eq('id', docId)
+          .then(() => {})
       })
 
-    // Devolver inmediatamente el jobId
+    // Devolver inmediatamente el jobId Y documentId
     return NextResponse.json({
       success: true,
       jobId,
-      message: 'Procesamiento iniciado. Use el endpoint /api/documents/job-status para verificar el estado.',
-      pollUrl: `/api/documents/job-status?jobId=${jobId}`
+      documentId: docId,
+      message: 'Documento registrado. Procesamiento iniciado.',
+      pollUrl: `/api/documents/upload-async?jobId=${jobId}`
     })
 
   } catch (error) {
