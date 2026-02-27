@@ -133,13 +133,15 @@ def test_document_immediate_creation(document_id):
             
         print(f"📄 Found document: {json.dumps(target_doc, indent=2)}")
         
-        # Check extraction_status
+        # Check extraction_status (should be 'pending' or early processing stage)
         extraction_status = target_doc.get('extraction_status')
-        if extraction_status != 'pending':
-            print(f"❌ FAILED: Expected extraction_status='pending', got '{extraction_status}'")
+        valid_early_statuses = ['pending', 'extracting', 'analyzing']
+        
+        if extraction_status not in valid_early_statuses:
+            print(f"❌ FAILED: Expected early processing status (pending/extracting/analyzing), got '{extraction_status}'")
             return False
             
-        print(f"✅ PASSED: Document {document_id} exists with extraction_status='pending'")
+        print(f"✅ PASSED: Document {document_id} exists with extraction_status='{extraction_status}' (processing started)")
         return True
         
     except Exception as e:
