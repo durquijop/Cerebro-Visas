@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import DocumentsClient from './DocumentsClient'
 
 // Deshabilitar caché para siempre mostrar datos frescos
@@ -22,8 +23,14 @@ export default async function DocumentsPage() {
     .eq('id', user.id)
     .single()
 
-  // Obtener documentos de la tabla 'documents'
-  let documentsQuery = supabase
+  // Usar admin client para evitar RLS que bloquea lectura de documentos
+  const supabaseAdmin = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  )
+
+  // Obtener documentos de la tabla 'documents' con admin client
+  let documentsQuery = supabaseAdmin
     .from('documents')
     .select(`
       id,
@@ -33,8 +40,7 @@ export default async function DocumentsPage() {
       created_at,
       document_date,
       case_id,
-      extraction_status,
-      embeddings_count
+      extraction_status
     `)
     .order('created_at', { ascending: false })
 

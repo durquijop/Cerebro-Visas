@@ -233,11 +233,13 @@ export default function DocumentsClient({ documents: initialDocuments, userRole 
                         </span>
                       </TableCell>
                       <TableCell>
-                        {doc.embeddings_count != null ? (
+                        {doc.embeddings_count != null && doc.embeddings_count > 0 ? (
                           <span className="flex items-center gap-1 text-sm text-gray-600">
                             <Database className="h-3.5 w-3.5" />
                             {doc.embeddings_count}
                           </span>
+                        ) : doc.extraction_status === 'completed' ? (
+                          <span className="text-green-600 text-sm">✓</span>
                         ) : (
                           <span className="text-gray-400 text-sm">—</span>
                         )}
