@@ -12,7 +12,7 @@ import io
 from datetime import datetime
 
 # Configuration
-BASE_URL = "https://cerebro-visas-2.preview.emergentagent.com"
+BASE_URL = "https://drift-detector-5.preview.emergentagent.com"
 UPLOAD_ENDPOINT = f"{BASE_URL}/api/documents/upload-async"
 DOCUMENTS_ENDPOINT = f"{BASE_URL}/api/documents"
 
